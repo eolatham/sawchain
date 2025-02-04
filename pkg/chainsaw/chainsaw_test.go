@@ -11,6 +11,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// TODO: add more tests (bindings, multiple resources, error message checking)
 var _ = Describe("CheckResources", func() {
 	var (
 		err          error
