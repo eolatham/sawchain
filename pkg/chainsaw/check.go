@@ -7,7 +7,6 @@ import (
 
 	"github.com/kyverno/chainsaw/pkg/apis"
 	"github.com/kyverno/chainsaw/pkg/apis/v1alpha1"
-	"github.com/kyverno/chainsaw/pkg/client"
 	"github.com/kyverno/chainsaw/pkg/engine/bindings"
 	"github.com/kyverno/chainsaw/pkg/engine/checks"
 	operrors "github.com/kyverno/chainsaw/pkg/engine/operations/errors"
@@ -17,6 +16,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // CheckResources checks if the resources in the template file match the resources in the cluster.
@@ -33,10 +33,10 @@ func CheckResources(c client.Client, ctx context.Context, templatePath string, b
 		bindingsObj = bindings.RegisterBinding(ctx, bindingsObj, k, v)
 	}
 
-	// For each resource, execute Chainsaw assertion
+	// Check each resource
 	for _, resource := range resources {
 		if err := check(c, ctx, bindingsObj, resource); err != nil {
-			return fmt.Errorf("failed to execute assertion: %w", err)
+			return fmt.Errorf("failed to execute check: %w", err)
 		}
 	}
 	return nil
@@ -108,7 +108,7 @@ func read(c client.Client, ctx context.Context, expected client.Object) ([]unstr
 	if useGet {
 		var actual unstructured.Unstructured
 		actual.SetGroupVersionKind(gvk)
-		if err := c.Get(ctx, client.Key(expected), &actual); err != nil {
+		if err := c.Get(ctx, client.ObjectKeyFromObject(expected), &actual); err != nil {
 			return nil, err
 		}
 		results = append(results, actual)

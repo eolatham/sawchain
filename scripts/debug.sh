@@ -8,5 +8,4 @@ source scripts/init.sh
 
 echo "Debugging tests..."
 KUBEBUILDER_ASSETS="$($SETUP_ENVTEST use -p path "$ENVTEST_K8S_VERSION")" \
-    dlv test controller-runtime-sandbox/example \
-    --listen=:40000 --headless=true --api-version=2
+    dlv test "${PACKAGE}" --listen=:40000 --headless=true --api-version=2

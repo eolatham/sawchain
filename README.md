@@ -2,12 +2,30 @@
 
 A Go library that makes testing K8s resources and operators easy
 
-## [pkg/chainsaw](./pkg/chainsaw/)
+## Packages
 
-TODO: document and give examples
+### [pkg/chainsaw](./pkg/chainsaw/)
 
-## [pkg/helper](./pkg/helper/)
+TODO:
+- document and give examples
 
-TODO: document and give examples
-TODO: consider additional options for unique name and namespace generation
-TODO: consider exposing global bindings via a helper field or method
+### [pkg/helper](./pkg/helper/)
+
+TODO:
+- document and give examples
+- consider additional options for unique name and namespace generation
+- consider exposing global bindings via a helper field or method
+
+## Testing
+
+To run all tests, use `make test`
+
+```sh
+make test
+```
+
+To run tests for a specific package in debug mode, use `make debug` with `PACKAGE` set to the package path
+
+```sh
+PACKAGE=./pkg/chainsaw make debug
+```
