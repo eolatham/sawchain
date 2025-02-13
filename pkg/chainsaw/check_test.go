@@ -11,7 +11,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var _ = DescribeTableSubtree("CheckResources", Ordered,
+// TODO: test case when template contains multiple resources (should fail)
+var _ = DescribeTableSubtree("CheckResource", Ordered,
 	func(
 		objects []client.Object,
 		templateContent string,
@@ -32,8 +33,8 @@ var _ = DescribeTableSubtree("CheckResources", Ordered,
 			err := os.WriteFile(templatePath, []byte(templateContent), 0644)
 			Expect(err).NotTo(HaveOccurred())
 
-			// Test CheckResources
-			err = CheckResources(k8sClient, ctx, templatePath, bindingsMap)
+			// Test CheckResource
+			err = CheckResource(k8sClient, ctx, templatePath, bindingsMap)
 			if len(expectedErrors) == 0 {
 				Expect(err).NotTo(HaveOccurred())
 			} else {
@@ -396,93 +397,6 @@ data:
 		nil,
 		[]string{
 			"failed to execute check",
-		},
-	),
-	// Template with multiple resources of different kinds
-	Entry("should match multiple resources of different kinds",
-		[]client.Object{
-			&corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-multi-1",
-					Namespace: "default",
-				},
-				Data: map[string]string{
-					"key": "value1",
-				},
-			},
-			&corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-multi-2",
-					Namespace: "default",
-				},
-				Data: map[string][]byte{
-					"key": []byte("value2"),
-				},
-			},
-		},
-		`
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: test-multi-1
-  namespace: default
-data:
-  key: value1
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: test-multi-2
-  namespace: default
-data:
-  key: dmFsdWUy # base64 for "value2"
-`,
-		nil,
-		nil,
-	),
-	// Template with multiple resources where one doesn't match
-	Entry("should fail when one of multiple resources doesn't match",
-		[]client.Object{
-			&corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-multi-mismatch-1",
-					Namespace: "default",
-				},
-				Data: map[string]string{
-					"key": "value1",
-				},
-			},
-			&corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-multi-mismatch-2",
-					Namespace: "default",
-				},
-				Data: map[string][]byte{
-					"key": []byte("wrong-value"),
-				},
-			},
-		},
-		`
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: test-multi-mismatch-1
-  namespace: default
-data:
-  key: value1
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: test-multi-mismatch-2
-  namespace: default
-data:
-  key: ZXhwZWN0ZWQtdmFsdWU= # base64 for "expected-value"
-`,
-		nil,
-		[]string{
-			"failed to execute check",
-			"data.key: Invalid value: \"d3JvbmctdmFsdWU=\": Expected value: \"ZXhwZWN0ZWQtdmFsdWU=\"",
 		},
 	),
 )

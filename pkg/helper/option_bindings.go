@@ -1,17 +1,17 @@
 package helper
 
 // Bindings is a map of Chainsaw template bindings.
-type Bindings map[string]string
+type Bindings map[string]any
 
 // WithBinding adds to the helper's map of bindings to be used with Chainsaw templates.
-func WithBinding(name, value string) Bindings {
-	return map[string]string{name: value}
+func WithBinding(name string, value any) Bindings {
+	return map[string]any{name: value}
 }
 
 func (b Bindings) MergeInto(bindings Bindings) Bindings {
 	for name, value := range b {
 		if bindings == nil {
-			bindings = map[string]string{name: value}
+			bindings = map[string]any{name: value}
 		} else {
 			bindings[name] = value
 		}

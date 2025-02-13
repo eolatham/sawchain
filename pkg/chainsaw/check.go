@@ -7,11 +7,9 @@ import (
 
 	"github.com/kyverno/chainsaw/pkg/apis"
 	"github.com/kyverno/chainsaw/pkg/apis/v1alpha1"
-	"github.com/kyverno/chainsaw/pkg/engine/bindings"
 	"github.com/kyverno/chainsaw/pkg/engine/checks"
 	operrors "github.com/kyverno/chainsaw/pkg/engine/operations/errors"
 	"github.com/kyverno/chainsaw/pkg/engine/templating"
-	"github.com/kyverno/chainsaw/pkg/loaders/resource"
 	"go.uber.org/multierr"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -19,25 +17,21 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// CheckResources checks if the resources in the template file match the resources in the cluster.
-func CheckResources(c client.Client, ctx context.Context, templatePath string, bindingsMap map[string]any) error {
-	// Load Chainsaw template resources
-	resources, err := resource.Load(templatePath, true)
+// TODO: consider returning matched object on success
+// CheckResource checks if the resource in the template file matches a resource in the cluster.
+func CheckResource(c client.Client, ctx context.Context, templatePath string, bindingsMap map[string]any) error {
+	// Load resource
+	r, err := loadTemplateResource(templatePath)
 	if err != nil {
-		return fmt.Errorf("failed to load template file %s: %w", templatePath, err)
+		return err
 	}
 
-	// Convert map to Chainsaw bindings
-	bindingsObj := apis.NewBindings()
-	for k, v := range bindingsMap {
-		bindingsObj = bindings.RegisterBinding(ctx, bindingsObj, k, v)
-	}
+	// Convert bindings
+	bindings := bindingsFromMap(ctx, bindingsMap)
 
-	// Check each resource
-	for _, resource := range resources {
-		if err := check(c, ctx, bindingsObj, resource); err != nil {
-			return fmt.Errorf("failed to execute check: %w", err)
-		}
+	// Check resource
+	if err := check(c, ctx, bindings, r); err != nil {
+		return fmt.Errorf("failed to execute check: %w", err)
 	}
 	return nil
 }

@@ -1,6 +1,8 @@
 package helper
 
-import "sigs.k8s.io/controller-runtime/pkg/client"
+import (
+	"sigs.k8s.io/controller-runtime/pkg/client"
+)
 
 type AssertResourceOption interface {
 	ApplyToAssertResource(opts AssertResourceOptions) AssertResourceOptions
@@ -29,6 +31,7 @@ func (o AssertResourceOptions) ApplyToAssertResource(opts AssertResourceOptions)
 	return opts
 }
 
+// TODO: consider only checking existence (not state) when no template is given
 // AssertResource asserts that the specified resource exists with the expected state within the timeout.
 // Uses Chainsaw to make assertions if given a template and optional bindings.
 // Stores the state of the found resource in the given struct.
