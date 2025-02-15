@@ -17,28 +17,46 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// TODO: consider returning matched object on success
 // CheckResource checks if the resource in the template file matches a resource in the cluster.
-func CheckResource(c client.Client, ctx context.Context, templatePath string, bindingsMap map[string]any) error {
+// Returns the first matching resource on success.
+func CheckResource(
+	c client.Client,
+	ctx context.Context,
+	templatePath string,
+	bindingsMap map[string]any,
+) (client.Object, error) {
 	// Load resource
-	r, err := loadTemplateResource(templatePath)
+	resource, err := loadTemplateResource(templatePath)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Convert bindings
 	bindings := bindingsFromMap(ctx, bindingsMap)
 
 	// Check resource
-	if err := check(c, ctx, bindings, r); err != nil {
-		return fmt.Errorf("failed to execute check: %w", err)
+	match, err := check(c, ctx, bindings, resource)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute check: %w", err)
 	}
-	return nil
+
+	// Return match as structured object
+	obj, err := convertToStruct(c, match)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert match to struct: %w", err)
+	}
+	return obj, nil
 }
 
 // check is equivalent to a Chainsaw assert operation without polling.
 // Based on github.com/kyverno/chainsaw/pkg/engine/operations/assert.Exec.
-func check(c client.Client, ctx context.Context, bindings apis.Bindings, obj unstructured.Unstructured) error {
+// Returns the first matching resource on success.
+func check(
+	c client.Client,
+	ctx context.Context,
+	bindings apis.Bindings,
+	obj unstructured.Unstructured,
+) (unstructured.Unstructured, error) {
 	// Use default compilers
 	compilers := apis.DefaultCompilers
 
@@ -47,7 +65,7 @@ func check(c client.Client, ctx context.Context, bindings apis.Bindings, obj uns
 		bindings = apis.NewBindings()
 	}
 	if err := templating.ResourceRef(ctx, compilers, &obj, bindings); err != nil {
-		return err
+		return unstructured.Unstructured{}, err
 	}
 
 	// Execute non-resource check
@@ -55,47 +73,51 @@ func check(c client.Client, ctx context.Context, bindings apis.Bindings, obj uns
 	if obj.GetAPIVersion() == "" || obj.GetKind() == "" {
 		fieldErrs, err := checks.Check(ctx, compilers, nil, bindings, ptr.To(v1alpha1.NewCheck(obj.UnstructuredContent())))
 		if err != nil {
-			return err
+			return unstructured.Unstructured{}, err
 		}
 		if len(fieldErrs) != 0 {
-			return multierr.Combine(fieldErrs.ToAggregate().Errors()...)
+			return unstructured.Unstructured{}, multierr.Combine(fieldErrs.ToAggregate().Errors()...)
 		}
-		return nil
+		return unstructured.Unstructured{}, nil
 	}
 
 	// Search for resource candidates
 	candidates, err := read(c, ctx, &obj)
 	if err != nil {
 		if kerrors.IsNotFound(err) {
-			return errors.New("actual resource not found")
+			return unstructured.Unstructured{}, errors.New("actual resource not found")
 		}
-		return err
+		return unstructured.Unstructured{}, err
 	}
 	if len(candidates) == 0 {
-		return errors.New("no actual resource found")
+		return unstructured.Unstructured{}, errors.New("no actual resource found")
 	}
 
 	// Execute resource check for each candidate
 	for _, candidate := range candidates {
 		fieldErrs, err := checks.Check(ctx, compilers, candidate.UnstructuredContent(), bindings, ptr.To(v1alpha1.NewCheck(obj.UnstructuredContent())))
 		if err != nil {
-			return err
+			return unstructured.Unstructured{}, err
 		}
 		if len(fieldErrs) != 0 {
 			errs = append(errs, operrors.ResourceError(compilers, obj, candidate, true, bindings, fieldErrs))
 		} else {
 			// Match found
-			return nil
+			return candidate, nil
 		}
 	}
 
 	// No matches found
-	return multierr.Combine(errs...)
+	return unstructured.Unstructured{}, multierr.Combine(errs...)
 }
 
 // read attempts to get all resources from the cluster that match the expected resource.
 // Based on github.com/kyverno/chainsaw/pkg/engine/operations/internal.Read.
-func read(c client.Client, ctx context.Context, expected client.Object) ([]unstructured.Unstructured, error) {
+func read(
+	c client.Client,
+	ctx context.Context,
+	expected client.Object,
+) ([]unstructured.Unstructured, error) {
 	var results []unstructured.Unstructured
 	gvk := expected.GetObjectKind().GroupVersionKind()
 	useGet := expected.GetName() != ""

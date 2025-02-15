@@ -11,7 +11,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// TODO: test case when template contains multiple resources (should fail)
 var _ = DescribeTable("ParseResource",
 	func(
 		templateContent string,
@@ -28,9 +27,11 @@ var _ = DescribeTable("ParseResource",
 		obj, err := ParseResource(k8sClient, ctx, templatePath, bindingsMap)
 		if len(expectedErrs) == 0 {
 			Expect(err).NotTo(HaveOccurred())
+			Expect(obj).NotTo(BeNil())
 			Expect(obj).To(Equal(expectedObj))
 		} else {
 			Expect(err).To(HaveOccurred())
+			Expect(obj).To(BeNil())
 			for _, substring := range expectedErrs {
 				Expect(err.Error()).To(ContainSubstring(substring))
 			}
@@ -146,6 +147,32 @@ metadata:
 		[]string{
 			"failed to load template file",
 			"found no resource",
+		},
+	),
+	// Multiple resources in template
+	Entry("should fail when template contains multiple resources",
+		`
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-multi-1
+  namespace: default
+data:
+  key1: value1
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: test-multi-2
+  namespace: default
+data:
+  key2: dmFsdWUy
+`,
+		nil,
+		nil,
+		[]string{
+			"expected template file",
+			"to contain a single resource; found 2",
 		},
 	),
 )

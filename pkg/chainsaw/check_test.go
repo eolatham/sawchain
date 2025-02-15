@@ -8,16 +8,16 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// TODO: test case when template contains multiple resources (should fail)
 var _ = DescribeTableSubtree("CheckResource", Ordered,
 	func(
 		objects []client.Object,
 		templateContent string,
 		bindingsMap map[string]any,
-		expectedErrors []string,
+		expectedErrs []string,
 	) {
 		BeforeAll(func() {
 			// Create the test objects in the cluster
@@ -34,12 +34,18 @@ var _ = DescribeTableSubtree("CheckResource", Ordered,
 			Expect(err).NotTo(HaveOccurred())
 
 			// Test CheckResource
-			err = CheckResource(k8sClient, ctx, templatePath, bindingsMap)
-			if len(expectedErrors) == 0 {
+			match, err := CheckResource(k8sClient, ctx, templatePath, bindingsMap)
+			if len(expectedErrs) == 0 {
 				Expect(err).NotTo(HaveOccurred())
+				Expect(match).NotTo(BeNil())
+				// Clear match GVK because created objects have empty GVKs
+				match.GetObjectKind().SetGroupVersionKind(schema.GroupVersionKind{})
+				// Assert match is one of the created objects
+				Expect(objects).To(ContainElement(match))
 			} else {
 				Expect(err).To(HaveOccurred())
-				for _, substring := range expectedErrors {
+				Expect(match).To(BeNil())
+				for _, substring := range expectedErrs {
 					Expect(err.Error()).To(ContainSubstring(substring))
 				}
 			}
@@ -397,6 +403,51 @@ data:
 		nil,
 		[]string{
 			"failed to execute check",
+		},
+	),
+	// Template with multiple resources
+	Entry("should fail when template contains multiple resources",
+		[]client.Object{
+			&corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-multi-1",
+					Namespace: "default",
+				},
+				Data: map[string]string{
+					"key1": "value1",
+				},
+			},
+			&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-multi-2",
+					Namespace: "default",
+				},
+				Data: map[string][]byte{
+					"key2": []byte("value2"),
+				},
+			},
+		},
+		`
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-multi-1
+  namespace: default
+data:
+  key1: value1
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: test-multi-2
+  namespace: default
+data:
+  key2: dmFsdWUy
+`,
+		nil,
+		[]string{
+			"expected template file",
+			"to contain a single resource; found 2",
 		},
 	),
 )

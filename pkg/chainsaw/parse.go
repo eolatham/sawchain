@@ -7,14 +7,20 @@ import (
 	"github.com/kyverno/chainsaw/pkg/apis"
 	"github.com/kyverno/chainsaw/pkg/apis/v1alpha1"
 	"github.com/kyverno/chainsaw/pkg/engine/templating"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // ParseResource parses the resource in the template file and returns it as a structured object.
-func ParseResource(c client.Client, ctx context.Context, templatePath string, bindingsMap map[string]any) (client.Object, error) {
+func ParseResource(
+	c client.Client,
+	ctx context.Context,
+	templatePath string,
+	bindingsMap map[string]any,
+) (client.Object, error) {
 	// Load resource
-	r, err := loadTemplateResource(templatePath)
+	resource, err := loadTemplateResource(templatePath)
 	if err != nil {
 		return nil, err
 	}
@@ -24,14 +30,20 @@ func ParseResource(c client.Client, ctx context.Context, templatePath string, bi
 
 	// Parse and merge templated fields into unstructured object
 	compilers := apis.DefaultCompilers
-	template := v1alpha1.NewProjection(r.UnstructuredContent())
-	merged, err := templating.TemplateAndMerge(ctx, compilers, r, bindings, template)
+	template := v1alpha1.NewProjection(resource.UnstructuredContent())
+	merged, err := templating.TemplateAndMerge(ctx, compilers, resource, bindings, template)
 	if err != nil {
 		return nil, err
 	}
 
+	// Return structured object
+	return convertToStruct(c, merged)
+}
+
+// convertToStruct converts the unstructured resource into the appropriate client.Object struct.
+func convertToStruct(c client.Client, resource unstructured.Unstructured) (client.Object, error) {
 	// Get GVK from unstructured object
-	gvk := merged.GroupVersionKind()
+	gvk := resource.GroupVersionKind()
 
 	// Create new instance of the correct type
 	scheme := c.Scheme()
@@ -44,7 +56,7 @@ func ParseResource(c client.Client, ctx context.Context, templatePath string, bi
 	}
 
 	// Convert unstructured object to typed one
-	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(merged.Object, typed); err != nil {
+	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(resource.Object, typed); err != nil {
 		return nil, fmt.Errorf("failed to convert unstructured to typed object: %w", err)
 	}
 
