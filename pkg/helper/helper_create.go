@@ -1,6 +1,9 @@
 package helper
 
-import "sigs.k8s.io/controller-runtime/pkg/client"
+import (
+	g "github.com/onsi/gomega"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+)
 
 type CreateOption interface {
 	ApplyToCreate(opts CreateOptions) CreateOptions
@@ -29,10 +32,15 @@ func (o CreateOptions) ApplyToCreate(opts CreateOptions) CreateOptions {
 	return opts
 }
 
+// TODO: test
 // Create creates the specified resource and ensures the client cache is synced within the timeout.
 // Uses Chainsaw to create the resource if given a template and optional bindings.
 // Stores the state of the created resource in the given struct.
 func (h *Helper) Create(obj client.Object, opts ...CreateOption) {
-	// options := NewCreateOptions(append([]CreateOption{h.Options}, opts...))
-	// TODO
+	options := NewCreateOptions(append([]CreateOption{h.Options}, opts...))
+	if options.Template != "" {
+		h.parse(obj, options.Template, options.Bindings)
+	}
+	g.Expect(h.Client.Create(h.Context, obj)).To(g.Succeed())
+	g.Eventually(h.get(obj), options.Timeout, options.Interval).Should(g.Succeed())
 }

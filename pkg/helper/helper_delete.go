@@ -1,6 +1,9 @@
 package helper
 
-import "sigs.k8s.io/controller-runtime/pkg/client"
+import (
+	g "github.com/onsi/gomega"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+)
 
 type DeleteOption interface {
 	ApplyToDelete(opts DeleteOptions) DeleteOptions
@@ -27,10 +30,15 @@ func (o DeleteOptions) ApplyToDelete(opts DeleteOptions) DeleteOptions {
 	return opts
 }
 
+// TODO: test
 // Delete deletes the specified resource and ensures the client cache is synced within the timeout.
 // Uses Chainsaw to delete the resource if given a template and optional bindings.
 // Stores the state of the deleted resource in the given struct.
 func (h *Helper) Delete(obj client.Object, opts ...DeleteOption) {
-	// options := NewDeleteOptions(append([]DeleteOption{h.Options}, opts...))
-	// TODO
+	options := NewDeleteOptions(append([]DeleteOption{h.Options}, opts...))
+	if options.Template != "" {
+		h.parse(obj, options.Template, options.Bindings)
+	}
+	g.Expect(client.IgnoreNotFound(h.Client.Delete(h.Context, obj))).To(g.Succeed())
+	g.Eventually(h.get(obj), options.Timeout, options.Interval).ShouldNot(g.Succeed())
 }

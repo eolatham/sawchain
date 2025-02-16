@@ -2,8 +2,12 @@ package helper
 
 import (
 	"context"
+	"testing"
 
+	g "github.com/onsi/gomega"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"k8s-test-helper/pkg/chainsaw"
 )
 
 type HelperOption interface {
@@ -71,15 +75,36 @@ func (o HelperOptions) ApplyToAssertDeletion(opts AssertDeletionOptions) AssertD
 }
 
 type Helper struct {
+	TB      testing.TB
 	Client  client.Client
 	Context context.Context
 	Options HelperOptions
 }
 
-func NewHelper(c client.Client, ctx context.Context, opts ...HelperOption) Helper {
+func NewHelper(tb testing.TB, c client.Client, ctx context.Context, opts ...HelperOption) Helper {
 	return Helper{
+		TB:      tb,
 		Client:  c,
 		Context: ctx,
 		Options: NewHelperOptions(opts),
 	}
+}
+
+// get returns a function that gets the specified resource.
+// Intended to be used in Eventually statements.
+func (h *Helper) get(obj client.Object) func() error {
+	return func() error {
+		return h.Client.Get(h.Context, client.ObjectKeyFromObject(obj), obj)
+	}
+}
+
+// parse parses the template and saves its structured content to the object.
+func (h *Helper) parse(obj client.Object, template Template, bindings Bindings) {
+	if obj != nil {
+		h.TB.Logf("Overwriting object with template content")
+	}
+	var err error
+	obj, err = chainsaw.ParseResource(h.Client, h.Context, string(template), bindings)
+	g.Expect(err).NotTo(g.HaveOccurred())
+	g.Expect(obj).NotTo(g.BeNil())
 }
