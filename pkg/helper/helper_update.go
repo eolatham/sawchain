@@ -1,6 +1,9 @@
 package helper
 
-import "sigs.k8s.io/controller-runtime/pkg/client"
+import (
+	g "github.com/onsi/gomega"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+)
 
 type UpdateOption interface {
 	ApplyToUpdate(opts UpdateOptions) UpdateOptions
@@ -29,10 +32,27 @@ func (o UpdateOptions) ApplyToUpdate(opts UpdateOptions) UpdateOptions {
 	return opts
 }
 
+// TODO: test
 // Update updates the specified resource and ensures the client cache is synced within the timeout.
 // Uses Chainsaw to update the resource if given a template and optional bindings.
 // Stores the state of the updated resource in the given struct.
 func (h *Helper) Update(obj client.Object, opts ...UpdateOption) {
-	// options := NewUpdateOptions(append([]UpdateOption{h.Options}, opts...))
-	// TODO
+	// Merge options
+	options := NewUpdateOptions(append([]UpdateOption{h.Options}, opts...))
+	// Parse template
+	if options.Template != "" {
+		h.parse(obj, options.Template, options.Bindings)
+	}
+	// Update resource
+	h.validateForCrud(obj)
+	g.Expect(h.Client.Update(h.Context, obj)).
+		To(g.Succeed(), "Failed to update resource")
+	// Wait for cache to sync
+	updatedObj := obj.DeepCopyObject().(client.Object)
+	getCachedObj := func() client.Object {
+		g.Expect(h.get(obj)).To(g.Succeed())
+		return obj
+	}
+	g.Eventually(getCachedObj, options.Timeout, options.Interval).
+		Should(g.Equal(updatedObj), "Cache not synced within timeout")
 }

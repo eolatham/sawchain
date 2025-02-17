@@ -90,12 +90,14 @@ func NewHelper(tb testing.TB, c client.Client, ctx context.Context, opts ...Help
 	}
 }
 
-// get returns a function that gets the specified resource.
-// Intended to be used in Eventually statements.
-func (h *Helper) get(obj client.Object) func() error {
-	return func() error {
-		return h.Client.Get(h.Context, client.ObjectKeyFromObject(obj), obj)
-	}
+// get gets the specified resource.
+func (h *Helper) get(obj client.Object) error {
+	return h.Client.Get(h.Context, client.ObjectKeyFromObject(obj), obj)
+}
+
+// getFunc returns a function that gets the specified resource.
+func (h *Helper) getFunc(obj client.Object) func() error {
+	return func() error { return h.get(obj) }
 }
 
 // parse parses the template and saves its structured content to the object.
@@ -105,6 +107,12 @@ func (h *Helper) parse(obj client.Object, template Template, bindings Bindings) 
 	}
 	var err error
 	obj, err = chainsaw.ParseResource(h.Client, h.Context, string(template), bindings)
-	g.Expect(err).NotTo(g.HaveOccurred())
-	g.Expect(obj).NotTo(g.BeNil())
+	g.Expect(err).NotTo(g.HaveOccurred(), "Failed to parse template")
+	g.Expect(obj).NotTo(g.BeNil(), "Parsed object is nil")
+}
+
+// validateForCrud asserts that the object is not nil and that it has a name.
+func (h *Helper) validateForCrud(obj client.Object) {
+	g.Expect(obj).NotTo(g.BeNil(), "Object must not be nil")
+	g.Expect(obj.GetName()).NotTo(g.BeEmpty(), "Object must have a name")
 }

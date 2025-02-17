@@ -32,5 +32,5 @@ func (o AssertReadinessOptions) ApplyToAssertReadiness(opts AssertReadinessOptio
 // Stores the state of the found resource in the given struct.
 func (h *Helper) AssertReadiness(obj client.Object, opts ...AssertReadinessOption) {
 	// options := NewAssertReadinessOptions(append([]AssertReadinessOption{h.Options}, opts...))
-	// TODO
+	// TODO: implement
 }

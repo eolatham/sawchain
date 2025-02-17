@@ -37,10 +37,17 @@ func (o CreateOptions) ApplyToCreate(opts CreateOptions) CreateOptions {
 // Uses Chainsaw to create the resource if given a template and optional bindings.
 // Stores the state of the created resource in the given struct.
 func (h *Helper) Create(obj client.Object, opts ...CreateOption) {
+	// Merge options
 	options := NewCreateOptions(append([]CreateOption{h.Options}, opts...))
+	// Parse template
 	if options.Template != "" {
 		h.parse(obj, options.Template, options.Bindings)
 	}
-	g.Expect(h.Client.Create(h.Context, obj)).To(g.Succeed())
-	g.Eventually(h.get(obj), options.Timeout, options.Interval).Should(g.Succeed())
+	// Create resource
+	h.validateForCrud(obj)
+	g.Expect(h.Client.Create(h.Context, obj)).
+		To(g.Succeed(), "Failed to create resource")
+	// Wait for cache to sync
+	g.Eventually(h.getFunc(obj), options.Timeout, options.Interval).
+		Should(g.Succeed(), "Cache not synced within timeout")
 }

@@ -17,6 +17,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// TODO: consider ways to separate invalid input errors from assertion errors so that callers can handle input problems intelligently
 // CheckResource checks if the resource in the template file matches a resource in the cluster.
 // Returns the first matching resource on success.
 func CheckResource(

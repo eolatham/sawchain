@@ -35,10 +35,17 @@ func (o DeleteOptions) ApplyToDelete(opts DeleteOptions) DeleteOptions {
 // Uses Chainsaw to delete the resource if given a template and optional bindings.
 // Stores the state of the deleted resource in the given struct.
 func (h *Helper) Delete(obj client.Object, opts ...DeleteOption) {
+	// Merge options
 	options := NewDeleteOptions(append([]DeleteOption{h.Options}, opts...))
+	// Parse template
 	if options.Template != "" {
 		h.parse(obj, options.Template, options.Bindings)
 	}
-	g.Expect(client.IgnoreNotFound(h.Client.Delete(h.Context, obj))).To(g.Succeed())
-	g.Eventually(h.get(obj), options.Timeout, options.Interval).ShouldNot(g.Succeed())
+	// Delete resource
+	h.validateForCrud(obj)
+	g.Expect(client.IgnoreNotFound(h.Client.Delete(h.Context, obj))).
+		To(g.Succeed(), "Failed to delete resource")
+	// Wait for cache for sync
+	g.Eventually(h.getFunc(obj), options.Timeout, options.Interval).
+		ShouldNot(g.Succeed(), "Cache not synced within timeout")
 }
