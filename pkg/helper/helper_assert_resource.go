@@ -35,7 +35,8 @@ func (o AssertResourceOptions) ApplyToAssertResource(opts AssertResourceOptions)
 	return opts
 }
 
-// TODO: test
+// TODO: revise docstring
+// TODO: add tests
 // AssertResource asserts that the specified resource exists with the expected state within the timeout.
 // Uses Chainsaw to make assertions if given a template and optional bindings.
 // Otherwise, asserts an exact match (all-inclusive) for the given object.

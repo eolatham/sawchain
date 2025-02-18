@@ -32,7 +32,8 @@ func (o UpdateOptions) ApplyToUpdate(opts UpdateOptions) UpdateOptions {
 	return opts
 }
 
-// TODO: test
+// TODO: revise docstring
+// TODO: add tests
 // Update updates the specified resource and ensures the client cache is synced within the timeout.
 // Uses Chainsaw to update the resource if given a template and optional bindings.
 // Stores the state of the updated resource in the given struct.

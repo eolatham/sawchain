@@ -31,7 +31,8 @@ func (o AssertDeletionOptions) ApplyToAssertDeletion(opts AssertDeletionOptions)
 	return opts
 }
 
-// TODO: test
+// TODO: revise docstring
+// TODO: add tests
 // AssertDeletion asserts that the specified resource is deleted within the timeout.
 // Uses Chainsaw to identify the resource if given a template and optional bindings.
 // Stores the key of the deleted resource in the given struct.

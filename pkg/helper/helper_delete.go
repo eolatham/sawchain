@@ -30,7 +30,8 @@ func (o DeleteOptions) ApplyToDelete(opts DeleteOptions) DeleteOptions {
 	return opts
 }
 
-// TODO: test
+// TODO: revise docstring
+// TODO: add tests
 // Delete deletes the specified resource and ensures the client cache is synced within the timeout.
 // Uses Chainsaw to delete the resource if given a template and optional bindings.
 // Stores the state of the deleted resource in the given struct.

@@ -32,7 +32,8 @@ func (o CreateOptions) ApplyToCreate(opts CreateOptions) CreateOptions {
 	return opts
 }
 
-// TODO: test
+// TODO: revise docstring
+// TODO: add tests
 // Create creates the specified resource and ensures the client cache is synced within the timeout.
 // Uses Chainsaw to create the resource if given a template and optional bindings.
 // Stores the state of the created resource in the given struct.
