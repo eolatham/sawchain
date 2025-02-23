@@ -4,7 +4,6 @@ Sawchain (the part of the chainsaw that cuts things) is a Kubernetes testing lib
 
 ## TODO
 
-* Make time options accept string values
 * Add WithTemplateContent option
 * Validate template is given in Check
 * Finish Link implementation/testing/documentation
