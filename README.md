@@ -1,33 +1,100 @@
-# K8s Test Helper
+# Sawchain
 
-A Go library that makes testing K8s resources and operators easy
+Sawchain (the part of the chainsaw that cuts things) is a Kubernetes testing library that exposes the power of [Chainsaw](https://github.com/kyverno/chainsaw) YAML assertions through a [Gomega](https://github.com/onsi/gomega)-friendly interface.
 
-TODO: consider renaming to chainsaw-helper, chainsaw-wrapper, or sawchain (the part of the chainsaw that actually cuts things)
+## TODO
 
-## Packages
+* Make time options accept string values
+* Add WithTemplateContent option
+* Validate template is given in Check
+* Finish Link implementation/testing/documentation
+* Add example test suites
 
-### [pkg/chainsaw](./pkg/chainsaw/)
+## Usage
 
-TODO: document and give examples
-
-### [pkg/helper](./pkg/helper/)
-
-TODO:
-
-- document and give examples
-- consider additional options for unique name and namespace generation
-- consider exposing global bindings via a helper field or method
-
-## Testing
-
-To run all tests, use `make test`
-
-```sh
-make test
+```go
+// Create Link
+link := sawchain.NewLink(testClient,
+  sawchain.WithBinding("binding1", "value1"),
+  sawchain.WithBinding("binding2", "value2"),
+  sawchain.WithTimeout("10s"),
+  sawchain.WithInterval("1s"))
 ```
 
-To run tests for a specific package in debug mode, use `make debug` with `PACKAGE` set to the package path
+```go
+// Create resource and wait for cache to sync
+link.SafeCreate(ctx, obj,
+  sawchain.WithTemplateFile("template.yaml"),
+  sawchain.WithBinding("binding3", "value3"))
 
-```sh
-PACKAGE=./pkg/chainsaw make debug
+// Update resource and wait for cache to sync
+link.SafeUpdate(ctx, obj,
+  sawchain.WithTemplateFile("template.yaml"),
+  sawchain.WithBinding("binding3", "value3"))
+
+// Delete resource and wait for cache to sync
+link.SafeDelete(ctx, obj,
+  sawchain.WithTemplateFile("template.yaml"),
+  sawchain.WithBinding("binding3", "value3"))
+```
+
+```go
+// Assert resource existence
+Eventually(link.Get(ctx, obj,
+  sawchain.WithTemplateFile("template.yaml"),
+  sawchain.WithBinding("binding3", "value3"))).
+  Should(Succeed())
+
+// Assert resource state - pure Gomega
+Eventually(link.GetObject(ctx, obj,
+  sawchain.WithTemplateFile("template.yaml"),
+  sawchain.WithBinding("binding3", "value3"))).
+  Should(HaveField("Status.ReadyReplicas", 3))
+
+// Assert resource state - using Chainsaw
+Eventually(link.Check(ctx, obj,
+  sawchain.WithTemplateFile("template.yaml"),
+  sawchain.WithBinding("binding3", "value3"))).
+  Should(Succeed())
+```
+
+## Options
+
+```go
+// Options - Link
+sawchain.WithBinding("name", "value")
+sawchain.WithTimeout("10s")
+sawchain.WithInterval("1s")
+```
+
+```go
+// Options - SafeCreate, SafeUpdate, SafeDelete
+sawchain.WithTemplateContent(`
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test
+  namespace: default
+data:
+  key: value
+`)
+sawchain.WithTemplateFile("template.yaml")
+sawchain.WithBinding("name", "value")
+sawchain.WithTimeout("10s")
+sawchain.WithInterval("1s")
+```
+
+```go
+// Options - Get, GetObject, Check
+sawchain.WithTemplateContent(`
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test
+  namespace: default
+data:
+  key: value
+`)
+sawchain.WithTemplateFile("template.yaml")
+sawchain.WithBinding("name", "value")
 ```

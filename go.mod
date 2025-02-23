@@ -1,4 +1,4 @@
-module k8s-test-helper
+module github.com/eolatham/sawchain
 
 go 1.23.0
 
