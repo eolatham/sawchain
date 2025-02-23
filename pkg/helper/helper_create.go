@@ -42,13 +42,13 @@ func (h *Helper) Create(obj client.Object, opts ...CreateOption) {
 	options := NewCreateOptions(append([]CreateOption{h.Options}, opts...))
 	// Parse template
 	if options.Template != "" {
-		h.parse(obj, options.Template, options.Bindings)
+		h.parseTemplate(obj, options.Template, options.Bindings)
 	}
 	// Create resource
-	h.validateForCrud(obj)
+	h.validateObj(obj)
 	g.Expect(h.Client.Create(h.Context, obj)).
 		To(g.Succeed(), "Failed to create resource")
 	// Wait for cache to sync
-	g.Eventually(h.getFunc(obj), options.Timeout, options.Interval).
+	g.Eventually(h.getObjFunc(obj), options.Timeout, options.Interval).
 		Should(g.Succeed(), "Cache not synced within timeout")
 }

@@ -41,15 +41,15 @@ func (h *Helper) AssertDeletion(obj client.Object, opts ...AssertDeletionOption)
 	options := NewAssertDeletionOptions(append([]AssertDeletionOption{h.Options}, opts...))
 	// Parse template
 	if options.Template != "" {
-		h.parse(obj, options.Template, options.Bindings)
+		h.parseTemplate(obj, options.Template, options.Bindings)
 	}
 	// Wait for deletion
-	h.validateForCrud(obj)
+	h.validateObj(obj)
 	isDeleted := func() bool {
-		if err := h.get(obj); apierrors.IsNotFound(err) {
+		if err := h.getObj(obj); apierrors.IsNotFound(err) {
 			return true
 		} else if err != nil {
-			g.Expect(err).NotTo(g.HaveOccurred(), "Unexpected error checking resource deletion")
+			g.Expect(err).NotTo(g.HaveOccurred(), "Internal error: failed to get resource")
 		}
 		return false
 	}

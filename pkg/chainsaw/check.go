@@ -17,7 +17,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// TODO: consider ways to separate invalid input errors from assertion errors so that callers can handle input problems intelligently
+var compilers = apis.DefaultCompilers
+
 // CheckResource checks if the resource in the template file matches a resource in the cluster.
 // Returns the first matching resource on success.
 func CheckResource(
@@ -56,23 +57,21 @@ func check(
 	c client.Client,
 	ctx context.Context,
 	bindings apis.Bindings,
-	obj unstructured.Unstructured,
+	resource unstructured.Unstructured,
 ) (unstructured.Unstructured, error) {
-	// Use default compilers
-	compilers := apis.DefaultCompilers
-
 	// Parse template
 	if bindings == nil {
 		bindings = apis.NewBindings()
 	}
-	if err := templating.ResourceRef(ctx, compilers, &obj, bindings); err != nil {
+	if err := templating.ResourceRef(ctx, compilers, &resource, bindings); err != nil {
 		return unstructured.Unstructured{}, err
 	}
 
 	// Execute non-resource check
 	var errs []error
-	if obj.GetAPIVersion() == "" || obj.GetKind() == "" {
-		fieldErrs, err := checks.Check(ctx, compilers, nil, bindings, ptr.To(v1alpha1.NewCheck(obj.UnstructuredContent())))
+	if resource.GetAPIVersion() == "" || resource.GetKind() == "" {
+		fieldErrs, err := checks.Check(ctx, compilers, nil, bindings,
+			ptr.To(v1alpha1.NewCheck(resource.UnstructuredContent())))
 		if err != nil {
 			return unstructured.Unstructured{}, err
 		}
@@ -83,7 +82,7 @@ func check(
 	}
 
 	// Search for resource candidates
-	candidates, err := read(c, ctx, &obj)
+	candidates, err := read(c, ctx, &resource)
 	if err != nil {
 		if kerrors.IsNotFound(err) {
 			return unstructured.Unstructured{}, errors.New("actual resource not found")
@@ -96,12 +95,15 @@ func check(
 
 	// Execute resource check for each candidate
 	for _, candidate := range candidates {
-		fieldErrs, err := checks.Check(ctx, compilers, candidate.UnstructuredContent(), bindings, ptr.To(v1alpha1.NewCheck(obj.UnstructuredContent())))
+		fieldErrs, err := checks.Check(ctx, compilers, candidate.UnstructuredContent(), bindings,
+			ptr.To(v1alpha1.NewCheck(resource.UnstructuredContent())))
 		if err != nil {
 			return unstructured.Unstructured{}, err
 		}
 		if len(fieldErrs) != 0 {
-			errs = append(errs, operrors.ResourceError(compilers, obj, candidate, true, bindings, fieldErrs))
+			errs = append(errs,
+				operrors.ResourceError(compilers, resource, candidate, true, bindings, fieldErrs),
+			)
 		} else {
 			// Match found
 			return candidate, nil

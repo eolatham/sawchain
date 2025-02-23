@@ -46,10 +46,10 @@ func (h *Helper) AssertReadiness(obj client.Object, opts ...AssertReadinessOptio
 	options := NewAssertReadinessOptions(append([]AssertReadinessOption{h.Options}, opts...))
 	// Parse template
 	if options.Template != "" {
-		h.parse(obj, options.Template, options.Bindings)
+		h.parseTemplate(obj, options.Template, options.Bindings)
 	}
 	// Validate object
-	h.validateForCrud(obj)
+	h.validateObj(obj)
 	// Marshal identifying metadata
 	minimalObj := toMinimalObject(obj)
 	yamlData, err := yaml.Marshal(minimalObj)
@@ -78,7 +78,7 @@ status:
 		return err
 	}
 	g.Eventually(check, options.Timeout, options.Interval).
-		Should(g.Succeed(), "Chainsaw assertion never succeeded")
+		Should(g.Succeed(), "Expectation not met within timeout")
 }
 
 // minimalObject represents the essential fields for identifying a Kubernetes object.

@@ -6,9 +6,29 @@ import (
 
 	"github.com/kyverno/chainsaw/pkg/apis"
 	"github.com/kyverno/chainsaw/pkg/engine/bindings"
+	"github.com/kyverno/chainsaw/pkg/engine/templating"
 	"github.com/kyverno/chainsaw/pkg/loaders/resource"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
+
+// ValidateTemplate ensures the template and bindings represent a valid single resource.
+func ValidateTemplate(
+	ctx context.Context,
+	templatePath string,
+	bindingsMap map[string]any,
+) error {
+	// Check loading errors
+	resource, err := loadTemplateResource(templatePath)
+	if err != nil {
+		return err
+	}
+	// Check parsing errors
+	bindings := bindingsFromMap(ctx, bindingsMap)
+	if err := templating.ResourceRef(ctx, compilers, &resource, bindings); err != nil {
+		return err
+	}
+	return nil
+}
 
 // loadTemplateResource loads the template file and returns its unstructured contents.
 // Expects the template file to contain a single resource.

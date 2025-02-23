@@ -40,13 +40,13 @@ func (h *Helper) Delete(obj client.Object, opts ...DeleteOption) {
 	options := NewDeleteOptions(append([]DeleteOption{h.Options}, opts...))
 	// Parse template
 	if options.Template != "" {
-		h.parse(obj, options.Template, options.Bindings)
+		h.parseTemplate(obj, options.Template, options.Bindings)
 	}
 	// Delete resource
-	h.validateForCrud(obj)
+	h.validateObj(obj)
 	g.Expect(client.IgnoreNotFound(h.Client.Delete(h.Context, obj))).
 		To(g.Succeed(), "Failed to delete resource")
 	// Wait for cache for sync
-	g.Eventually(h.getFunc(obj), options.Timeout, options.Interval).
+	g.Eventually(h.getObjFunc(obj), options.Timeout, options.Interval).
 		ShouldNot(g.Succeed(), "Cache not synced within timeout")
 }

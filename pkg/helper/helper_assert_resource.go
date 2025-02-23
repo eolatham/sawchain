@@ -47,6 +47,7 @@ func (h *Helper) AssertResource(obj client.Object, opts ...AssertResourceOption)
 	// Execute assertion
 	if options.Template != "" {
 		// Chainsaw assertion
+		h.validateTemplate(options.Template, options.Bindings)
 		h.TB.Logf(
 			"Executing Chainsaw assertion with template %s and bindings %+v",
 			options.Template, options.Bindings,
@@ -60,23 +61,23 @@ func (h *Helper) AssertResource(obj client.Object, opts ...AssertResourceOption)
 			return err
 		}
 		g.Eventually(check, options.Timeout, options.Interval).
-			Should(g.Succeed(), "Chainsaw assertion never succeeded")
+			Should(g.Succeed(), "Expectation not met within timeout")
 	} else {
 		// Non-Chainsaw assertion (exact match)
 		h.TB.Logf("Asserting exact match for object %+v", obj)
-		h.validateForCrud(obj)
+		h.validateObj(obj)
 		expectedObj := obj.DeepCopyObject().(client.Object)
 		getObj := func() client.Object {
-			if err := h.get(obj); apierrors.IsNotFound(err) {
+			if err := h.getObj(obj); apierrors.IsNotFound(err) {
 				// Ignore not found errors
 				return nil
 			} else if err != nil {
 				// Fail on other errors
-				g.Expect(err).NotTo(g.HaveOccurred(), "Unexpected error checking resource")
+				g.Expect(err).NotTo(g.HaveOccurred(), "Internal error: failed to get resource")
 			}
 			return obj
 		}
 		g.Eventually(getObj, options.Timeout, options.Interval).
-			Should(g.Equal(expectedObj), "Exact match never found")
+			Should(g.Equal(expectedObj), "Exact match not found within timeout")
 	}
 }
