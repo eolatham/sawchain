@@ -1,9 +1,6 @@
 package chainsaw
 
 import (
-	"os"
-	"path/filepath"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -28,13 +25,7 @@ var _ = DescribeTableSubtree("CheckResource", Ordered,
 		})
 
 		It("should check resources", func() {
-			// Create a temporary template file
-			templatePath := filepath.Join(GinkgoT().TempDir(), "template.yaml")
-			err := os.WriteFile(templatePath, []byte(templateContent), 0644)
-			Expect(err).NotTo(HaveOccurred())
-
-			// Test CheckResource
-			match, err := CheckResource(k8sClient, ctx, templatePath, bindingsMap)
+			match, err := CheckResource(k8sClient, ctx, templateContent, bindingsMap)
 			if len(expectedErrs) == 0 {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(match).NotTo(BeNil())
@@ -225,7 +216,7 @@ invalid: yaml: content
 `,
 		nil,
 		[]string{
-			"failed to load template file",
+			"failed to parse template",
 			"yaml: line 2: mapping values are not allowed in this context",
 		},
 	),
@@ -283,8 +274,7 @@ data:
 		"",
 		nil,
 		[]string{
-			"failed to load template file",
-			"found no resource",
+			"expected template to contain a single resource; found 0",
 		},
 	),
 	// Template with namespace selector
@@ -446,8 +436,7 @@ data:
 `,
 		nil,
 		[]string{
-			"expected template file",
-			"to contain a single resource; found 2",
+			"expected template to contain a single resource; found 2",
 		},
 	),
 )

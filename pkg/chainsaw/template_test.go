@@ -2,8 +2,6 @@ package chainsaw
 
 import (
 	"context"
-	"os"
-	"path/filepath"
 
 	"github.com/kyverno/chainsaw/pkg/apis"
 	. "github.com/onsi/ginkgo/v2"
@@ -17,13 +15,7 @@ var _ = DescribeTable("loadTemplateResource",
 		expectedResource unstructured.Unstructured,
 		expectedErrs []string,
 	) {
-		// Create a temporary template file
-		templatePath := filepath.Join(GinkgoT().TempDir(), "template.yaml")
-		err := os.WriteFile(templatePath, []byte(templateContent), 0644)
-		Expect(err).NotTo(HaveOccurred())
-
-		// Test loadTemplateResource
-		resource, err := loadTemplateResource(templatePath)
+		resource, err := loadTemplateResource(templateContent)
 		Expect(resource).To(Equal(expectedResource))
 		if len(expectedErrs) == 0 {
 			Expect(err).NotTo(HaveOccurred())
@@ -65,8 +57,7 @@ data:
 		"",
 		unstructured.Unstructured{},
 		[]string{
-			"failed to load template file",
-			"found no resource",
+			"expected template to contain a single resource; found 0",
 		},
 	),
 	// Invalid YAML
@@ -78,7 +69,7 @@ invalid: yaml: content
 `,
 		unstructured.Unstructured{},
 		[]string{
-			"failed to load template file",
+			"failed to parse template",
 			"yaml: line 2: mapping values are not allowed in this context",
 		},
 	),
@@ -97,8 +88,7 @@ metadata:
 `,
 		unstructured.Unstructured{},
 		[]string{
-			"expected template file",
-			"to contain a single resource; found 2",
+			"expected template to contain a single resource; found 2",
 		},
 	),
 )
@@ -153,131 +143,6 @@ var _ = DescribeTable("bindingsFromMap",
 			"slice":  []string{"a", "b"},
 			"map":    map[string]string{"k": "v"},
 			"nilVal": nil,
-		},
-	),
-)
-
-var _ = DescribeTable("ValidateTemplate",
-	func(
-		templateContent string,
-		bindingsMap map[string]any,
-		expectedErrs []string,
-	) {
-		// Create a temporary template file
-		templatePath := filepath.Join(GinkgoT().TempDir(), "template.yaml")
-		err := os.WriteFile(templatePath, []byte(templateContent), 0644)
-		Expect(err).NotTo(HaveOccurred())
-
-		// Test ValidateTemplate
-		err = ValidateTemplate(context.Background(), templatePath, bindingsMap)
-		if len(expectedErrs) == 0 {
-			Expect(err).NotTo(HaveOccurred())
-		} else {
-			Expect(err).To(HaveOccurred())
-			for _, substring := range expectedErrs {
-				Expect(err.Error()).To(ContainSubstring(substring))
-			}
-		}
-	},
-	// Valid template without bindings
-	Entry("should validate template without bindings",
-		`
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: test
-  namespace: default
-data:
-  key: value
-`,
-		nil,
-		nil,
-	),
-	// Valid template with bindings
-	Entry("should validate template with bindings",
-		`
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: ($name)
-  namespace: default
-data:
-  key: ($value)
-`,
-		map[string]any{
-			"name":  "test-bindings",
-			"value": "bound-value",
-		},
-		nil,
-	),
-	// Invalid YAML
-	Entry("should fail with invalid YAML",
-		`
-invalid: yaml: content
-  - not: valid
-    kubernetes: resource
-`,
-		nil,
-		[]string{
-			"failed to load template file",
-			"yaml: line 2: mapping values are not allowed in this context",
-		},
-	),
-	// Multiple resources
-	Entry("should fail with multiple resources",
-		`
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: test-1
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: test-2
-`,
-		nil,
-		[]string{
-			"expected template file",
-			"to contain a single resource; found 2",
-		},
-	),
-	// Empty template
-	Entry("should fail with empty template",
-		"",
-		nil,
-		[]string{
-			"failed to load template file",
-			"found no resource",
-		},
-	),
-	// Missing required fields
-	Entry("should fail with missing required fields",
-		`
-apiVersion: v1
-metadata:
-  name: test-missing-kind
-`,
-		nil,
-		[]string{
-			"failed to load template file",
-			"Object 'Kind' is missing",
-		},
-	),
-	// Undefined binding
-	Entry("should fail with undefined binding",
-		`
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: ($undefined)
-  namespace: default
-`,
-		map[string]any{
-			"name": "test-invalid-binding",
-		},
-		[]string{
-			"variable not defined: $undefined",
 		},
 	),
 )

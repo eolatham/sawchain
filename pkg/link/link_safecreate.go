@@ -12,10 +12,11 @@ type SafeCreateOption interface {
 }
 
 type SafeCreateOptions struct {
-	Template Template
-	Bindings Bindings
-	Timeout  Timeout
-	Interval Interval
+	TemplateContent TemplateContent
+	TemplateFile    TemplateFile
+	Bindings        Bindings
+	Timeout         Timeout
+	Interval        Interval
 }
 
 func NewSafeCreateOptions(opts []SafeCreateOption) SafeCreateOptions {
@@ -27,7 +28,8 @@ func NewSafeCreateOptions(opts []SafeCreateOption) SafeCreateOptions {
 }
 
 func (o SafeCreateOptions) ApplyToCreate(opts SafeCreateOptions) SafeCreateOptions {
-	opts = o.Template.ApplyToSafeCreate(opts)
+	opts = o.TemplateContent.ApplyToSafeCreate(opts)
+	opts = o.TemplateFile.ApplyToSafeCreate(opts)
 	opts = o.Bindings.ApplyToSafeCreate(opts)
 	opts = o.Timeout.ApplyToSafeCreate(opts)
 	opts = o.Interval.ApplyToSafeCreate(opts)
@@ -43,8 +45,12 @@ func (h *Link) SafeCreate(ctx context.Context, obj client.Object, opts ...SafeCr
 	// Merge options
 	options := NewSafeCreateOptions(append([]SafeCreateOption{h.Options}, opts...))
 	// Parse template
-	if options.Template != "" {
-		h.parseTemplate(ctx, obj, options.Template, options.Bindings)
+	if options.TemplateContent != "" {
+		h.parseTemplate(ctx, obj, options.TemplateContent, options.Bindings)
+	}
+	if options.TemplateFile != "" {
+		// TODO: read file
+		h.parseTemplate(ctx, obj, TemplateContent(""), options.Bindings)
 	}
 	// Create resource
 	h.validateObject(obj)

@@ -6,7 +6,7 @@ import "time"
 type Timeout time.Duration
 
 // WithTimeout tells the Link how long it should wait for conditions to be met.
-// It accepts either a time.Duration or a string (e.g. "10s", "2m").
+// Accepts either a time.Duration or a string (e.g. "10s", "2m").
 func WithTimeout(t interface{}) Timeout {
 	switch v := t.(type) {
 	case string:

@@ -1,9 +1,6 @@
 package chainsaw
 
 import (
-	"os"
-	"path/filepath"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -18,13 +15,7 @@ var _ = DescribeTable("ParseResource",
 		expectedObj client.Object,
 		expectedErrs []string,
 	) {
-		// Create a temporary template file
-		templatePath := filepath.Join(GinkgoT().TempDir(), "template.yaml")
-		err := os.WriteFile(templatePath, []byte(templateContent), 0644)
-		Expect(err).NotTo(HaveOccurred())
-
-		// Test ParseResource
-		obj, err := ParseResource(k8sClient, ctx, templatePath, bindingsMap)
+		obj, err := ParseResource(k8sClient, ctx, templateContent, bindingsMap)
 		if len(expectedErrs) == 0 {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(obj).NotTo(BeNil())
@@ -104,7 +95,7 @@ invalid: yaml: content
 		nil,
 		nil,
 		[]string{
-			"failed to load template file",
+			"failed to parse template",
 			"yaml: line 2: mapping values are not allowed in this context",
 		},
 	),
@@ -118,7 +109,7 @@ metadata:
 		nil,
 		nil,
 		[]string{
-			"failed to load template file",
+			"failed to parse template",
 			"Object 'Kind' is missing",
 		},
 	),
@@ -145,8 +136,7 @@ metadata:
 		nil,
 		nil,
 		[]string{
-			"failed to load template file",
-			"found no resource",
+			"expected template to contain a single resource; found 0",
 		},
 	),
 	// Multiple resources in template
@@ -171,8 +161,7 @@ data:
 		nil,
 		nil,
 		[]string{
-			"expected template file",
-			"to contain a single resource; found 2",
+			"expected template to contain a single resource; found 2",
 		},
 	),
 )

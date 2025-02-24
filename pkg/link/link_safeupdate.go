@@ -12,10 +12,11 @@ type SafeUpdateOption interface {
 }
 
 type SafeUpdateOptions struct {
-	Template Template
-	Bindings Bindings
-	Timeout  Timeout
-	Interval Interval
+	TemplateContent TemplateContent
+	TemplateFile    TemplateFile
+	Bindings        Bindings
+	Timeout         Timeout
+	Interval        Interval
 }
 
 func NewSafeUpdateOptions(opts []SafeUpdateOption) SafeUpdateOptions {
@@ -27,7 +28,8 @@ func NewSafeUpdateOptions(opts []SafeUpdateOption) SafeUpdateOptions {
 }
 
 func (o SafeUpdateOptions) ApplyToSafeUpdate(opts SafeUpdateOptions) SafeUpdateOptions {
-	opts = o.Template.ApplyToSafeUpdate(opts)
+	opts = o.TemplateContent.ApplyToSafeUpdate(opts)
+	opts = o.TemplateFile.ApplyToSafeUpdate(opts)
 	opts = o.Bindings.ApplyToSafeUpdate(opts)
 	opts = o.Timeout.ApplyToSafeUpdate(opts)
 	opts = o.Interval.ApplyToSafeUpdate(opts)
@@ -43,8 +45,12 @@ func (h *Link) SafeUpdate(ctx context.Context, obj client.Object, opts ...SafeUp
 	// Merge options
 	options := NewSafeUpdateOptions(append([]SafeUpdateOption{h.Options}, opts...))
 	// Parse template
-	if options.Template != "" {
-		h.parseTemplate(ctx, obj, options.Template, options.Bindings)
+	if options.TemplateContent != "" {
+		h.parseTemplate(ctx, obj, options.TemplateContent, options.Bindings)
+	}
+	if options.TemplateFile != "" {
+		// TODO: read file
+		h.parseTemplate(ctx, obj, TemplateContent(""), options.Bindings)
 	}
 	// Update resource
 	h.validateObject(obj)

@@ -12,10 +12,11 @@ type SafeDeleteOption interface {
 }
 
 type SafeDeleteOptions struct {
-	Template Template
-	Bindings Bindings
-	Timeout  Timeout
-	Interval Interval
+	TemplateContent TemplateContent
+	TemplateFile    TemplateFile
+	Bindings        Bindings
+	Timeout         Timeout
+	Interval        Interval
 }
 
 func NewSafeDeleteOptions(opts []SafeDeleteOption) SafeDeleteOptions {
@@ -27,7 +28,8 @@ func NewSafeDeleteOptions(opts []SafeDeleteOption) SafeDeleteOptions {
 }
 
 func (o SafeDeleteOptions) ApplyToDelete(opts SafeDeleteOptions) SafeDeleteOptions {
-	opts = o.Template.ApplyToSafeDelete(opts)
+	opts = o.TemplateContent.ApplyToSafeDelete(opts)
+	opts = o.TemplateFile.ApplyToSafeDelete(opts)
 	opts = o.Bindings.ApplyToSafeDelete(opts)
 	opts = o.Timeout.ApplyToSafeDelete(opts)
 	opts = o.Interval.ApplyToSafeDelete(opts)
@@ -43,8 +45,12 @@ func (h *Link) SafeDelete(ctx context.Context, obj client.Object, opts ...SafeDe
 	// Merge options
 	options := NewSafeDeleteOptions(append([]SafeDeleteOption{h.Options}, opts...))
 	// Parse template
-	if options.Template != "" {
-		h.parseTemplate(ctx, obj, options.Template, options.Bindings)
+	if options.TemplateContent != "" {
+		h.parseTemplate(ctx, obj, options.TemplateContent, options.Bindings)
+	}
+	if options.TemplateFile != "" {
+		// TODO: read file
+		h.parseTemplate(ctx, obj, TemplateContent(""), options.Bindings)
 	}
 	// Delete resource
 	h.validateObject(obj)

@@ -6,7 +6,7 @@ import "time"
 type Interval time.Duration
 
 // WithInterval tells the Link how often it should poll for conditions to be met.
-// It accepts either a time.Duration or a string (e.g. "10s", "2m").
+// Accepts either a time.Duration or a string (e.g. "10s", "2m").
 func WithInterval(t interface{}) Interval {
 	switch v := t.(type) {
 	case string:

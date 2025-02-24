@@ -4,8 +4,8 @@ Sawchain (the part of the chainsaw that cuts things) is a Kubernetes testing lib
 
 ## TODO
 
-* Add WithTemplateContent option
 * Validate template is given in Check
+* Validate template content and file are not both passed
 * Finish Link implementation/testing/documentation
 * Add example test suites
 

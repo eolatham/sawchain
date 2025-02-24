@@ -11,8 +11,9 @@ type GetObjectOption interface {
 }
 
 type GetObjectOptions struct {
-	Template Template
-	Bindings Bindings
+	TemplateContent TemplateContent
+	TemplateFile    TemplateFile
+	Bindings        Bindings
 }
 
 func NewGetObjectOptions(opts []GetObjectOption) GetObjectOptions {
@@ -24,7 +25,8 @@ func NewGetObjectOptions(opts []GetObjectOption) GetObjectOptions {
 }
 
 func (o GetObjectOptions) ApplyToGetObject(opts GetObjectOptions) GetObjectOptions {
-	opts = o.Template.ApplyToGetObject(opts)
+	opts = o.TemplateContent.ApplyToGetObject(opts)
+	opts = o.TemplateFile.ApplyToGetObject(opts)
 	opts = o.Bindings.ApplyToGetObject(opts)
 	return opts
 }

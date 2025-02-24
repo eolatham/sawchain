@@ -80,7 +80,12 @@ func NewLink(c client.Client, opts ...LinkOption) Link {
 }
 
 // parseTemplate parses the template and saves its structured content to the object.
-func (h *Link) parseTemplate(ctx context.Context, obj client.Object, template Template, bindings Bindings) {
+func (h *Link) parseTemplate(
+	ctx context.Context,
+	obj client.Object,
+	template TemplateContent,
+	bindings Bindings,
+) {
 	g.Expect(obj).NotTo(g.BeNil(), "Given object must be an actual pointer in order to save state")
 	var err error
 	obj, err = chainsaw.ParseResource(h.Client, ctx, string(template), bindings)

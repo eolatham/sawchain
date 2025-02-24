@@ -12,15 +12,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// ParseResource parses the resource in the template file and returns it as a structured object.
+// ParseResource parses the resource in the template and returns it as a structured object.
 func ParseResource(
 	c client.Client,
 	ctx context.Context,
-	templatePath string,
+	templateContent string,
 	bindingsMap map[string]any,
 ) (client.Object, error) {
 	// Load resource
-	resource, err := loadTemplateResource(templatePath)
+	resource, err := loadTemplateResource(templateContent)
 	if err != nil {
 		return nil, err
 	}

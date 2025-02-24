@@ -11,8 +11,9 @@ type CheckOption interface {
 }
 
 type CheckOptions struct {
-	Template Template
-	Bindings Bindings
+	TemplateContent TemplateContent
+	TemplateFile    TemplateFile
+	Bindings        Bindings
 }
 
 func NewCheckOptions(opts []CheckOption) CheckOptions {
@@ -24,7 +25,8 @@ func NewCheckOptions(opts []CheckOption) CheckOptions {
 }
 
 func (o CheckOptions) ApplyToCheck(opts CheckOptions) CheckOptions {
-	opts = o.Template.ApplyToCheck(opts)
+	opts = o.TemplateContent.ApplyToCheck(opts)
+	opts = o.TemplateFile.ApplyToCheck(opts)
 	opts = o.Bindings.ApplyToCheck(opts)
 	return opts
 }

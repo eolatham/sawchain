@@ -6,40 +6,20 @@ import (
 
 	"github.com/kyverno/chainsaw/pkg/apis"
 	"github.com/kyverno/chainsaw/pkg/engine/bindings"
-	"github.com/kyverno/chainsaw/pkg/engine/templating"
 	"github.com/kyverno/chainsaw/pkg/loaders/resource"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-// ValidateTemplate ensures the template and bindings represent a valid single resource.
-func ValidateTemplate(
-	ctx context.Context,
-	templatePath string,
-	bindingsMap map[string]any,
-) error {
-	// Check loading errors
-	resource, err := loadTemplateResource(templatePath)
-	if err != nil {
-		return err
-	}
-	// Check parsing errors
-	bindings := bindingsFromMap(ctx, bindingsMap)
-	if err := templating.ResourceRef(ctx, compilers, &resource, bindings); err != nil {
-		return err
-	}
-	return nil
-}
-
-// loadTemplateResource loads the template file and returns its unstructured contents.
-// Expects the template file to contain a single resource.
-func loadTemplateResource(templatePath string) (unstructured.Unstructured, error) {
+// loadTemplateResource loads the template and returns its unstructured contents.
+// Expects the template to contain a single resource.
+func loadTemplateResource(templateContent string) (unstructured.Unstructured, error) {
 	var r unstructured.Unstructured
-	resources, err := resource.Load(templatePath, true)
+	resources, err := resource.Parse([]byte(templateContent), true)
 	if err != nil {
-		return r, fmt.Errorf("failed to load template file %s: %w", templatePath, err)
+		return r, fmt.Errorf("failed to parse template: %w", err)
 	}
 	if len(resources) != 1 {
-		return r, fmt.Errorf("expected template file %s to contain a single resource; found %d", templatePath, len(resources))
+		return r, fmt.Errorf("expected template to contain a single resource; found %d", len(resources))
 	}
 	r = resources[0]
 	return r, nil

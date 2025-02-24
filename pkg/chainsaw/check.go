@@ -19,16 +19,16 @@ import (
 
 var compilers = apis.DefaultCompilers
 
-// CheckResource checks if the resource in the template file matches a resource in the cluster.
+// CheckResource checks if the resource in the template matches a resource in the cluster.
 // Returns the first matching resource on success.
 func CheckResource(
 	c client.Client,
 	ctx context.Context,
-	templatePath string,
+	templateContent string,
 	bindingsMap map[string]any,
 ) (client.Object, error) {
 	// Load resource
-	resource, err := loadTemplateResource(templatePath)
+	resource, err := loadTemplateResource(templateContent)
 	if err != nil {
 		return nil, err
 	}
