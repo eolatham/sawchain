@@ -3,7 +3,7 @@ package link
 import (
 	"context"
 
-	g "github.com/onsi/gomega"
+	"github.com/onsi/gomega"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -36,15 +36,12 @@ func (o SafeCreateOptions) ApplyToCreate(opts SafeCreateOptions) SafeCreateOptio
 	return opts
 }
 
-// TODO: revise docstring
-// TODO: add tests
 // Create creates the specified resource and ensures the client cache is synced within the timeout.
 // Uses Chainsaw to create the resource if given a template and optional bindings.
 // Stores the state of the created resource in the given struct.
 func (h *Link) SafeCreate(ctx context.Context, obj client.Object, opts ...SafeCreateOption) {
-	// Merge options
+	// Process options
 	options := NewSafeCreateOptions(append([]SafeCreateOption{h.Options}, opts...))
-	// Validate options
 	h.validateOptions(options)
 	// Parse template
 	if options.TemplateContent != "" {
@@ -54,9 +51,9 @@ func (h *Link) SafeCreate(ctx context.Context, obj client.Object, opts ...SafeCr
 	}
 	// Create resource
 	h.validateObject(obj)
-	g.Expect(h.Client.Create(ctx, obj)).
-		To(g.Succeed(), "Failed to create resource")
+	h.Gomega.Expect(h.Client.Create(ctx, obj)).
+		To(gomega.Succeed(), "Failed to create resource")
 	// Wait for cache to sync
-	g.Eventually(h.Get(ctx, obj), options.Timeout, options.Interval).
-		Should(g.Succeed(), "Cache not synced within timeout")
+	h.Gomega.Eventually(h.Get(ctx, obj), options.Timeout, options.Interval).
+		Should(gomega.Succeed(), "Cache not synced within timeout")
 }

@@ -3,7 +3,7 @@ package link
 import (
 	"context"
 
-	g "github.com/onsi/gomega"
+	"github.com/onsi/gomega"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -36,15 +36,12 @@ func (o SafeDeleteOptions) ApplyToDelete(opts SafeDeleteOptions) SafeDeleteOptio
 	return opts
 }
 
-// TODO: revise docstring
-// TODO: add tests
 // Delete deletes the specified resource and ensures the client cache is synced within the timeout.
 // Uses Chainsaw to delete the resource if given a template and optional bindings.
 // Stores the state of the deleted resource in the given struct.
 func (h *Link) SafeDelete(ctx context.Context, obj client.Object, opts ...SafeDeleteOption) {
-	// Merge options
+	// Process options
 	options := NewSafeDeleteOptions(append([]SafeDeleteOption{h.Options}, opts...))
-	// Validate options
 	h.validateOptions(options)
 	// Parse template
 	if options.TemplateContent != "" {
@@ -54,9 +51,9 @@ func (h *Link) SafeDelete(ctx context.Context, obj client.Object, opts ...SafeDe
 	}
 	// Delete resource
 	h.validateObject(obj)
-	g.Expect(client.IgnoreNotFound(h.Client.Delete(ctx, obj))).
-		To(g.Succeed(), "Failed to delete resource")
+	h.Gomega.Expect(client.IgnoreNotFound(h.Client.Delete(ctx, obj))).
+		To(gomega.Succeed(), "Failed to delete resource")
 	// Wait for cache for sync
-	g.Eventually(h.Get(ctx, obj), options.Timeout, options.Interval).
-		ShouldNot(g.Succeed(), "Cache not synced within timeout")
+	h.Gomega.Eventually(h.Get(ctx, obj), options.Timeout, options.Interval).
+		ShouldNot(gomega.Succeed(), "Cache not synced within timeout")
 }

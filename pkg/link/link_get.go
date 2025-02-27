@@ -31,11 +31,9 @@ func (o GetOptions) ApplyToGet(opts GetOptions) GetOptions {
 	return opts
 }
 
-// TODO
 func (h *Link) Get(ctx context.Context, obj client.Object, opts ...GetOption) func() error {
-	// Merge options
+	// Process options
 	options := NewGetOptions(append([]GetOption{h.Options}, opts...))
-	// Validate options
 	h.validateOptions(options)
 	// TODO
 	return func() error {

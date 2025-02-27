@@ -3,8 +3,9 @@ package link
 import (
 	"context"
 	"os"
+	"testing"
 
-	g "github.com/onsi/gomega"
+	"github.com/onsi/gomega"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/eolatham/sawchain/pkg/chainsaw"
@@ -72,27 +73,38 @@ func (o LinkOptions) ApplyToCheck(opts CheckOptions) CheckOptions {
 }
 
 type Link struct {
+	T       testing.TB
+	Gomega  gomega.Gomega
 	Client  client.Client
 	Options LinkOptions
 }
 
-func NewLink(c client.Client, opts ...LinkOption) Link {
-	return Link{Client: c, Options: NewLinkOptions(opts)}
+func NewLink(t testing.TB, c client.Client, opts ...LinkOption) Link {
+	return Link{
+		T:       t,
+		Gomega:  gomega.NewWithT(t),
+		Client:  c,
+		Options: NewLinkOptions(opts),
+	}
 }
 
 // validateOptions executes assertions common for all operations on input options.
 func (h *Link) validateOptions(options interface{}) {
-	g.Expect(options).NotTo(g.And(
-		g.HaveField("TemplateContent", g.Not(g.BeEmpty())),
-		g.HaveField("TemplateFile", g.Not(g.BeEmpty()))),
+	h.Gomega.Expect(options).NotTo(gomega.And(
+		gomega.HaveField("TemplateContent", gomega.Not(gomega.BeEmpty())),
+		gomega.HaveField("TemplateFile", gomega.Not(gomega.BeEmpty()))),
 		"Invalid options: TemplateContent and TemplateFile are mutually exclusive")
 }
 
 // requireTemplate asserts that either TemplateContent or TemplateFile is provided (mutually exclusive).
 func (h *Link) requireTemplate(options interface{}) {
-	g.Expect(options).To(g.Or(
-		g.And(g.HaveField("TemplateContent", g.Not(g.BeEmpty())), g.HaveField("TemplateFile", g.BeEmpty())),
-		g.And(g.HaveField("TemplateContent", g.BeEmpty()), g.HaveField("TemplateFile", g.Not(g.BeEmpty())))),
+	h.Gomega.Expect(options).To(gomega.Or(
+		gomega.And(
+			gomega.HaveField("TemplateContent", gomega.Not(gomega.BeEmpty())),
+			gomega.HaveField("TemplateFile", gomega.BeEmpty())),
+		gomega.And(
+			gomega.HaveField("TemplateContent", gomega.BeEmpty()),
+			gomega.HaveField("TemplateFile", gomega.Not(gomega.BeEmpty())))),
 		"Invalid options: expected either TemplateContent or TemplateFile to be provided (mutually exclusive)")
 }
 
@@ -103,11 +115,11 @@ func (h *Link) parseTemplate(
 	template TemplateContent,
 	bindings Bindings,
 ) {
-	g.Expect(obj).NotTo(g.BeNil(), "Given object must be an actual pointer in order to save state")
+	h.Gomega.Expect(obj).NotTo(gomega.BeNil(), "Given object must be an actual pointer in order to save state")
 	var err error
 	obj, err = chainsaw.ParseResource(h.Client, ctx, string(template), bindings)
-	g.Expect(err).NotTo(g.HaveOccurred(), "Failed to parse template")
-	g.Expect(obj).NotTo(g.BeNil(), "Parsed object is nil")
+	h.Gomega.Expect(err).NotTo(gomega.BeNil(), "Failed to parse template")
+	h.Gomega.Expect(obj).NotTo(gomega.BeNil(), "Parsed object is nil")
 }
 
 // parseTemplateFile parses the template from the file
@@ -119,13 +131,13 @@ func (h *Link) parseTemplateFile(
 	bindings Bindings,
 ) {
 	content, err := os.ReadFile(string(templateFile))
-	g.Expect(err).NotTo(g.HaveOccurred(), "Failed to read template file")
-	g.Expect(content).NotTo(g.BeEmpty(), "Template file content is empty")
+	h.Gomega.Expect(err).NotTo(gomega.BeNil(), "Failed to read template file")
+	h.Gomega.Expect(content).NotTo(gomega.BeEmpty(), "Template file content is empty")
 	h.parseTemplate(ctx, obj, TemplateContent(string(content)), bindings)
 }
 
 // validateObject asserts that the object is not nil and that it has a name.
 func (h *Link) validateObject(obj client.Object) {
-	g.Expect(obj).NotTo(g.BeNil(), "Object must not be nil")
-	g.Expect(obj.GetName()).NotTo(g.BeEmpty(), "Object must have a name")
+	h.Gomega.Expect(obj).NotTo(gomega.BeNil(), "Object must not be nil")
+	h.Gomega.Expect(obj.GetName()).NotTo(gomega.BeEmpty(), "Object must have a name")
 }

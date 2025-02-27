@@ -31,11 +31,9 @@ func (o CheckOptions) ApplyToCheck(opts CheckOptions) CheckOptions {
 	return opts
 }
 
-// TODO
 func (h *Link) Check(ctx context.Context, obj client.Object, opts ...CheckOption) error {
-	// Merge options
+	// Process options
 	options := NewCheckOptions(append([]CheckOption{h.Options}, opts...))
-	// Validate options
 	h.validateOptions(options)
 	h.requireTemplate(options)
 	// TODO
