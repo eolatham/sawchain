@@ -35,7 +35,15 @@ func (h *Link) Get(ctx context.Context, obj client.Object, opts ...GetOption) fu
 	// Process options
 	options := NewGetOptions(append([]GetOption{h.Options}, opts...))
 	h.validateOptions(options)
-	// TODO
+	// Parse template
+	if options.TemplateContent != "" {
+		h.parseTemplate(ctx, obj, options.TemplateContent, options.Bindings)
+	} else if options.TemplateFile != "" {
+		h.parseTemplateFile(ctx, obj, options.TemplateFile, options.Bindings)
+	}
+	// Validate object
+	h.validateObject(obj)
+	// Return function
 	return func() error {
 		return h.Client.Get(ctx, client.ObjectKeyFromObject(obj), obj)
 	}
