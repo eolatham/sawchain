@@ -14,7 +14,7 @@ Sawchain (the part of the chainsaw that cuts things) is a Kubernetes testing lib
 
 ```go
 // Create Link
-link := sawchain.NewLink(testClient,
+link := sawchain.NewLink(t, testClient,
   sawchain.WithBinding("binding1", "value1"),
   sawchain.WithBinding("binding2", "value2"),
   sawchain.WithTimeout("10s"),
