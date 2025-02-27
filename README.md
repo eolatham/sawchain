@@ -4,7 +4,6 @@ Sawchain (the part of the chainsaw that cuts things) is a Kubernetes testing lib
 
 ## TODO
 
-* Finish Link implementation
 * Add docstrings to Link fields, methods, and constructor
 * Add tests for Link methods
 * Add example test suites using Link

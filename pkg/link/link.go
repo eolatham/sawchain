@@ -108,6 +108,14 @@ func (h *Link) requireTemplate(options interface{}) {
 		"Invalid options: expected either TemplateContent or TemplateFile to be provided (mutually exclusive)")
 }
 
+// readTemplateFile reads the template file, asserts it is not empty, and returns its content.
+func (h *Link) readTemplateFile(templateFile TemplateFile) TemplateContent {
+	content, err := os.ReadFile(string(templateFile))
+	h.Gomega.Expect(err).NotTo(gomega.BeNil(), "Failed to read template file")
+	h.Gomega.Expect(content).NotTo(gomega.BeEmpty(), "Template file content is empty")
+	return TemplateContent(string(content))
+}
+
 // parseTemplate parses the template and saves its structured content to the object.
 func (h *Link) parseTemplate(
 	ctx context.Context,
@@ -130,10 +138,8 @@ func (h *Link) parseTemplateFile(
 	templateFile TemplateFile,
 	bindings Bindings,
 ) {
-	content, err := os.ReadFile(string(templateFile))
-	h.Gomega.Expect(err).NotTo(gomega.BeNil(), "Failed to read template file")
-	h.Gomega.Expect(content).NotTo(gomega.BeEmpty(), "Template file content is empty")
-	h.parseTemplate(ctx, obj, TemplateContent(string(content)), bindings)
+	templateContent := h.readTemplateFile(templateFile)
+	h.parseTemplate(ctx, obj, templateContent, bindings)
 }
 
 // validateObject asserts that the object is not nil and that it has a name.

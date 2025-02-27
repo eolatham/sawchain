@@ -4,6 +4,8 @@ import (
 	"context"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/eolatham/sawchain/pkg/chainsaw"
 )
 
 type CheckOption interface {
@@ -31,11 +33,26 @@ func (o CheckOptions) ApplyToCheck(opts CheckOptions) CheckOptions {
 	return opts
 }
 
-func (h *Link) Check(ctx context.Context, obj client.Object, opts ...CheckOption) error {
+func (h *Link) Check(ctx context.Context, obj client.Object, opts ...CheckOption) func() error {
 	// Process options
 	options := NewCheckOptions(append([]CheckOption{h.Options}, opts...))
 	h.validateOptions(options)
 	h.requireTemplate(options)
-	// TODO
-	return nil
+	// Determine template content
+	var templateContent string
+	if options.TemplateFile != "" {
+		templateContent = string(h.readTemplateFile(options.TemplateFile))
+	} else {
+		templateContent = string(options.TemplateContent)
+	}
+	// Return check function
+	return func() error {
+		var err error
+		// Save match to object
+		obj, err = chainsaw.CheckResource(h.Client, ctx, templateContent, options.Bindings)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
 }

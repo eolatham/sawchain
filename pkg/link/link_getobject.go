@@ -43,7 +43,7 @@ func (h *Link) GetObject(ctx context.Context, obj client.Object, opts ...GetObje
 	}
 	// Validate object
 	h.validateObject(obj)
-	// Return function
+	// Return get function
 	return func() client.Object {
 		h.Client.Get(ctx, client.ObjectKeyFromObject(obj), obj)
 		return obj
