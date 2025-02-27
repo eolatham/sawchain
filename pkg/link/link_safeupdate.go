@@ -44,13 +44,13 @@ func (o SafeUpdateOptions) ApplyToSafeUpdate(opts SafeUpdateOptions) SafeUpdateO
 func (h *Link) SafeUpdate(ctx context.Context, obj client.Object, opts ...SafeUpdateOption) {
 	// Merge options
 	options := NewSafeUpdateOptions(append([]SafeUpdateOption{h.Options}, opts...))
+	// Validate options
+	h.validateOptions(options)
 	// Parse template
 	if options.TemplateContent != "" {
 		h.parseTemplate(ctx, obj, options.TemplateContent, options.Bindings)
-	}
-	if options.TemplateFile != "" {
-		// TODO: read file
-		h.parseTemplate(ctx, obj, TemplateContent(""), options.Bindings)
+	} else if options.TemplateFile != "" {
+		h.parseTemplateFile(ctx, obj, options.TemplateFile, options.Bindings)
 	}
 	// Update resource
 	h.validateObject(obj)

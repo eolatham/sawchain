@@ -2,6 +2,7 @@ package link
 
 import (
 	"context"
+	"os"
 
 	g "github.com/onsi/gomega"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -79,6 +80,22 @@ func NewLink(c client.Client, opts ...LinkOption) Link {
 	return Link{Client: c, Options: NewLinkOptions(opts)}
 }
 
+// validateOptions executes assertions common for all operations on input options.
+func (h *Link) validateOptions(options interface{}) {
+	g.Expect(options).NotTo(g.And(
+		g.HaveField("TemplateContent", g.Not(g.BeEmpty())),
+		g.HaveField("TemplateFile", g.Not(g.BeEmpty()))),
+		"Invalid options: TemplateContent and TemplateFile are mutually exclusive")
+}
+
+// requireTemplate asserts that either TemplateContent or TemplateFile is provided (mutually exclusive).
+func (h *Link) requireTemplate(options interface{}) {
+	g.Expect(options).To(g.Or(
+		g.And(g.HaveField("TemplateContent", g.Not(g.BeEmpty())), g.HaveField("TemplateFile", g.BeEmpty())),
+		g.And(g.HaveField("TemplateContent", g.BeEmpty()), g.HaveField("TemplateFile", g.Not(g.BeEmpty())))),
+		"Invalid options: expected either TemplateContent or TemplateFile to be provided (mutually exclusive)")
+}
+
 // parseTemplate parses the template and saves its structured content to the object.
 func (h *Link) parseTemplate(
 	ctx context.Context,
@@ -91,6 +108,20 @@ func (h *Link) parseTemplate(
 	obj, err = chainsaw.ParseResource(h.Client, ctx, string(template), bindings)
 	g.Expect(err).NotTo(g.HaveOccurred(), "Failed to parse template")
 	g.Expect(obj).NotTo(g.BeNil(), "Parsed object is nil")
+}
+
+// parseTemplateFile parses the template from the file
+// and saves its structured content to the object.
+func (h *Link) parseTemplateFile(
+	ctx context.Context,
+	obj client.Object,
+	templateFile TemplateFile,
+	bindings Bindings,
+) {
+	content, err := os.ReadFile(string(templateFile))
+	g.Expect(err).NotTo(g.HaveOccurred(), "Failed to read template file")
+	g.Expect(content).NotTo(g.BeEmpty(), "Template file content is empty")
+	h.parseTemplate(ctx, obj, TemplateContent(string(content)), bindings)
 }
 
 // validateObject asserts that the object is not nil and that it has a name.

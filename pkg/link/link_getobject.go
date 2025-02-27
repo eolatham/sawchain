@@ -32,9 +32,12 @@ func (o GetObjectOptions) ApplyToGetObject(opts GetObjectOptions) GetObjectOptio
 }
 
 // TODO
-func (h *Link) GetObject(ctx context.Context, obj client.Object, opts ...GetOption) func() client.Object {
+func (h *Link) GetObject(ctx context.Context, obj client.Object, opts ...GetObjectOption) func() client.Object {
 	// Merge options
-	// options := NewGetObjectOptions(append([]GetObjectOption{h.Options}, opts...))
+	options := NewGetObjectOptions(append([]GetObjectOption{h.Options}, opts...))
+	// Validate options
+	h.validateOptions(options)
+	// TODO
 	return func() client.Object {
 		h.Client.Get(ctx, client.ObjectKeyFromObject(obj), obj)
 		return obj

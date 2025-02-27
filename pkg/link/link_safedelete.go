@@ -44,13 +44,13 @@ func (o SafeDeleteOptions) ApplyToDelete(opts SafeDeleteOptions) SafeDeleteOptio
 func (h *Link) SafeDelete(ctx context.Context, obj client.Object, opts ...SafeDeleteOption) {
 	// Merge options
 	options := NewSafeDeleteOptions(append([]SafeDeleteOption{h.Options}, opts...))
+	// Validate options
+	h.validateOptions(options)
 	// Parse template
 	if options.TemplateContent != "" {
 		h.parseTemplate(ctx, obj, options.TemplateContent, options.Bindings)
-	}
-	if options.TemplateFile != "" {
-		// TODO: read file
-		h.parseTemplate(ctx, obj, TemplateContent(""), options.Bindings)
+	} else if options.TemplateFile != "" {
+		h.parseTemplateFile(ctx, obj, options.TemplateFile, options.Bindings)
 	}
 	// Delete resource
 	h.validateObject(obj)
