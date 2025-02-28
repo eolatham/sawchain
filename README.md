@@ -4,6 +4,8 @@ Sawchain (the part of the chainsaw that cuts things) is a Kubernetes testing lib
 
 ## TODO
 
+* Consider merging Get and GetObject by adding an option to control whether an error or the object is returned
+* Make Link method names more descriptive (e.g. SafeCreateResource, GetResourceFunc, CheckResourceFunc)
 * Add docstrings to Link fields, methods, and constructor
 * Add tests for Link methods
 * Add example test suites using Link
