@@ -1,6 +1,6 @@
 # Sawchain
 
-Go library for Kubernetes YAML-driven testing—backed by [Chainsaw](https://github.com/kyverno/chainsaw)
+Go library for K8s YAML-driven testing—backed by [Chainsaw](https://github.com/kyverno/chainsaw)
 
 ## TODO
 
@@ -28,6 +28,8 @@ sc := sawchain.New(
 ```
 
 ### Setup/Cleanup Utilities
+
+Helpers to reliably create/update/delete test K8s resources
 
 #### Create Resources
 
@@ -66,6 +68,8 @@ sc.DeleteResourcesAndWait(ctx, objList, template)  // Delete resources with mult
 ```
 
 ### Assertion Utilities
+
+[Gomega](https://github.com/onsi/gomega)-friendly APIs to simplify assertions on K8s resources
 
 #### Assert Existence
 
@@ -114,7 +118,7 @@ Expect(obj).To(sc.Match(template))                        // Assert client.Objec
 Expect(obj).To(sc.HaveStatusCondition("Type", "Status"))  // Assert client.Object (structured or not) has specific status condition
 ```
 
-#### Assert Existence/State
+#### Assert (Almost) Anything
 
 ```go
 // Check cluster for a matching resource
@@ -137,5 +141,5 @@ Eventually(sc.CheckResourceFunc(ctx, template)).Should(Succeed())
 
 ### Notes
 
-* Template documents used in create and update operations must contain complete resource definitions.
-* Template documents used in get and delete operations must contain valid resource keys.
+* Template documents used in create and update operations must contain complete resource definitions
+* Template documents used in get and delete operations must contain valid resource keys
