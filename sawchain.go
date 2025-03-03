@@ -8,6 +8,8 @@ import (
 	"github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/eolatham/sawchain/internal/matchers"
 )
 
 // Sawchain provides a Chainsaw-backed testing utility for Kubernetes
@@ -154,13 +156,12 @@ func (s *Sawchain) CheckResourcesFunc(ctx context.Context, args ...interface{}) 
 // CUSTOM MATCHERS
 
 // Match returns a matcher that checks if an object matches a template
-func (s *Sawchain) Match(template string) types.GomegaMatcher {
-	// TODO: implement
-	return nil
+func (s *Sawchain) MatchYAML(template string) types.GomegaMatcher {
+	// TODO: pass template content directly or read file
+	return matchers.NewMatchYAMLMatcher("")
 }
 
 // HaveStatusCondition returns a matcher that checks if an object has a specific status condition
-func (s *Sawchain) HaveStatusCondition(conditionType, status string) types.GomegaMatcher {
-	// TODO: implement
-	return nil
+func (s *Sawchain) HaveStatusCondition(conditionType, expectedStatus string) types.GomegaMatcher {
+	return matchers.NewStatusConditionMatcher(conditionType, expectedStatus)
 }

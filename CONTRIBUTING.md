@@ -11,5 +11,5 @@ make test
 To run tests for a specific package in debug mode, use `make debug` with `PACKAGE` set to the package path:
 
 ```sh
-PACKAGE=./pkg/chainsaw make debug
+PACKAGE=./internal/chainsaw make debug
 ```

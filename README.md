@@ -114,7 +114,7 @@ Eventually(sc.FetchResourceFunc(ctx, template)).Should(HaveField("Foo", "Bar"))
 Eventually(sc.FetchResourcesFunc(ctx, template)).Should(ConsistOf(HaveField("Foo", "Bar")))
 
 // Custom matchers (single resource only)
-Expect(obj).To(sc.Match(template))                        // Assert client.Object (structured or not) matches Chainsaw template
+Expect(obj).To(sc.MatchYAML(template))                    // Assert client.Object (structured or not) matches Chainsaw template
 Expect(obj).To(sc.HaveStatusCondition("Type", "Status"))  // Assert client.Object (structured or not) has specific status condition
 ```
 
