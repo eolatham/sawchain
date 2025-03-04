@@ -9,74 +9,103 @@ import (
 	"github.com/eolatham/sawchain/internal/utilities"
 )
 
-// TODO: add other variations of options
+// TODO: support all options variations
 
-// Options struct
 type Options struct {
-	EventuallyTimeout         time.Duration
-	EventuallyPollingInterval time.Duration
-	TemplateFile              string
-	TemplateContent           string
-	TemplateBindings          map[string]any
-	Object                    client.Object
+	Timeout  time.Duration
+	Interval time.Duration
+	Template string
+	Bindings map[string]any
+	Object   client.Object
+	Objects  []client.Object
 }
 
-// ParseOptions parses variable arguments into an Options struct.
-func ParseOptions(args ...interface{}) (*Options, error) {
-	opts := &Options{
-		TemplateBindings: make(map[string]any),
-	}
+// Parse parses variable arguments into an Options struct.
+func Parse(args ...interface{}) (*Options, error) {
+	opts := &Options{}
 
 	for _, arg := range args {
-		// Check for time.Duration options
+		// Handle Timeout and Interval
 		if d, ok := utilities.AsDuration(arg); ok {
-			if opts.EventuallyTimeout == 0 {
-				opts.EventuallyTimeout = d
-			} else if opts.EventuallyPollingInterval == 0 {
-				opts.EventuallyPollingInterval = d
-			} else {
+			if opts.Timeout != 0 && opts.Interval != 0 {
 				return nil, fmt.Errorf("too many duration arguments provided")
+			} else if opts.Timeout == 0 {
+				opts.Timeout = d
+			} else {
+				opts.Interval = d
 			}
 			continue
 		}
 
-		// Check for client.Object
+		// Handle Object
 		if obj, ok := utilities.AsClientObject(arg); ok {
 			if opts.Object != nil {
-				return nil, fmt.Errorf("multiple client.Object instances provided")
-			}
-			opts.Object = obj
-			continue
-		}
-
-		// Check for template file
-		if str, ok := arg.(string); ok {
-			if opts.TemplateFile == "" && opts.TemplateContent == "" {
-				opts.TemplateFile = str
-			} else if opts.TemplateContent == "" {
-				opts.TemplateContent = str
+				return nil, fmt.Errorf("multiple client.Object arguments provided")
 			} else {
-				return nil, fmt.Errorf("both templateFile and templateContent provided")
+				opts.Object = obj
 			}
 			continue
 		}
 
-		// Check for template bindings
+		// Handle Objects
+		if objs, ok := utilities.AsSliceOfClientObjects(arg); ok {
+			if opts.Objects != nil {
+				return nil, fmt.Errorf("multiple []client.Object arguments provided")
+			} else {
+				opts.Objects = objs
+			}
+			continue
+		}
+
+		// Handle Template
+		if str, ok := arg.(string); ok {
+			if opts.Template != "" {
+				return nil, fmt.Errorf("multiple template arguments provided")
+			} else if utilities.IsExistingFile(str) {
+				content, err := utilities.ReadFileContent(str)
+				if err != nil {
+					return nil, fmt.Errorf("failed to read template file: %v", err)
+				}
+				opts.Template = content
+			} else {
+				opts.Template = str
+			}
+			continue
+		}
+
+		// Handle Bindings
 		if bindings, ok := utilities.AsMapStringAny(arg); ok {
-			for k, v := range bindings {
-				opts.TemplateBindings[k] = v
-			}
+			opts.Bindings = utilities.MergeMaps(opts.Bindings, bindings)
 			continue
 		}
 
-		// If the argument doesn't match any expected type
 		return nil, fmt.Errorf("unexpected argument type: %T", arg)
 	}
 
-	// Validate template file vs content
-	if opts.TemplateFile != "" && opts.TemplateContent != "" {
-		return nil, fmt.Errorf("templateFile and templateContent are mutually exclusive")
+	return opts, nil
+}
+
+// ApplyDefaults applies defaults to the given options where needed.
+func ApplyDefaults(defaults, opts *Options) *Options {
+	// Default durations
+	if opts.Timeout == 0 {
+		opts.Timeout = defaults.Timeout
+	}
+	if opts.Interval == 0 {
+		opts.Interval = defaults.Interval
 	}
 
-	return opts, nil
+	// Merge bindings
+	opts.Bindings = utilities.MergeMaps(defaults.Bindings, opts.Bindings)
+
+	return opts
+}
+
+// ParseAndApplyDefaults parses variable arguments into an Options struct and applies defaults where needed.
+func ParseAndApplyDefaults(defaults *Options, args ...interface{}) (*Options, error) {
+	opts, err := Parse(args...)
+	if err != nil {
+		return nil, err
+	}
+	return ApplyDefaults(defaults, opts), nil
 }

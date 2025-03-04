@@ -38,9 +38,9 @@ Helpers to reliably create/update/delete test K8s resources
 sc.CreateResourceAndWait(ctx, obj)            // Create resource with obj
 sc.CreateResourceAndWait(ctx, template)       // Create resource with single-document template, don't save state
 sc.CreateResourceAndWait(ctx, obj, template)  // Create resource with single-document template, save state to obj
-sc.CreateResourcesAndWait(ctx, objList)            // Create resources with objList
-sc.CreateResourcesAndWait(ctx, template)           // Create resources with multi-document template, don't save state
-sc.CreateResourcesAndWait(ctx, objList, template)  // Create resources with multi-document template, save state to objList
+sc.CreateResourcesAndWait(ctx, objs)            // Create resources with objs
+sc.CreateResourcesAndWait(ctx, template)        // Create resources with multi-document template, don't save state
+sc.CreateResourcesAndWait(ctx, objs, template)  // Create resources with multi-document template, save state to objs
 ```
 
 #### Update Resources
@@ -50,9 +50,9 @@ sc.CreateResourcesAndWait(ctx, objList, template)  // Create resources with mult
 sc.UpdateResourceAndWait(ctx, obj)            // Update resource with obj
 sc.UpdateResourceAndWait(ctx, template)       // Update resource with single-document template, don't save state
 sc.UpdateResourceAndWait(ctx, obj, template)  // Update resource with single-document template, save state to obj
-sc.UpdateResourcesAndWait(ctx, objList)            // Update resources with objList
-sc.UpdateResourcesAndWait(ctx, template)           // Update resources with multi-document template, don't save state
-sc.UpdateResourcesAndWait(ctx, objList, template)  // Update resources with multi-document template, save state to objList
+sc.UpdateResourcesAndWait(ctx, objs)            // Update resources with objs
+sc.UpdateResourcesAndWait(ctx, template)        // Update resources with multi-document template, don't save state
+sc.UpdateResourcesAndWait(ctx, objs, template)  // Update resources with multi-document template, save state to objs
 ```
 
 #### Delete Resources
@@ -62,9 +62,9 @@ sc.UpdateResourcesAndWait(ctx, objList, template)  // Update resources with mult
 sc.DeleteResourceAndWait(ctx, obj)            // Delete resource with obj
 sc.DeleteResourceAndWait(ctx, template)       // Delete resource with single-document template, don't save metadata
 sc.DeleteResourceAndWait(ctx, obj, template)  // Delete resource with single-document template, save metadata to obj
-sc.DeleteResourcesAndWait(ctx, objList)            // Delete resources with objList
-sc.DeleteResourcesAndWait(ctx, template)           // Delete resources with multi-document template, don't save metadata
-sc.DeleteResourcesAndWait(ctx, objList, template)  // Delete resources with multi-document template, save metadata to objList
+sc.DeleteResourcesAndWait(ctx, objs)            // Delete resources with objs
+sc.DeleteResourcesAndWait(ctx, template)        // Delete resources with multi-document template, don't save metadata
+sc.DeleteResourcesAndWait(ctx, objs, template)  // Delete resources with multi-document template, save metadata to objs
 ```
 
 ### Assertion Utilities
@@ -79,9 +79,9 @@ var err error
 err = sc.GetResource(ctx, obj)            // Get resource using obj, save state to obj
 err = sc.GetResource(ctx, template)       // Get resource using single-document template, don't save state
 err = sc.GetResource(ctx, obj, template)  // Get resource using single-document template, save state to obj
-err = sc.GetResources(ctx, objList)            // Get resources using objList, save state to objList
-err = sc.GetResources(ctx, template)           // Get resources using multi-document template, don't save state
-err = sc.GetResources(ctx, objList, template)  // Get resources using multi-document template, save state to objList
+err = sc.GetResources(ctx, objs)            // Get resources using objs, save state to objs
+err = sc.GetResources(ctx, template)        // Get resources using multi-document template, don't save state
+err = sc.GetResources(ctx, objs, template)  // Get resources using multi-document template, save state to objs
 
 // Assert existence immediately
 Expect(sc.GetResource(ctx, template)).To(Succeed())
@@ -101,9 +101,9 @@ fetched = sc.FetchResource(ctx, obj)            // Fetch resource using obj, sav
 fetched = sc.FetchResource(ctx, template)       // Fetch resource using single-document template, don't save state
 fetched = sc.FetchResource(ctx, obj, template)  // Fetch resource using single-document template, save state to obj
 var fetchedList []client.Object
-fetchedList = sc.FetchResources(ctx, objList)            // Fetch resources using objList, save state to objList
-fetchedList = sc.FetchResources(ctx, template)           // Fetch resources using multi-document template, don't save state
-fetchedList = sc.FetchResources(ctx, objList, template)  // Fetch resources using multi-document template, save state to objList
+fetchedList = sc.FetchResources(ctx, objs)            // Fetch resources using objs, save state to objs
+fetchedList = sc.FetchResources(ctx, template)        // Fetch resources using multi-document template, don't save state
+fetchedList = sc.FetchResources(ctx, objs, template)  // Fetch resources using multi-document template, save state to objs
 
 // Assert state immediately
 Expect(sc.FetchResource(ctx, template)).To(HaveField("Foo", "Bar"))
@@ -126,9 +126,9 @@ var err error
 err = sc.CheckResource(ctx, obj)            // Check for exact match with obj
 err = sc.CheckResource(ctx, template)       // Execute Chainsaw check with single-document template
 err = sc.CheckResource(ctx, obj, template)  // Execute Chainsaw check with single-document template, save first match to obj
-err = sc.CheckResources(ctx, objList)            // Check for exact match with each object in objList
-err = sc.CheckResources(ctx, template)           // Execute Chainsaw check with each document in template
-err = sc.CheckResources(ctx, objList, template)  // Execute Chainsaw check with each document in template, save first matches to objList
+err = sc.CheckResources(ctx, objs)            // Check for exact match with each object in objs
+err = sc.CheckResources(ctx, template)        // Execute Chainsaw check with each document in template
+err = sc.CheckResources(ctx, objs, template)  // Execute Chainsaw check with each document in template, save first matches to objs
 
 // Assert match found immediately
 Expect(sc.CheckResource(ctx, template)).To(Succeed())

@@ -1,6 +1,7 @@
 package utilities
 
 import (
+	"os"
 	"reflect"
 	"time"
 
@@ -8,6 +9,8 @@ import (
 )
 
 // TODO: test
+
+// MergeMaps merges the given maps into one.
 func MergeMaps(maps ...map[string]any) map[string]any {
 	merged := make(map[string]any)
 	for _, m := range maps {
@@ -18,7 +21,25 @@ func MergeMaps(maps ...map[string]any) map[string]any {
 	return merged
 }
 
-// TODO: test
+// IsExistingFile checks if the given path exists and is a file.
+func IsExistingFile(path string) bool {
+	info, err := os.Stat(path)
+	if err != nil {
+		return false // File does not exist or other error
+	}
+	return !info.IsDir() // Ensure it's a file, not a directory
+}
+
+// ReadFileContent reads a file and returns its content as a string.
+func ReadFileContent(path string) (string, error) {
+	content, err := os.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+	return string(content), nil
+}
+
+// AsMapStringAny attempts to convert the given value into a map[string]any.
 func AsMapStringAny(v interface{}) (map[string]any, bool) {
 	if m, ok := v.(map[string]any); ok {
 		return m, true
@@ -39,7 +60,7 @@ func AsMapStringAny(v interface{}) (map[string]any, bool) {
 	return nil, false
 }
 
-// TODO: test
+// AsClientObject attempts to convert the given value into a client.Object.
 func AsClientObject(v interface{}) (client.Object, bool) {
 	if obj, ok := v.(client.Object); ok {
 		return obj, true
@@ -47,7 +68,26 @@ func AsClientObject(v interface{}) (client.Object, bool) {
 	return nil, false
 }
 
-// TODO: test
+// AsSliceOfClientObjects attempts to convert the given value into a slice of client.Object.
+func AsSliceOfClientObjects(input interface{}) ([]client.Object, bool) {
+	items, ok := input.([]interface{})
+	if !ok {
+		return nil, false
+	}
+
+	var objs []client.Object
+	for _, item := range items {
+		if obj, ok := AsClientObject(item); ok {
+			objs = append(objs, obj)
+		} else {
+			return nil, false
+		}
+	}
+
+	return objs, true
+}
+
+// AsDuration attempts to convert the given value into a time.Duration.
 func AsDuration(v interface{}) (time.Duration, bool) {
 	// Check if it's already a time.Duration
 	if d, ok := v.(time.Duration); ok {

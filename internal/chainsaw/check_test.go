@@ -11,14 +11,14 @@ import (
 
 var _ = DescribeTableSubtree("CheckResource", Ordered,
 	func(
-		objects []client.Object,
+		objs []client.Object,
 		templateContent string,
 		bindingsMap map[string]any,
 		expectedErrs []string,
 	) {
 		BeforeAll(func() {
 			// Create the test objects in the cluster
-			for _, obj := range objects {
+			for _, obj := range objs {
 				err := k8sClient.Create(ctx, obj)
 				Expect(err).NotTo(HaveOccurred())
 			}
@@ -32,7 +32,7 @@ var _ = DescribeTableSubtree("CheckResource", Ordered,
 				// Clear match GVK because created objects have empty GVKs
 				match.GetObjectKind().SetGroupVersionKind(schema.GroupVersionKind{})
 				// Assert match is one of the created objects
-				Expect(objects).To(ContainElement(match))
+				Expect(objs).To(ContainElement(match))
 			} else {
 				Expect(err).To(HaveOccurred())
 				Expect(match).To(BeNil())
@@ -44,7 +44,7 @@ var _ = DescribeTableSubtree("CheckResource", Ordered,
 
 		AfterAll(func() {
 			// Delete the test objects from the cluster
-			for _, obj := range objects {
+			for _, obj := range objs {
 				err := k8sClient.Delete(ctx, obj)
 				Expect(client.IgnoreNotFound(err)).NotTo(HaveOccurred())
 			}
