@@ -10,6 +10,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/eolatham/sawchain/internal/matchers"
+	"github.com/eolatham/sawchain/internal/utilities"
 )
 
 // Sawchain provides a Chainsaw-backed testing utility for Kubernetes
@@ -156,9 +157,9 @@ func (s *Sawchain) CheckResourcesFunc(ctx context.Context, args ...interface{}) 
 // CUSTOM MATCHERS
 
 // Match returns a matcher that checks if an object matches a template
-func (s *Sawchain) MatchYAML(template string) types.GomegaMatcher {
+func (s *Sawchain) MatchYAML(template string, bindings ...map[string]any) types.GomegaMatcher {
 	// TODO: pass template content directly or read file
-	return matchers.NewMatchYAMLMatcher("")
+	return matchers.NewMatchYAMLMatcher("", utilities.MergeMaps(bindings...))
 }
 
 // HaveStatusCondition returns a matcher that checks if an object has a specific status condition

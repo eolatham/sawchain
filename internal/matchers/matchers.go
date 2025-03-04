@@ -8,7 +8,8 @@ import (
 
 // MatchYAMLMatcher is a Gomega matcher that checks if a Kubernetes resource matches a template
 type MatchYAMLMatcher struct {
-	TemplateContent string
+	TemplateContent  string
+	TemplateBindings map[string]any
 }
 
 // Match implements the Gomega matcher interface
@@ -28,9 +29,10 @@ func (m *MatchYAMLMatcher) NegatedFailureMessage(actual interface{}) string {
 }
 
 // NewMatchYAMLMatcher creates a new MatchMatcher
-func NewMatchYAMLMatcher(templateContent string) types.GomegaMatcher {
+func NewMatchYAMLMatcher(templateContent string, templateBindings map[string]any) types.GomegaMatcher {
 	return &MatchYAMLMatcher{
-		TemplateContent: templateContent,
+		TemplateContent:  templateContent,
+		TemplateBindings: templateBindings,
 	}
 }
 
