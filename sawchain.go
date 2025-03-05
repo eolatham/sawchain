@@ -3,34 +3,35 @@ package sawchain
 import (
 	"context"
 	"testing"
-	"time"
 
 	"github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/eolatham/sawchain/internal/matchers"
+	"github.com/eolatham/sawchain/internal/options"
 	"github.com/eolatham/sawchain/internal/utilities"
 )
 
 // Sawchain provides a Chainsaw-backed testing utility for Kubernetes
 type Sawchain struct {
-	t                                testing.TB
-	g                                gomega.Gomega
-	client                           client.Client
-	globalTemplateBindings           map[string]any
-	defaultEventuallyTimeout         time.Duration
-	defaultEventuallyPollingInterval time.Duration
+	t      testing.TB
+	g      gomega.Gomega
+	client client.Client
+	opts   options.Options
 }
 
 // New creates a new Sawchain instance
-func New(t testing.TB, c client.Client, opts ...interface{}) *Sawchain {
+func New(t testing.TB, c client.Client, args ...interface{}) *Sawchain {
 	g := gomega.NewGomegaWithT(t)
-	// TODO: parse options
+	opts, err := options.Parse(true, false, false, args...)
+	g.Expect(err).NotTo(gomega.HaveOccurred())
+	g.Expect(opts).NotTo(gomega.BeNil())
 	return &Sawchain{
 		t:      t,
 		g:      g,
 		client: c,
+		opts:   *opts,
 	}
 }
 
