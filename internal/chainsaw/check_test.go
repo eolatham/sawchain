@@ -25,7 +25,7 @@ var _ = DescribeTableSubtree("CheckResource", Ordered,
 		})
 
 		It("should check resources", func() {
-			match, err := CheckResource(k8sClient, ctx, templateContent, bindingsMap)
+			match, err := CheckResourceOld(k8sClient, ctx, templateContent, bindingsMap)
 			if len(expectedErrs) == 0 {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(match).NotTo(BeNil())

@@ -19,9 +19,9 @@ import (
 
 var compilers = apis.DefaultCompilers
 
-// CheckResource checks if the resource in the template matches a resource in the cluster.
+// CheckResourceOld checks if the resource in the template matches a resource in the cluster.
 // Returns the first matching resource on success.
-func CheckResource(
+func CheckResourceOld(
 	c client.Client,
 	ctx context.Context,
 	templateContent string,
@@ -68,7 +68,6 @@ func check(
 	}
 
 	// Execute non-resource check
-	var errs []error
 	if resource.GetAPIVersion() == "" || resource.GetKind() == "" {
 		fieldErrs, err := checks.Check(ctx, compilers, nil, bindings,
 			ptr.To(v1alpha1.NewCheck(resource.UnstructuredContent())))
@@ -92,6 +91,18 @@ func check(
 	if len(candidates) == 0 {
 		return unstructured.Unstructured{}, errors.New("no actual resource found")
 	}
+
+	// Execute resource check for each candidate
+	return Match(ctx, resource, bindings, candidates...)
+}
+
+func Match(
+	ctx context.Context,
+	resource unstructured.Unstructured,
+	bindings apis.Bindings,
+	candidates ...unstructured.Unstructured,
+) (unstructured.Unstructured, error) {
+	var errs []error
 
 	// Execute resource check for each candidate
 	for _, candidate := range candidates {
