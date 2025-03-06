@@ -1,5 +1,7 @@
 package chainsaw
 
+// TODO: use package chainsaw_test
+
 import (
 	"context"
 	"testing"
