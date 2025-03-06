@@ -11,20 +11,24 @@ import (
 
 // TODO: test
 
+// Options is a common struct for options used in Sawchain operations.
 type Options struct {
-	Timeout  time.Duration
-	Interval time.Duration
-	Template string
-	Bindings map[string]any
-	Object   client.Object
-	Objects  []client.Object
+	Timeout  time.Duration   // Timeout for eventual assertions.
+	Interval time.Duration   // Polling interval for eventual assertions.
+	Template string          // Template file path or content for Chainsaw resource operations.
+	Bindings map[string]any  // Template bindings for Chainsaw resource operations.
+	Object   client.Object   // Object to store state for single-resource operations.
+	Objects  []client.Object // Slice to store state for multi-resource operations.
 }
 
 // Parse parses variable arguments into an Options struct.
-// If includeDurations is true, checks for Timeout and Interval; otherwise disallows them.
-// If includeObject is true, checks for Object; otherwise disallows it.
-// If includeObjects is true, checks for Objects; otherwise disallows it.
-func Parse(includeDurations, includeObject, includeObjects bool, args ...interface{}) (*Options, error) {
+//   - If includeDurations is true, checks for Timeout and Interval; otherwise disallows them.
+//   - If includeObject is true, checks for Object; otherwise disallows it.
+//   - If includeObjects is true, checks for Objects; otherwise disallows it.
+func Parse(
+	includeDurations, includeObject, includeObjects bool,
+	args ...interface{},
+) (*Options, error) {
 	opts := &Options{}
 
 	for _, arg := range args {
@@ -112,11 +116,38 @@ func ApplyDefaults(defaults, opts *Options) *Options {
 
 // ParseAndApplyDefaults parses variable arguments into an Options struct and applies defaults where needed.
 func ParseAndApplyDefaults(
-	includeDurations, includeObject, includeObjects bool, defaults *Options, args ...interface{},
+	defaults *Options,
+	includeDurations, includeObject, includeObjects bool,
+	args ...interface{},
 ) (*Options, error) {
 	opts, err := Parse(includeDurations, includeObject, includeObjects, args...)
 	if err != nil {
 		return nil, err
 	}
 	return ApplyDefaults(defaults, opts), nil
+}
+
+// ParseGlobal parses options for the Sawchain constructor.
+func ParseGlobal(defaults *Options, args ...interface{}) (*Options, error) {
+	return ParseAndApplyDefaults(defaults, true, false, false, args...)
+}
+
+// ParseImmediateSingle parses options for Sawchain immediate single-resource operations.
+func ParseImmediateSingle(defaults *Options, args ...interface{}) (*Options, error) {
+	return ParseAndApplyDefaults(defaults, false, true, false, args...)
+}
+
+// ParseImmediateMultiple parses options for Sawchain immediate multi-resource operations.
+func ParseImmediateMultiple(defaults *Options, args ...interface{}) (*Options, error) {
+	return ParseAndApplyDefaults(defaults, false, false, true, args...)
+}
+
+// ParseEventualSingle parses options for Sawchain eventual single-resource operations.
+func ParseEventualSingle(defaults *Options, args ...interface{}) (*Options, error) {
+	return ParseAndApplyDefaults(defaults, true, true, false, args...)
+}
+
+// ParseEventualMultiple parses options for Sawchain eventual multi-resource operations.
+func ParseEventualMultiple(defaults *Options, args ...interface{}) (*Options, error) {
+	return ParseAndApplyDefaults(defaults, true, false, true, args...)
 }
