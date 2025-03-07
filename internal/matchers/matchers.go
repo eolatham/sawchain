@@ -7,7 +7,7 @@ import (
 )
 
 // MatchYAMLMatcher is a Gomega matcher that checks if
-// a K8s object matches a Chainsaw resource template.
+// a client.Object matches a Chainsaw resource template.
 type MatchYAMLMatcher struct {
 	TemplateContent  string
 	TemplateBindings map[string]any
@@ -41,7 +41,7 @@ func NewMatchYAMLMatcher(
 }
 
 // StatusConditionMatcher is a Gomega matcher that checks if
-// a K8s object has a specific status condition.
+// a client.Object has a specific status condition.
 type StatusConditionMatcher struct {
 	ConditionType  string
 	ExpectedStatus string
