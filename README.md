@@ -142,6 +142,6 @@ Eventually(sc.CheckResourceFunc(ctx, template)).Should(Succeed())
 
 ### Notes
 
-* All methods support typed and unstructured objects ([client.Object](https://pkg.go.dev/sigs.k8s.io/controller-runtime/pkg/client#Object))
+* All methods support typed and unstructured objects ([client.Object](https://pkg.go.dev/sigs.k8s.io/controller-runtime/pkg/client#Object)) and rely on the client [scheme](https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime#Scheme) to perform type conversions
 * Template documents used in create and update operations must contain complete resource definitions
 * Template documents used in get and delete operations must contain valid resource keys
