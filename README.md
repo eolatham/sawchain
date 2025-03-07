@@ -115,8 +115,8 @@ Eventually(sc.FetchResourceFunc(ctx, template)).Should(HaveField("Foo", "Bar"))
 Eventually(sc.FetchResourcesFunc(ctx, template)).Should(ConsistOf(HaveField("Foo", "Bar")))
 
 // Custom matchers (single resource only)
-Expect(obj).To(sc.MatchYAML(template))                    // Assert client.Object (typed or unstructured) matches Chainsaw template
-Expect(obj).To(sc.HaveStatusCondition("Type", "Status"))  // Assert client.Object (typed or unstructured) has specific status condition
+Expect(obj).To(sc.MatchYAML(template))                    // Assert client.Object matches Chainsaw template
+Expect(obj).To(sc.HaveStatusCondition("Type", "Status"))  // Assert client.Object has specific status condition
 ```
 
 #### Assert (Almost) Anything
@@ -142,5 +142,6 @@ Eventually(sc.CheckResourceFunc(ctx, template)).Should(Succeed())
 
 ### Notes
 
+* All methods support typed and unstructured objects ([client.Object](https://pkg.go.dev/sigs.k8s.io/controller-runtime/pkg/client#Object))
 * Template documents used in create and update operations must contain complete resource definitions
 * Template documents used in get and delete operations must contain valid resource keys
