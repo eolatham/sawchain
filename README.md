@@ -4,14 +4,15 @@ Go library for K8s YAML-driven testing—backed by [Chainsaw](https://github.com
 
 ## TODO
 
-* Documentation
-  * Docstrings
-  * README
-* Testing
-  * All possible argument combinations
-  * Structured and unstructured objects
-* Implementation
-* Example test suites
+* design
+  * which package should convert between typed and unstructured objects?
+  * what functions belong in the chainsaw package?
+* testing
+  * all possible argument combinations
+  * typed and unstructured objects
+* implementation
+* documentation
+* examples
 
 ## Usage
 
@@ -114,8 +115,8 @@ Eventually(sc.FetchResourceFunc(ctx, template)).Should(HaveField("Foo", "Bar"))
 Eventually(sc.FetchResourcesFunc(ctx, template)).Should(ConsistOf(HaveField("Foo", "Bar")))
 
 // Custom matchers (single resource only)
-Expect(obj).To(sc.MatchYAML(template))                    // Assert client.Object (structured or not) matches Chainsaw template
-Expect(obj).To(sc.HaveStatusCondition("Type", "Status"))  // Assert client.Object (structured or not) has specific status condition
+Expect(obj).To(sc.MatchYAML(template))                    // Assert client.Object (typed or unstructured) matches Chainsaw template
+Expect(obj).To(sc.HaveStatusCondition("Type", "Status"))  // Assert client.Object (typed or unstructured) has specific status condition
 ```
 
 #### Assert (Almost) Anything

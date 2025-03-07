@@ -8,13 +8,14 @@ import (
 	"github.com/kyverno/chainsaw/pkg/apis"
 	"github.com/kyverno/chainsaw/pkg/apis/v1alpha1"
 	"github.com/kyverno/chainsaw/pkg/engine/checks"
-	operrors "github.com/kyverno/chainsaw/pkg/engine/operations/errors"
 	"github.com/kyverno/chainsaw/pkg/engine/templating"
 	"go.uber.org/multierr"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/eolatham/sawchain/internal/utilities"
 )
 
 var compilers = apis.DefaultCompilers
@@ -42,8 +43,8 @@ func CheckResourceOld(
 		return nil, fmt.Errorf("failed to execute check: %w", err)
 	}
 
-	// Return match as structured object
-	obj, err := convertToStruct(c, match)
+	// Return match as typed object
+	obj, err := utilities.ToTyped(c, match)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert match to struct: %w", err)
 	}
@@ -81,7 +82,7 @@ func check(
 	}
 
 	// Search for resource candidates
-	candidates, err := read(c, ctx, &resource)
+	candidates, err := ListCandidates(c, ctx, &resource)
 	if err != nil {
 		if kerrors.IsNotFound(err) {
 			return unstructured.Unstructured{}, errors.New("actual resource not found")
@@ -94,68 +95,4 @@ func check(
 
 	// Execute resource check for each candidate
 	return Match(ctx, resource, bindings, candidates...)
-}
-
-func Match(
-	ctx context.Context,
-	resource unstructured.Unstructured,
-	bindings apis.Bindings,
-	candidates ...unstructured.Unstructured,
-) (unstructured.Unstructured, error) {
-	var errs []error
-
-	// Execute resource check for each candidate
-	for _, candidate := range candidates {
-		fieldErrs, err := checks.Check(ctx, compilers, candidate.UnstructuredContent(), bindings,
-			ptr.To(v1alpha1.NewCheck(resource.UnstructuredContent())))
-		if err != nil {
-			return unstructured.Unstructured{}, err
-		}
-		if len(fieldErrs) != 0 {
-			errs = append(errs,
-				operrors.ResourceError(compilers, resource, candidate, true, bindings, fieldErrs),
-			)
-		} else {
-			// Match found
-			return candidate, nil
-		}
-	}
-
-	// No matches found
-	return unstructured.Unstructured{}, multierr.Combine(errs...)
-}
-
-// read attempts to get all resources from the cluster that match the expected resource.
-// Based on github.com/kyverno/chainsaw/pkg/engine/operations/internal.Read.
-func read(
-	c client.Client,
-	ctx context.Context,
-	expected client.Object,
-) ([]unstructured.Unstructured, error) {
-	var results []unstructured.Unstructured
-	gvk := expected.GetObjectKind().GroupVersionKind()
-	useGet := expected.GetName() != ""
-	if useGet {
-		var actual unstructured.Unstructured
-		actual.SetGroupVersionKind(gvk)
-		if err := c.Get(ctx, client.ObjectKeyFromObject(expected), &actual); err != nil {
-			return nil, err
-		}
-		results = append(results, actual)
-	} else {
-		var list unstructured.UnstructuredList
-		list.SetGroupVersionKind(gvk)
-		var listOptions []client.ListOption
-		if expected.GetNamespace() != "" {
-			listOptions = append(listOptions, client.InNamespace(expected.GetNamespace()))
-		}
-		if len(expected.GetLabels()) != 0 {
-			listOptions = append(listOptions, client.MatchingLabels(expected.GetLabels()))
-		}
-		if err := c.List(ctx, &list, listOptions...); err != nil {
-			return nil, err
-		}
-		results = append(results, list.Items...)
-	}
-	return results, nil
 }

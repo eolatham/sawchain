@@ -48,7 +48,7 @@ func Parse(
 
 		if includeObject {
 			// Check for Object
-			if obj, ok := utilities.AsClientObject(arg); ok {
+			if obj, ok := utilities.AsObject(arg); ok {
 				if opts.Object != nil {
 					return nil, fmt.Errorf("multiple client.Object arguments provided")
 				} else {
@@ -60,7 +60,7 @@ func Parse(
 
 		if includeObjects {
 			// Check for Objects
-			if objs, ok := utilities.AsSliceOfClientObjects(arg); ok {
+			if objs, ok := utilities.AsSliceOfObjects(arg); ok {
 				if opts.Objects != nil {
 					return nil, fmt.Errorf("multiple []client.Object arguments provided")
 				} else {

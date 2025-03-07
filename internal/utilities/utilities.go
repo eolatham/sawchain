@@ -1,10 +1,13 @@
 package utilities
 
 import (
+	"fmt"
 	"os"
 	"reflect"
 	"time"
 
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -56,33 +59,6 @@ func AsDuration(v interface{}) (time.Duration, bool) {
 	return 0, false
 }
 
-// AsClientObject attempts to convert the given value into a client.Object.
-func AsClientObject(v interface{}) (client.Object, bool) {
-	if obj, ok := v.(client.Object); ok {
-		return obj, true
-	}
-	return nil, false
-}
-
-// AsSliceOfClientObjects attempts to convert the given value into a slice of client.Object.
-func AsSliceOfClientObjects(v interface{}) ([]client.Object, bool) {
-	items, ok := v.([]interface{})
-	if !ok {
-		return nil, false
-	}
-
-	var objs []client.Object
-	for _, item := range items {
-		if obj, ok := AsClientObject(item); ok {
-			objs = append(objs, obj)
-		} else {
-			return nil, false
-		}
-	}
-
-	return objs, true
-}
-
 // AsMapStringAny attempts to convert the given value into a map[string]any.
 func AsMapStringAny(v interface{}) (map[string]any, bool) {
 	if m, ok := v.(map[string]any); ok {
@@ -102,4 +78,85 @@ func AsMapStringAny(v interface{}) (map[string]any, bool) {
 	}
 
 	return nil, false
+}
+
+// AsObject attempts to convert the given value into a client.Object.
+func AsObject(v interface{}) (client.Object, bool) {
+	if obj, ok := v.(client.Object); ok {
+		return obj, true
+	}
+	return nil, false
+}
+
+// AsSliceOfObjects attempts to convert the given value into a slice of client.Object.
+func AsSliceOfObjects(v interface{}) ([]client.Object, bool) {
+	items, ok := v.([]interface{})
+	if !ok {
+		return nil, false
+	}
+
+	var objs []client.Object
+	for _, item := range items {
+		if obj, ok := AsObject(item); ok {
+			objs = append(objs, obj)
+		} else {
+			return nil, false
+		}
+	}
+
+	return objs, true
+}
+
+// IsUnstructured checks if the given object's type is *unstructured.Unstructured.
+func IsUnstructured(obj client.Object) bool {
+	switch obj.(type) {
+	case *unstructured.Unstructured:
+		return true
+	default:
+		return false
+	}
+}
+
+// ToTyped uses the client scheme to convert the given unstructured object to a typed object.
+func ToTyped(c client.Client, obj unstructured.Unstructured) (client.Object, error) {
+	// Get scheme
+	scheme := c.Scheme()
+	if scheme == nil {
+		return nil, fmt.Errorf("client scheme is not set")
+	}
+	// Create typed object
+	gvk := obj.GroupVersionKind()
+	runtimeObj, err := scheme.New(gvk)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create object for GVK %v: %w", gvk, err)
+	}
+	// Convert unstructured object
+	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, runtimeObj); err != nil {
+		return nil, fmt.Errorf("failed to convert unstructured object to typed: %w", err)
+	}
+	// Return as client.Object
+	clientObj, ok := runtimeObj.(client.Object)
+	if !ok {
+		return nil, fmt.Errorf("object of type %T does not implement client.Object", runtimeObj)
+	}
+	return clientObj, nil
+}
+
+// ToUnstructured uses the client scheme to convert the given typed object to an unstructured object.
+func ToUnstructured(c client.Client, obj client.Object) (*unstructured.Unstructured, error) {
+	// Get scheme
+	scheme := c.Scheme()
+	if scheme == nil {
+		return nil, fmt.Errorf("client scheme is not set")
+	}
+	// Convert object
+	unstructuredObj := &unstructured.Unstructured{}
+	err := c.Scheme().Convert(obj, unstructuredObj, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert typed object to unstructured: %w", err)
+	}
+	// Set GVK
+	gvk := obj.GetObjectKind().GroupVersionKind()
+	unstructuredObj.SetGroupVersionKind(gvk)
+	return unstructuredObj, nil
 }

@@ -7,11 +7,16 @@ import (
 	"github.com/kyverno/chainsaw/pkg/apis"
 	"github.com/kyverno/chainsaw/pkg/apis/v1alpha1"
 	"github.com/kyverno/chainsaw/pkg/engine/bindings"
+	"github.com/kyverno/chainsaw/pkg/engine/checks"
+	operrors "github.com/kyverno/chainsaw/pkg/engine/operations/errors"
 	"github.com/kyverno/chainsaw/pkg/engine/templating"
 	"github.com/kyverno/chainsaw/pkg/loaders/resource"
+	"go.uber.org/multierr"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/eolatham/sawchain/internal/utilities"
 )
 
 const (
@@ -20,12 +25,76 @@ const (
 
 // TODO: implement new functions here and remove previous versions
 
-func CheckResource()
-func ListCandidates()
-func MatchCandidates()
+func Check()
 
-// UnstructuredObjectsFromTemplate loads the template and
-// returns unstructured objects ready for Chainsaw matching.
+// ListCandidates lists all resources from the cluster that may match the expected resource.
+// Based on github.com/kyverno/chainsaw/pkg/engine/operations/internal.Read.
+func ListCandidates(
+	c client.Client,
+	ctx context.Context,
+	expected client.Object,
+) ([]unstructured.Unstructured, error) {
+	var results []unstructured.Unstructured
+	gvk := expected.GetObjectKind().GroupVersionKind()
+	useGet := expected.GetName() != ""
+	if useGet {
+		var actual unstructured.Unstructured
+		actual.SetGroupVersionKind(gvk)
+		if err := c.Get(ctx, client.ObjectKeyFromObject(expected), &actual); err != nil {
+			return nil, err
+		}
+		results = append(results, actual)
+	} else {
+		var list unstructured.UnstructuredList
+		list.SetGroupVersionKind(gvk)
+		var listOptions []client.ListOption
+		if expected.GetNamespace() != "" {
+			listOptions = append(listOptions, client.InNamespace(expected.GetNamespace()))
+		}
+		if len(expected.GetLabels()) != 0 {
+			listOptions = append(listOptions, client.MatchingLabels(expected.GetLabels()))
+		}
+		if err := c.List(ctx, &list, listOptions...); err != nil {
+			return nil, err
+		}
+		results = append(results, list.Items...)
+	}
+	return results, nil
+}
+
+// Match tests each candidate against the expectations defined in the resource
+// and returns the first match or an error if no match is found.
+func Match(
+	ctx context.Context,
+	resource unstructured.Unstructured,
+	bindings apis.Bindings,
+	candidates ...unstructured.Unstructured,
+) (unstructured.Unstructured, error) {
+	var errs []error
+
+	// Execute resource check for each candidate
+	for _, candidate := range candidates {
+		fieldErrs, err := checks.Check(ctx, compilers, candidate.UnstructuredContent(), bindings,
+			ptr.To(v1alpha1.NewCheck(resource.UnstructuredContent())))
+		if err != nil {
+			return unstructured.Unstructured{}, err
+		}
+		if len(fieldErrs) != 0 {
+			errs = append(errs,
+				operrors.ResourceError(compilers, resource, candidate, true, bindings, fieldErrs),
+			)
+		} else {
+			// Match found
+			return candidate, nil
+		}
+	}
+
+	// No matches found
+	return unstructured.Unstructured{}, multierr.Combine(errs...)
+}
+
+// UnstructuredObjectsFromTemplate loads the template and returns unstructured objects
+// ready for Chainsaw matching.
 func UnstructuredObjectsFromTemplate(templateContent string) ([]unstructured.Unstructured, error) {
 	resources, err := resource.Parse([]byte(templateContent), true)
 	if err != nil {
@@ -34,9 +103,8 @@ func UnstructuredObjectsFromTemplate(templateContent string) ([]unstructured.Uns
 	return resources, nil
 }
 
-// UnstructuredObjectsFromTemplate loads the template and
-// returns an unstructured object ready for Chainsaw matching.
-// Expects the template to contain a single resource.
+// UnstructuredObjectsFromTemplate loads the template and returns an unstructured object
+// ready for Chainsaw matching. Expects the template to contain a single resource.
 func UnstructuredObjectFromTemplate(templateContent string) (unstructured.Unstructured, error) {
 	objs, err := UnstructuredObjectsFromTemplate(templateContent)
 	if err != nil {
@@ -48,45 +116,15 @@ func UnstructuredObjectFromTemplate(templateContent string) (unstructured.Unstru
 	return objs[0], nil
 }
 
-// convertToStruct converts the unstructured resource into the appropriate client.Object struct.
-func convertToStruct(c client.Client, resource unstructured.Unstructured) (client.Object, error) {
-	// Get GVK from unstructured object
-	gvk := resource.GroupVersionKind()
-
-	// Create new instance of the correct type
-	scheme := c.Scheme()
-	if scheme == nil {
-		return nil, fmt.Errorf("client scheme is not set")
-	}
-	typed, err := scheme.New(gvk)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create object for GVK %v: %w", gvk, err)
-	}
-
-	// Convert unstructured object to typed one
-	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(resource.Object, typed); err != nil {
-		return nil, fmt.Errorf("failed to convert unstructured to typed object: %w", err)
-	}
-
-	// Convert to client.Object (which all K8s types implement)
-	obj, ok := typed.(client.Object)
-	if !ok {
-		return nil, fmt.Errorf("object of type %T does not implement client.Object", typed)
-	}
-
-	// Return structured object
-	return obj, nil
-}
-
-// StructuredObjectsFromTemplate parses the template and
-// returns structured objects ready for K8s operations.
+// StructuredObjectsFromTemplate parses the template and returns typed objects
+// ready for K8s operations.
 func StructuredObjectsFromTemplate(
 	c client.Client,
 	ctx context.Context,
 	templateContent string,
 	bindingsMap map[string]any,
 ) ([]client.Object, error) {
-	// Load unstructured objects from template
+	// Load unstructured objects
 	unstructuredObjs, err := UnstructuredObjectsFromTemplate(templateContent)
 	if err != nil {
 		return nil, err
@@ -95,18 +133,18 @@ func StructuredObjectsFromTemplate(
 	// Convert bindings
 	bindings := bindingsFromMap(ctx, bindingsMap)
 
-	// Convert unstructured objects to structured objects
+	// Convert unstructured objects
 	var structuredObjs []client.Object
 	for _, unstructuredObj := range unstructuredObjs {
-		// Parse and merge templated fields
+		// Merge templated fields
 		unstructuredObj, err := templating.TemplateAndMerge(
 			ctx, apis.DefaultCompilers, unstructuredObj, bindings,
 			v1alpha1.NewProjection(unstructuredObj.UnstructuredContent()))
 		if err != nil {
 			return nil, err
 		}
-		// Convert to struct
-		structuredObj, err := convertToStruct(c, unstructuredObj)
+		// Convert to typed
+		structuredObj, err := utilities.ToTyped(c, unstructuredObj)
 		if err != nil {
 			return nil, err
 		}
@@ -116,9 +154,8 @@ func StructuredObjectsFromTemplate(
 	return structuredObjs, nil
 }
 
-// StructuredObjectFromTemplate parses the template and
-// returns a structured object ready for K8s operations.
-// Expects the template to contain a single resource.
+// StructuredObjectFromTemplate parses the template and returns a typed object
+// ready for K8s operations. Expects the template to contain a single resource.
 func StructuredObjectFromTemplate(
 	c client.Client,
 	ctx context.Context,

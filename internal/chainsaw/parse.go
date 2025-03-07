@@ -7,9 +7,11 @@ import (
 	"github.com/kyverno/chainsaw/pkg/apis/v1alpha1"
 	"github.com/kyverno/chainsaw/pkg/engine/templating"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/eolatham/sawchain/internal/utilities"
 )
 
-// ParseResource parses the resource in the template and returns it as a structured object.
+// ParseResource parses the resource in the template and returns it as a typed object.
 func ParseResource(
 	c client.Client,
 	ctx context.Context,
@@ -33,6 +35,6 @@ func ParseResource(
 		return nil, err
 	}
 
-	// Return structured object
-	return convertToStruct(c, merged)
+	// Return typed object
+	return utilities.ToTyped(c, merged)
 }
