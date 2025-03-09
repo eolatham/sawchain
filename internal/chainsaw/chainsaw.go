@@ -21,10 +21,14 @@ import (
 
 // TODO: test
 
+type Bindings = apis.Bindings
+
+const errExpectedSingleResource = "expected template to contain a single resource; found %d"
+
 var compilers = apis.DefaultCompilers
 
 // BindingsFromMap converts the map into a Bindings object.
-func BindingsFromMap(m map[string]any) apis.Bindings {
+func BindingsFromMap(m map[string]any) Bindings {
 	b := apis.NewBindings()
 	for k, v := range m {
 		b = bindings.RegisterBinding(context.TODO(), b, k, v)
@@ -42,13 +46,26 @@ func ParseTemplate(templateContent string) ([]unstructured.Unstructured, error) 
 	return objs, nil
 }
 
+// ParseTemplateSingle parses the single-resource template into an unstructured object
+// (without processing template expressions).
+func ParseTemplateSingle(templateContent string) (unstructured.Unstructured, error) {
+	parsed, err := ParseTemplate(templateContent)
+	if err != nil {
+		return unstructured.Unstructured{}, err
+	}
+	if len(parsed) != 1 {
+		return unstructured.Unstructured{}, fmt.Errorf(errExpectedSingleResource, len(parsed))
+	}
+	return parsed[0], nil
+}
+
 // RenderTemplate renders the template into unstructured objects
 // (and processes template expressions).
 func RenderTemplate(
 	c client.Client,
 	ctx context.Context,
 	templateContent string,
-	bindings apis.Bindings,
+	bindings Bindings,
 ) ([]unstructured.Unstructured, error) {
 	parsed, err := ParseTemplate(templateContent)
 	if err != nil {
@@ -64,6 +81,24 @@ func RenderTemplate(
 		rendered = append(rendered, obj)
 	}
 	return rendered, nil
+}
+
+// RenderTemplateSingle renders the single-resource template into an unstructured object
+// (and processes template expressions).
+func RenderTemplateSingle(
+	c client.Client,
+	ctx context.Context,
+	templateContent string,
+	bindings Bindings,
+) (unstructured.Unstructured, error) {
+	rendered, err := RenderTemplate(c, ctx, templateContent, bindings)
+	if err != nil {
+		return unstructured.Unstructured{}, err
+	}
+	if len(rendered) != 1 {
+		return unstructured.Unstructured{}, fmt.Errorf(errExpectedSingleResource, len(rendered))
+	}
+	return rendered[0], nil
 }
 
 // ListCandidates lists resources in the cluster that might match the expectation.
@@ -107,7 +142,7 @@ func Match(
 	ctx context.Context,
 	candidates []unstructured.Unstructured,
 	expected unstructured.Unstructured,
-	bindings apis.Bindings,
+	bindings Bindings,
 ) (unstructured.Unstructured, error) {
 	var errs []error
 	for _, candidate := range candidates {
@@ -135,7 +170,7 @@ func Check(
 	c client.Client,
 	ctx context.Context,
 	expected unstructured.Unstructured,
-	bindings apis.Bindings,
+	bindings Bindings,
 ) (unstructured.Unstructured, error) {
 	// Render resource metadata
 	if bindings == nil {

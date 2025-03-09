@@ -1,43 +1,83 @@
 package matchers
 
 import (
+	"context"
+	"errors"
 	"fmt"
 
 	"github.com/onsi/gomega/types"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/eolatham/sawchain/internal/chainsaw"
+	"github.com/eolatham/sawchain/internal/utilities"
 )
+
+// TODO: test
 
 // MatchYAMLMatcher is a Gomega matcher that checks if
 // a client.Object matches a Chainsaw resource template.
 type MatchYAMLMatcher struct {
-	TemplateContent string
-	Bindings        map[string]any
+	c               client.Client
+	templateContent string
+	bindings        chainsaw.Bindings
+	expected        unstructured.Unstructured
+	matchError      error
 }
 
 // Match implements the Gomega matcher interface.
 func (m *MatchYAMLMatcher) Match(actual interface{}) (bool, error) {
-	// TODO: implement
-	return false, fmt.Errorf("not implemented")
+	if actual == nil {
+		return false, errors.New("MatchYAMLMatcher expects a client.Object but got nil")
+	}
+	obj, ok := utilities.AsObject(actual)
+	if !ok {
+		return false, fmt.Errorf("MatchYAMLMatcher expects a client.Object but got %T", actual)
+	}
+	candidate, err := utilities.UnstructuredFromObject(m.c, obj)
+	if err != nil {
+		return false, err
+	}
+	m.matchError = nil
+	_, m.matchError = chainsaw.Match(context.TODO(), []unstructured.Unstructured{candidate}, m.expected, m.bindings)
+	return m.matchError == nil, nil
 }
 
 // FailureMessage implements the Gomega matcher interface.
 func (m *MatchYAMLMatcher) FailureMessage(actual interface{}) string {
-	return fmt.Sprintf("Expected\n\t%#v\nto match template\n\t%#v", actual, m.TemplateContent)
+	baseMessage := fmt.Sprintf("Expected\n\t%#v\nto match template\n\t%#v", actual, m.templateContent)
+	if m.matchError != nil {
+		return fmt.Sprintf("%s: %v", baseMessage, m.matchError)
+	}
+	return baseMessage
 }
 
 // NegatedFailureMessage implements the Gomega matcher interface.
 func (m *MatchYAMLMatcher) NegatedFailureMessage(actual interface{}) string {
-	return fmt.Sprintf("Expected\n\t%#v\nnot to match template\n\t%#v", actual, m.TemplateContent)
+	baseMessage := fmt.Sprintf("Expected\n\t%#v\nnot to match template\n\t%#v", actual, m.templateContent)
+	if m.matchError != nil {
+		return fmt.Sprintf("%s: %v", baseMessage, m.matchError)
+	}
+	return baseMessage
 }
 
 // NewMatchYAMLMatcher creates a new MatchYAMLMatcher.
 func NewMatchYAMLMatcher(
+	c client.Client,
 	templateContent string,
 	bindings map[string]any,
-) types.GomegaMatcher {
-	return &MatchYAMLMatcher{
-		TemplateContent: templateContent,
-		Bindings:        bindings,
+) (types.GomegaMatcher, error) {
+	expected, err := chainsaw.ParseTemplateSingle(templateContent)
+	if err != nil {
+		return nil, err
 	}
+	matcher := &MatchYAMLMatcher{
+		c:               c,
+		templateContent: templateContent,
+		bindings:        chainsaw.BindingsFromMap(bindings),
+		expected:        expected,
+	}
+	return matcher, nil
 }
 
 // StatusConditionMatcher is a Gomega matcher that checks if

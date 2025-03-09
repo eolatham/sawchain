@@ -152,17 +152,17 @@ func TypedFromUnstructured(
 func UnstructuredFromObject(
 	c client.Client,
 	obj client.Object,
-) (*unstructured.Unstructured, error) {
+) (unstructured.Unstructured, error) {
 	// Get scheme
 	scheme := c.Scheme()
 	if scheme == nil {
-		return nil, fmt.Errorf("client scheme is not set")
+		return unstructured.Unstructured{}, fmt.Errorf("client scheme is not set")
 	}
 	// Convert object
-	unstructuredObj := &unstructured.Unstructured{}
-	err := c.Scheme().Convert(obj, unstructuredObj, nil)
+	unstructuredObj := unstructured.Unstructured{}
+	err := c.Scheme().Convert(obj, &unstructuredObj, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to convert object to unstructured: %w", err)
+		return unstructured.Unstructured{}, fmt.Errorf("failed to convert object to unstructured: %w", err)
 	}
 	// Set GVK
 	gvk := obj.GetObjectKind().GroupVersionKind()
