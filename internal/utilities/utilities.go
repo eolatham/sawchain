@@ -59,7 +59,7 @@ func AsDuration(v interface{}) (time.Duration, bool) {
 	return 0, false
 }
 
-// AsMapStringAny attempts to convert the given value into a map[string]any.
+// AsMapStringAny attempts to convert the given value into a map with string keys.
 func AsMapStringAny(v interface{}) (map[string]any, bool) {
 	if m, ok := v.(map[string]any); ok {
 		return m, true
@@ -107,7 +107,8 @@ func AsSliceOfObjects(v interface{}) ([]client.Object, bool) {
 	return objs, true
 }
 
-// IsUnstructured checks if the given object's type is *unstructured.Unstructured.
+// IsUnstructured checks if the given object's value
+// is of type unstructured.Unstructured.
 func IsUnstructured(obj client.Object) bool {
 	switch obj.(type) {
 	case *unstructured.Unstructured:
@@ -117,8 +118,12 @@ func IsUnstructured(obj client.Object) bool {
 	}
 }
 
-// ToTyped uses the client scheme to convert the given unstructured object to a typed object.
-func ToTyped(c client.Client, obj unstructured.Unstructured) (client.Object, error) {
+// TypedFromUnstructured uses the client scheme to convert
+// the given unstructured object to a typed object.
+func TypedFromUnstructured(
+	c client.Client,
+	obj unstructured.Unstructured,
+) (client.Object, error) {
 	// Get scheme
 	scheme := c.Scheme()
 	if scheme == nil {
@@ -142,8 +147,12 @@ func ToTyped(c client.Client, obj unstructured.Unstructured) (client.Object, err
 	return clientObj, nil
 }
 
-// ToUnstructured uses the client scheme to convert the given typed object to an unstructured object.
-func ToUnstructured(c client.Client, obj client.Object) (*unstructured.Unstructured, error) {
+// UnstructuredFromObject uses the client scheme to convert
+// the given object to an unstructured object.
+func UnstructuredFromObject(
+	c client.Client,
+	obj client.Object,
+) (*unstructured.Unstructured, error) {
 	// Get scheme
 	scheme := c.Scheme()
 	if scheme == nil {
@@ -153,7 +162,7 @@ func ToUnstructured(c client.Client, obj client.Object) (*unstructured.Unstructu
 	unstructuredObj := &unstructured.Unstructured{}
 	err := c.Scheme().Convert(obj, unstructuredObj, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to convert typed object to unstructured: %w", err)
+		return nil, fmt.Errorf("failed to convert object to unstructured: %w", err)
 	}
 	// Set GVK
 	gvk := obj.GetObjectKind().GroupVersionKind()

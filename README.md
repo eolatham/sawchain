@@ -4,7 +4,6 @@ Go library for K8s YAML-driven testing—backed by [Chainsaw](https://github.com
 
 ## TODO
 
-* design
 * testing
   * all possible argument combinations
   * typed and unstructured objects

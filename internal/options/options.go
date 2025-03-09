@@ -114,7 +114,8 @@ func ApplyDefaults(defaults, opts *Options) *Options {
 	return opts
 }
 
-// ParseAndApplyDefaults parses variable arguments into an Options struct and applies defaults where needed.
+// ParseAndApplyDefaults parses variable arguments into an Options struct
+// and applies defaults where needed.
 func ParseAndApplyDefaults(
 	defaults *Options,
 	includeDurations, includeObject, includeObjects bool,

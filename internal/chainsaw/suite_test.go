@@ -1,4 +1,4 @@
-package chainsaw_old
+package chainsaw_test
 
 import (
 	"context"

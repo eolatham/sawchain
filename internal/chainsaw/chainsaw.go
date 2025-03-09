@@ -19,9 +19,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// TODO: test
+
 var compilers = apis.DefaultCompilers
 
-// BindingsFromMap converts the map into an object that can applied to templates.
+// BindingsFromMap converts the map into a Bindings object.
 func BindingsFromMap(m map[string]any) apis.Bindings {
 	b := apis.NewBindings()
 	for k, v := range m {
@@ -46,7 +48,7 @@ func RenderTemplate(
 	c client.Client,
 	ctx context.Context,
 	templateContent string,
-	templateBindings apis.Bindings,
+	bindings apis.Bindings,
 ) ([]unstructured.Unstructured, error) {
 	parsed, err := ParseTemplate(templateContent)
 	if err != nil {
@@ -55,7 +57,7 @@ func RenderTemplate(
 	var rendered []unstructured.Unstructured
 	for _, obj := range parsed {
 		template := v1alpha1.NewProjection(obj.UnstructuredContent())
-		obj, err := templating.TemplateAndMerge(ctx, compilers, obj, templateBindings, template)
+		obj, err := templating.TemplateAndMerge(ctx, compilers, obj, bindings, template)
 		if err != nil {
 			return nil, err
 		}
