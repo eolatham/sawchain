@@ -1,4 +1,4 @@
-package chainsaw
+package chainsaw_old
 
 import (
 	. "github.com/onsi/ginkgo/v2"
@@ -11,28 +11,28 @@ import (
 
 var _ = DescribeTableSubtree("CheckResource", Ordered,
 	func(
-		objs []client.Object,
+		objects []client.Object,
 		templateContent string,
 		bindingsMap map[string]any,
 		expectedErrs []string,
 	) {
 		BeforeAll(func() {
 			// Create the test objects in the cluster
-			for _, obj := range objs {
+			for _, obj := range objects {
 				err := k8sClient.Create(ctx, obj)
 				Expect(err).NotTo(HaveOccurred())
 			}
 		})
 
 		It("should check resources", func() {
-			match, err := CheckResourceOld(k8sClient, ctx, templateContent, bindingsMap)
+			match, err := CheckResource(k8sClient, ctx, templateContent, bindingsMap)
 			if len(expectedErrs) == 0 {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(match).NotTo(BeNil())
 				// Clear match GVK because created objects have empty GVKs
 				match.GetObjectKind().SetGroupVersionKind(schema.GroupVersionKind{})
 				// Assert match is one of the created objects
-				Expect(objs).To(ContainElement(match))
+				Expect(objects).To(ContainElement(match))
 			} else {
 				Expect(err).To(HaveOccurred())
 				Expect(match).To(BeNil())
@@ -44,7 +44,7 @@ var _ = DescribeTableSubtree("CheckResource", Ordered,
 
 		AfterAll(func() {
 			// Delete the test objects from the cluster
-			for _, obj := range objs {
+			for _, obj := range objects {
 				err := k8sClient.Delete(ctx, obj)
 				Expect(client.IgnoreNotFound(err)).NotTo(HaveOccurred())
 			}

@@ -5,8 +5,6 @@ Go library for K8s YAML-driven testing—backed by [Chainsaw](https://github.com
 ## TODO
 
 * design
-  * which package should convert between typed and unstructured objects?
-  * what functions belong in the chainsaw package?
 * testing
   * all possible argument combinations
   * typed and unstructured objects
@@ -143,6 +141,6 @@ Eventually(sc.CheckResourceFunc(ctx, template)).Should(Succeed())
 
 ### Notes
 
-* All methods support typed and unstructured objects ([client.Object](https://pkg.go.dev/sigs.k8s.io/controller-runtime/pkg/client#Object)) and rely on the client [scheme](https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime#Scheme) to perform type conversions
-* Template documents used in create and update operations must contain complete resource definitions
-* Template documents used in get and delete operations must contain valid resource keys
+* Sawchain accepts [client.Object](https://pkg.go.dev/sigs.k8s.io/controller-runtime/pkg/client#Object) inputs (typed or unstructured) and maintains object state in the original input format, relying on the client [scheme](https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime#Scheme) to perform internal type conversions when needed.
+* Template documents used in create and update operations must contain complete resource definitions.
+* Template documents used in get and delete operations must contain valid resource keys.
