@@ -15,9 +15,9 @@ import (
 
 // TODO: test
 
-// MatchYAMLMatcher is a Gomega matcher that checks if
+// ChainsawMatcher is a Gomega matcher that checks if
 // a client.Object matches a Chainsaw resource template.
-type MatchYAMLMatcher struct {
+type ChainsawMatcher struct {
 	c               client.Client
 	templateContent string
 	bindings        chainsaw.Bindings
@@ -26,13 +26,13 @@ type MatchYAMLMatcher struct {
 }
 
 // Match implements the Gomega matcher interface.
-func (m *MatchYAMLMatcher) Match(actual interface{}) (bool, error) {
+func (m *ChainsawMatcher) Match(actual interface{}) (bool, error) {
 	if actual == nil {
-		return false, errors.New("MatchYAMLMatcher expects a client.Object but got nil")
+		return false, errors.New("ChainsawMatcher expects a client.Object but got nil")
 	}
 	obj, ok := utilities.AsObject(actual)
 	if !ok {
-		return false, fmt.Errorf("MatchYAMLMatcher expects a client.Object but got %T", actual)
+		return false, fmt.Errorf("ChainsawMatcher expects a client.Object but got %T", actual)
 	}
 	candidate, err := utilities.UnstructuredFromObject(m.c, obj)
 	if err != nil {
@@ -44,7 +44,7 @@ func (m *MatchYAMLMatcher) Match(actual interface{}) (bool, error) {
 }
 
 // FailureMessage implements the Gomega matcher interface.
-func (m *MatchYAMLMatcher) FailureMessage(actual interface{}) string {
+func (m *ChainsawMatcher) FailureMessage(actual interface{}) string {
 	baseMessage := fmt.Sprintf("Expected\n\t%#v\nto match template\n\t%#v", actual, m.templateContent)
 	if m.matchError != nil {
 		return fmt.Sprintf("%s: %v", baseMessage, m.matchError)
@@ -53,7 +53,7 @@ func (m *MatchYAMLMatcher) FailureMessage(actual interface{}) string {
 }
 
 // NegatedFailureMessage implements the Gomega matcher interface.
-func (m *MatchYAMLMatcher) NegatedFailureMessage(actual interface{}) string {
+func (m *ChainsawMatcher) NegatedFailureMessage(actual interface{}) string {
 	baseMessage := fmt.Sprintf("Expected\n\t%#v\nnot to match template\n\t%#v", actual, m.templateContent)
 	if m.matchError != nil {
 		return fmt.Sprintf("%s: %v", baseMessage, m.matchError)
@@ -61,8 +61,8 @@ func (m *MatchYAMLMatcher) NegatedFailureMessage(actual interface{}) string {
 	return baseMessage
 }
 
-// NewMatchYAMLMatcher creates a new MatchYAMLMatcher.
-func NewMatchYAMLMatcher(
+// NewChainsawMatcher creates a new ChainsawMatcher.
+func NewChainsawMatcher(
 	c client.Client,
 	templateContent string,
 	bindings map[string]any,
@@ -71,7 +71,7 @@ func NewMatchYAMLMatcher(
 	if err != nil {
 		return nil, err
 	}
-	matcher := &MatchYAMLMatcher{
+	matcher := &ChainsawMatcher{
 		c:               c,
 		templateContent: templateContent,
 		bindings:        chainsaw.BindingsFromMap(bindings),
@@ -80,35 +80,20 @@ func NewMatchYAMLMatcher(
 	return matcher, nil
 }
 
-// StatusConditionMatcher is a Gomega matcher that checks if
-// a client.Object has a specific status condition.
-type StatusConditionMatcher struct {
-	ConditionType  string
-	ExpectedStatus string
-}
-
-// Match implements the Gomega matcher interface.
-func (m *StatusConditionMatcher) Match(actual interface{}) (bool, error) {
-	// TODO: implement
-	return false, fmt.Errorf("not implemented")
-}
-
-// FailureMessage implements the Gomega matcher interface.
-func (m *StatusConditionMatcher) FailureMessage(actual interface{}) string {
-	return fmt.Sprintf("Expected\n\t%#v\nto have status condition %s=%s",
-		actual, m.ConditionType, m.ExpectedStatus)
-}
-
-// NegatedFailureMessage implements the Gomega matcher interface.
-func (m *StatusConditionMatcher) NegatedFailureMessage(actual interface{}) string {
-	return fmt.Sprintf("Expected\n\t%#v\nnot to have status condition %s=%s",
-		actual, m.ConditionType, m.ExpectedStatus)
-}
-
-// NewStatusConditionMatcher creates a new StatusConditionMatcher.
-func NewStatusConditionMatcher(conditionType, expectedStatus string) types.GomegaMatcher {
-	return &StatusConditionMatcher{
-		ConditionType:  conditionType,
-		ExpectedStatus: expectedStatus,
+// NewStatusConditionMatcher creates a new ChainsawMatcher that checks
+// if resources have the expected status condition.
+func NewStatusConditionMatcher(
+	c client.Client,
+	conditionType, expectedStatus string,
+) (types.GomegaMatcher, error) {
+	templateContent := `
+status:
+	(conditions[?type == $conditionType]):
+	- status: ($expectedStatus)
+`
+	bindings := map[string]any{
+		"conditionType":  conditionType,
+		"expectedStatus": expectedStatus,
 	}
+	return NewChainsawMatcher(c, templateContent, bindings)
 }

@@ -15,8 +15,10 @@ import (
 )
 
 const (
-	errInvalidArgs = "invalid arguments"
-	errNilOpts     = "internal error: parsed options is nil"
+	errInvalidArgs         = "invalid arguments"
+	errNilOpts             = "internal error: parsed options is nil"
+	errCreateMatcherFailed = "failed to create matcher"
+	errCreatedMatcherIsNil = "internal error: created matcher is nil"
 )
 
 // Sawchain provides a Chainsaw-backed testing utility for K8s.
@@ -243,13 +245,16 @@ func (s *Sawchain) MatchYAML(template string, bindings ...map[string]any) types.
 		template, err = utilities.ReadFileContent(template)
 		s.g.Expect(err).NotTo(gomega.HaveOccurred(), "internal error: failed to read template file")
 	}
-	matcher, err := matchers.NewMatchYAMLMatcher(s.c, template, utilities.MergeMaps(bindings...))
-	s.g.Expect(err).NotTo(gomega.HaveOccurred(), "failed to create MatchYAMLMatcher")
-	s.g.Expect(matcher).NotTo(gomega.BeNil(), "internal error: created MatchYAMLMatcher is nil")
+	matcher, err := matchers.NewChainsawMatcher(s.c, template, utilities.MergeMaps(bindings...))
+	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errCreateMatcherFailed)
+	s.g.Expect(matcher).NotTo(gomega.BeNil(), errCreatedMatcherIsNil)
 	return matcher
 }
 
 // HaveStatusCondition returns a matcher that checks if a client.Object has a specific status condition.
 func (s *Sawchain) HaveStatusCondition(conditionType, expectedStatus string) types.GomegaMatcher {
-	return matchers.NewStatusConditionMatcher(conditionType, expectedStatus)
+	matcher, err := matchers.NewStatusConditionMatcher(s.c, conditionType, expectedStatus)
+	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errCreateMatcherFailed)
+	s.g.Expect(matcher).NotTo(gomega.BeNil(), errCreatedMatcherIsNil)
+	return matcher
 }
