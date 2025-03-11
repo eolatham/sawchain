@@ -104,6 +104,42 @@ func Parse(
 	return opts, nil
 }
 
+// RequireDurations requires options Timeout and Interval to be provided.
+func RequireDurations(opts *Options) error {
+	if opts == nil {
+		return errors.New(errNil)
+	}
+	if opts.Timeout == 0 {
+		return errors.New(errRequired + ": Timeout (string or time.Duration)")
+	}
+	if opts.Interval == 0 {
+		return errors.New(errRequired + ": Interval (string or time.Duration)")
+	}
+	return nil
+}
+
+// RequireTemplateOrObject requires options Template or Object to be provided.
+func RequireTemplateOrObject(opts *Options) error {
+	if opts == nil {
+		return errors.New(errNil)
+	}
+	if opts.Template == "" && opts.Object == nil {
+		return errors.New(errRequired + ": Template (string) or Object (client.Object)")
+	}
+	return nil
+}
+
+// RequireTemplateOrObjects requires options Template or Objects to be provided.
+func RequireTemplateOrObjects(opts *Options) error {
+	if opts == nil {
+		return errors.New(errNil)
+	}
+	if opts.Template == "" && opts.Objects == nil {
+		return errors.New(errRequired + ": Template (string) or Objects ([]client.Object)")
+	}
+	return nil
+}
+
 // ApplyDefaults applies defaults to the given options where needed.
 func ApplyDefaults(defaults, opts *Options) *Options {
 	// Default durations
@@ -134,116 +170,72 @@ func ParseAndApplyDefaults(
 	return ApplyDefaults(defaults, opts), nil
 }
 
-// ParseGlobal parses options for the Sawchain constructor.
-func ParseGlobal(defaults *Options, args ...interface{}) (*Options, error) {
-	return ParseAndApplyDefaults(defaults, true, false, false, args...)
-}
-
-// ParseImmediateSingle parses options for Sawchain immediate single-resource operations.
-func ParseImmediateSingle(defaults *Options, args ...interface{}) (*Options, error) {
-	return ParseAndApplyDefaults(defaults, false, true, false, args...)
-}
-
-// ParseImmediateMultiple parses options for Sawchain immediate multi-resource operations.
-func ParseImmediateMultiple(defaults *Options, args ...interface{}) (*Options, error) {
-	return ParseAndApplyDefaults(defaults, false, false, true, args...)
-}
-
-// ParseEventualSingle parses options for Sawchain eventual single-resource operations.
-func ParseEventualSingle(defaults *Options, args ...interface{}) (*Options, error) {
-	return ParseAndApplyDefaults(defaults, true, true, false, args...)
-}
-
-// ParseEventualMultiple parses options for Sawchain eventual multi-resource operations.
-func ParseEventualMultiple(defaults *Options, args ...interface{}) (*Options, error) {
-	return ParseAndApplyDefaults(defaults, true, false, true, args...)
-}
-
-// ValidateImmediateSingle validates options for Sawchain immediate single-resource operations.
-func ValidateImmediateSingle(opts *Options) error {
-	if opts == nil {
-		return errors.New(errNil)
-	}
-	if opts.Template == "" && opts.Object == nil {
-		return errors.New(errRequired + ": Object (client.Object) or Template (string)")
-	}
-	return nil
-}
-
-// ValidateImmediateMultiple validates options for Sawchain immediate multi-resource operations.
-func ValidateImmediateMultiple(opts *Options) error {
-	if opts == nil {
-		return errors.New(errNil)
-	}
-	if opts.Template == "" && opts.Objects == nil {
-		return errors.New(errRequired + ": Objects ([]client.Object) or Template (string)")
-	}
-	return nil
-}
-
-// ValidateEventualSingle validates options for Sawchain eventual single-resource operations.
-func ValidateEventualSingle(opts *Options) error {
-	if err := ValidateImmediateSingle(opts); err != nil {
-		return err
-	}
-	// TODO: error if timeout is not given
-	// TODO: error if interval is not given
-	return nil
-}
-
-// ValidateEventualMultiple validates options for Sawchain eventual multi-resource operations.
-func ValidateEventualMultiple(opts *Options) error {
-	if err := ValidateImmediateMultiple(opts); err != nil {
-		return err
-	}
-	// TODO: error if timeout is not given
-	// TODO: error if interval is not given
-	return nil
-}
-
-// ParseAndValidateImmediateSingle parses and validates options for Sawchain immediate single-resource operations.
-func ParseAndValidateImmediateSingle(defaults *Options, args ...interface{}) (*Options, error) {
-	opts, err := ParseImmediateSingle(defaults, args...)
+// ParseAndRequireGlobal parses and requires options
+// for the Sawchain constructor.
+func ParseAndRequireGlobal(defaults *Options, args ...interface{}) (*Options, error) {
+	opts, err := ParseAndApplyDefaults(defaults, true, false, false, args...)
 	if err != nil {
 		return nil, err
 	}
-	if err := ValidateImmediateSingle(opts); err != nil {
+	if err := RequireDurations(opts); err != nil {
 		return nil, err
 	}
 	return opts, nil
 }
 
-// ParseAndValidateImmediateMultiple parses and validates options for Sawchain immediate multi-resource operations.
-func ParseAndValidateImmediateMultiple(defaults *Options, args ...interface{}) (*Options, error) {
-	opts, err := ParseImmediateMultiple(defaults, args...)
+// ParseAndRequireImmediateSingle parses and requires options
+// for Sawchain immediate single-resource operations.
+func ParseAndRequireImmediateSingle(defaults *Options, args ...interface{}) (*Options, error) {
+	opts, err := ParseAndApplyDefaults(defaults, false, true, false, args...)
 	if err != nil {
 		return nil, err
 	}
-	if err := ValidateImmediateMultiple(opts); err != nil {
+	if err := RequireTemplateOrObject(opts); err != nil {
 		return nil, err
 	}
 	return opts, nil
 }
 
-// ParseAndValidateEventualSingle parses and validates options for Sawchain eventual single-resource operations.
-func ParseAndValidateEventualSingle(defaults *Options, args ...interface{}) (*Options, error) {
-	opts, err := ParseEventualSingle(defaults, args...)
+// ParseAndRequireImmediateMultiple parses and requires options
+// for Sawchain immediate multi-resource operations.
+func ParseAndRequireImmediateMultiple(defaults *Options, args ...interface{}) (*Options, error) {
+	opts, err := ParseAndApplyDefaults(defaults, false, false, true, args...)
 	if err != nil {
 		return nil, err
 	}
-	if err := ValidateEventualSingle(opts); err != nil {
+	if err := RequireTemplateOrObjects(opts); err != nil {
 		return nil, err
 	}
 	return opts, nil
 }
 
-// ParseAndValidateEventualMultiple parses and validates options for Sawchain eventual multi-resource operations.
-func ParseAndValidateEventualMultiple(defaults *Options, args ...interface{}) (*Options, error) {
-	opts, err := ParseEventualMultiple(defaults, args...)
+// ParseAndRequireEventualSingle parses and requires options
+// for Sawchain eventual single-resource operations.
+func ParseAndRequireEventualSingle(defaults *Options, args ...interface{}) (*Options, error) {
+	opts, err := ParseAndApplyDefaults(defaults, true, true, false, args...)
 	if err != nil {
 		return nil, err
 	}
-	if err := ValidateEventualMultiple(opts); err != nil {
+	if err := RequireDurations(opts); err != nil {
+		return nil, err
+	}
+	if err := RequireTemplateOrObject(opts); err != nil {
+		return nil, err
+	}
+	return opts, nil
+}
+
+// ParseAndRequireEventualMultiple parses and requires options
+// for Sawchain eventual multi-resource operations.
+func ParseAndRequireEventualMultiple(defaults *Options, args ...interface{}) (*Options, error) {
+	opts, err := ParseAndApplyDefaults(defaults, true, false, true, args...)
+	if err != nil {
+		return nil, err
+	}
+	if err := RequireDurations(opts); err != nil {
+		return nil, err
+	}
+	if err := RequireTemplateOrObjects(opts); err != nil {
 		return nil, err
 	}
 	return opts, nil
