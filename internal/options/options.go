@@ -21,7 +21,7 @@ const (
 type Options struct {
 	Timeout  time.Duration   // Timeout for eventual assertions.
 	Interval time.Duration   // Polling interval for eventual assertions.
-	Template string          // Template file path or content for Chainsaw resource operations.
+	Template string          // Template content for Chainsaw resource operations.
 	Bindings map[string]any  // Template bindings for Chainsaw resource operations.
 	Object   client.Object   // Object to store state for single-resource operations.
 	Objects  []client.Object // Slice to store state for multi-resource operations.
