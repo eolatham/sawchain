@@ -48,41 +48,38 @@ func New(t testing.TB, c client.Client, args ...interface{}) *Sawchain {
 
 // CREATION OPERATIONS
 
-// CreateResourceAndWait creates a resource from an object, manifest, or Chainsaw template,
-// and waits for GET operations to succeed before returning.
+// CreateResourceAndWait creates a resource with an object, manifest, or Chainsaw template, and ensures
+// client Get operations for the resource succeed within a configurable duration before returning.
 //
-// This is especially helpful when testing with a cached client, as it ensures the client cache
-// is synced and it is safe to make assertions on the resource immediately after execution.
+// If testing with a cached client, this ensures the client cache is synced and it is safe to make
+// assertions on the resource immediately after execution.
+//
+// Invalid input, client errors, and timeout errors will result in immediate test failure.
 //
 // # Arguments
 //
 // The following arguments may be provided in any order (unless noted otherwise) after the context:
 //
-//   - Object (client.Object): Required if a template is not provided.
-//     Typed or unstructured object for reading/writing resource state. State will be maintained in the original
-//     input format, and the client scheme may be used to perform internal type conversions if needed.
-//     If provided without a template, resource state will be read from the object for creation.
-//     If provided with a template, resource state will be read from the template and written to the object.
+//   - Object (client.Object): Required if a template is not provided. Typed or unstructured object for
+//     reading/writing resource state. If provided without a template, resource state will be read from
+//     the object for creation. If provided with a template, resource state will be read from the
+//     template and written to the object. State will be maintained in the original input format,
+//     which may require internal type conversions using the client scheme.
 //
-//   - Template (string): Required if an object is not provided.
-//     May be the file path or the content of a Chainsaw template (or static manifest)
-//     containing a single complete resource definition.
-//     If provided without an object, resource state will be read from the template for creation.
-//     If provided with an object, resource state will be read from the template and written to the object.
+//   - Template (string): Required if an object is not provided. File path or content of a static
+//     manifest or Chainsaw template containing a single complete resource definition. If provided,
+//     resource state will be read from the template for creation.
 //
-//   - Bindings (map[string]any): Optional. Defaults to Sawchain's global bindings.
-//     Bindings to be applied to a Chainsaw template (if provided).
-//     If multiple maps are provided, they will all be used.
-//     Sawchain's global bindings are always included.
+//   - Bindings (map[string]any): Optional. Defaults to Sawchain's global bindings. Bindings to be
+//     applied to a Chainsaw template (if provided). If multiple maps are provided, they will all
+//     be used. Sawchain's global bindings will always be included.
 //
 //   - Timeout (string or time.Duration): Optional. Defaults to Sawchain's global timeout value.
-//     The duration within which getting the resource should succeed after creation
-//     (i.e. how long to wait for the client cache to sync).
-//     Must be provided before interval.
+//     Duration within which client Get operations for the resource should succeed after creation.
+//     If provided, must be before interval.
 //
 //   - Interval (string or time.Duration): Optional. Defaults to Sawchain's global interval value.
-//     The polling interval for checking the resource after creation.
-//     Must be provided after timeout.
+//     Polling interval for checking the resource after creation. If provided, must be after timeout.
 //
 // # Examples
 //
@@ -90,9 +87,9 @@ func New(t testing.TB, c client.Client, args ...interface{}) *Sawchain {
 //
 //	sc.CreateResourceAndWait(ctx, obj)
 //
-// Create a resource with a static manifest file and override duration settings:
+// Create a resource with a manifest file and override duration settings:
 //
-//	sc.CreateResourceAndWait(ctx, "path/to/manifest.yaml", "30s", "2s")
+//	sc.CreateResourceAndWait(ctx, "path/to/manifest.yaml", "20s", "2s")
 //
 // Create a resource with a Chainsaw template and bindings:
 //
@@ -106,7 +103,7 @@ func New(t testing.TB, c client.Client, args ...interface{}) *Sawchain {
 //	    key: value
 //	`, map[string]any{"name": "test-cm", "namespace": "default"})
 //
-// Create a resource with a Chainsaw template and bindings and save the resource's state to an object:
+// Create a resource with a Chainsaw template and save the resource's state to an object:
 //
 //	sc.CreateResourceAndWait(ctx, obj, `
 //	  apiVersion: v1
