@@ -48,7 +48,51 @@ func New(t testing.TB, c client.Client, args ...interface{}) *Sawchain {
 
 // CREATION OPERATIONS
 
-// CreateResourceAndWait creates a resource and waits for client cache to sync.
+// TODO: extend examples to show bindings and timeouts
+// CreateResourceAndWait creates a resource from an object, manifest, or Chainsaw template,
+// and waits for GET operations to succeed before returning.
+//
+// This is especially helpful when testing with a cached client, as it ensures the client cache
+// is synced and it is safe to make assertions on the resource immediately after execution.
+//
+// # Arguments
+//
+// The following arguments may be provided in any order after the context:
+//
+//   - Object (client.Object): Required if a template is not provided.
+//     If provided without a template, resource state will be read from the object for creation.
+//     If provided with a template, resource state will be read from the template and written to the object.
+//
+//   - Template (string): Required if an object is not provided.
+//     May be the file path or the content of a Chainsaw template (or static manifest) representing a single resource.
+//     If provided without an object, resource state will be read from the template for creation.
+//     If provided with an object, resource state will be read from the template and written to the object.
+//
+//   - Bindings (map[string]any): Optional. Defaults to Sawchain's global bindings.
+//     Bindings to be applied to a Chainsaw template (if provided).
+//     If multiple maps are provided, they will all be used.
+//     Sawchain's global bindings are always included.
+//
+//   - Timeout (string or time.Duration): Optional. Defaults to Sawchain's global timeout value.
+//     The duration within which getting the resource should succeed after creation
+//     (i.e. how long to wait for the client cache to sync).
+//
+//   - Interval (string or time.Duration): Optional. Defaults to Sawchain's global interval value.
+//     The polling interval for checking the resource after creation.
+//
+// # Examples
+//
+// Create a resource with an object:
+//
+//	sc.CreateResourceAndWait(ctx, obj)
+//
+// Create a resource with a template:
+//
+//	sc.CreateResourceAndWait(ctx, template)
+//
+// Create a resource with a template and save the resource's state to an object:
+//
+//	sc.CreateResourceAndWait(ctx, obj, template)
 func (s *Sawchain) CreateResourceAndWait(ctx context.Context, args ...interface{}) error {
 	// Parse options
 	opts, err := options.ParseAndRequireEventualSingle(&s.opts, args...)
