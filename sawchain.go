@@ -31,7 +31,22 @@ type Sawchain struct {
 	opts options.Options
 }
 
-// New creates a new Sawchain instance.
+// New creates a new Sawchain instance with the provided global settings.
+//
+// Invalid input will result in immediate test failure.
+//
+// # Arguments
+//
+// The following arguments may be provided in any order (unless noted otherwise) after t and c:
+//
+//   - Bindings (map[string]any): Optional. Global bindings to be used in all Chainsaw template
+//     operations. If multiple maps are provided, they will be merged in natural order.
+//
+//   - Timeout (string or time.Duration): Optional. Defaults to 10s. Default timeout for eventual
+//     assertions. If provided, must be before interval.
+//
+//   - Interval (string or time.Duration): Optional. Defaults to 1s. Default polling interval for
+//     eventual assertions. If provided, must be after timeout.
 func New(t testing.TB, c client.Client, args ...interface{}) *Sawchain {
 	// Create Gomega
 	g := gomega.NewGomegaWithT(t)
@@ -46,7 +61,7 @@ func New(t testing.TB, c client.Client, args ...interface{}) *Sawchain {
 	return &Sawchain{t: t, g: g, c: c, opts: *opts}
 }
 
-// CREATION OPERATIONS
+// CREATE OPERATIONS
 
 // CreateResourceAndWait creates a resource with an object, manifest, or Chainsaw template, and ensures
 // client Get operations for the resource succeed within a configurable duration before returning.
@@ -70,9 +85,9 @@ func New(t testing.TB, c client.Client, args ...interface{}) *Sawchain {
 //     manifest or Chainsaw template containing a single complete resource definition. If provided,
 //     resource state will be read from the template for creation.
 //
-//   - Bindings (map[string]any): Optional. Defaults to Sawchain's global bindings. Bindings to be
-//     applied to a Chainsaw template (if provided). If multiple maps are provided, they will all
-//     be used. Sawchain's global bindings will always be included.
+//   - Bindings (map[string]any): Optional. Bindings to be applied to a Chainsaw template (if provided)
+//     in addition to (or overriding) Sawchain's global bindings. If multiple maps are provided, they
+//     will be merged in natural order.
 //
 //   - Timeout (string or time.Duration): Optional. Defaults to Sawchain's global timeout value.
 //     Duration within which client Get operations for the resource should succeed after creation.
