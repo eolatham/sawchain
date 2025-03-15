@@ -129,16 +129,27 @@ func TypedFromUnstructured(
 	if scheme == nil {
 		return nil, fmt.Errorf("client scheme is not set")
 	}
-	// Create typed object
+
+	// Get GVK
 	gvk := obj.GroupVersionKind()
+	if gvk.Empty() {
+		return nil, fmt.Errorf("unstructured object has no GroupVersionKind")
+	}
+
+	// Create typed object
 	runtimeObj, err := scheme.New(gvk)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create object for GVK %v: %w", gvk, err)
+		return nil, fmt.Errorf("failed to create object for GroupVersionKind %v: %w", gvk, err)
 	}
+
 	// Convert unstructured object
 	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, runtimeObj); err != nil {
 		return nil, fmt.Errorf("failed to convert unstructured object to typed: %w", err)
 	}
+
+	// Set GVK
+	runtimeObj.GetObjectKind().SetGroupVersionKind(gvk)
+
 	// Return as client.Object
 	clientObj, ok := runtimeObj.(client.Object)
 	if !ok {
@@ -158,14 +169,29 @@ func UnstructuredFromObject(
 	if scheme == nil {
 		return unstructured.Unstructured{}, fmt.Errorf("client scheme is not set")
 	}
+
 	// Convert object
 	unstructuredObj := unstructured.Unstructured{}
-	err := c.Scheme().Convert(obj, &unstructuredObj, nil)
+	err := scheme.Convert(obj, &unstructuredObj, nil)
 	if err != nil {
 		return unstructured.Unstructured{}, fmt.Errorf("failed to convert object to unstructured: %w", err)
 	}
-	// Set GVK
+
+	// Get GVK
 	gvk := obj.GetObjectKind().GroupVersionKind()
+	if gvk.Empty() {
+		// Try to get GVK from scheme
+		gvks, _, err := scheme.ObjectKinds(obj)
+		if err != nil {
+			return unstructured.Unstructured{}, fmt.Errorf("failed to get GroupVersionKind for object: %w", err)
+		}
+		if len(gvks) == 0 {
+			return unstructured.Unstructured{}, fmt.Errorf("could not determine GroupVersionKind for object of type %T", obj)
+		}
+		gvk = gvks[0]
+	}
+
+	// Set GVK
 	unstructuredObj.SetGroupVersionKind(gvk)
 	return unstructuredObj, nil
 }
