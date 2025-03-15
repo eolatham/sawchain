@@ -21,9 +21,8 @@ import (
 var _ = Describe("Utilities", func() {
 	Describe("MergeMaps", func() {
 		type testCase struct {
-			description string
-			maps        []map[string]any
-			expected    map[string]any
+			maps     []map[string]any
+			expected map[string]any
 		}
 
 		DescribeTable("merging maps",
@@ -31,18 +30,15 @@ var _ = Describe("Utilities", func() {
 				result := utilities.MergeMaps(tc.maps...)
 				Expect(result).To(Equal(tc.expected))
 			},
-			Entry("no maps", testCase{
-				description: "no maps provided",
-				maps:        []map[string]any{},
-				expected:    map[string]any{},
+			Entry("no maps provided", testCase{
+				maps:     []map[string]any{},
+				expected: map[string]any{},
 			}),
-			Entry("single map", testCase{
-				description: "single map provided",
-				maps:        []map[string]any{{"key1": "value1", "key2": 2}},
-				expected:    map[string]any{"key1": "value1", "key2": 2},
+			Entry("single map provided", testCase{
+				maps:     []map[string]any{{"key1": "value1", "key2": 2}},
+				expected: map[string]any{"key1": "value1", "key2": 2},
 			}),
 			Entry("two maps with non-overlapping keys", testCase{
-				description: "two maps with non-overlapping keys",
 				maps: []map[string]any{
 					{"key1": "value1", "key2": 2},
 					{"key3": true, "key4": 4.5},
@@ -50,7 +46,6 @@ var _ = Describe("Utilities", func() {
 				expected: map[string]any{"key1": "value1", "key2": 2, "key3": true, "key4": 4.5},
 			}),
 			Entry("two maps with overlapping keys", testCase{
-				description: "two maps with overlapping keys",
 				maps: []map[string]any{
 					{"key1": "original", "key2": 2, "key3": "value3"},
 					{"key1": "override", "key4": 4},
@@ -58,7 +53,6 @@ var _ = Describe("Utilities", func() {
 				expected: map[string]any{"key1": "override", "key2": 2, "key3": "value3", "key4": 4},
 			}),
 			Entry("multiple maps with overlapping keys", testCase{
-				description: "multiple maps with overlapping keys",
 				maps: []map[string]any{
 					{"key1": "first", "key2": 2},
 					{"key1": "second", "key3": true},
@@ -67,7 +61,6 @@ var _ = Describe("Utilities", func() {
 				expected: map[string]any{"key1": "third", "key2": 2, "key3": true, "key4": 4.5},
 			}),
 			Entry("maps with nested structures", testCase{
-				description: "maps with nested structures",
 				maps: []map[string]any{
 					{
 						"key1": "value1",
@@ -94,7 +87,6 @@ var _ = Describe("Utilities", func() {
 				},
 			}),
 			Entry("nil maps are skipped", testCase{
-				description: "nil maps are skipped",
 				maps: []map[string]any{
 					{"key1": "value1"},
 					nil,
@@ -103,7 +95,6 @@ var _ = Describe("Utilities", func() {
 				expected: map[string]any{"key1": "value1", "key2": "value2"},
 			}),
 			Entry("all nil maps", testCase{
-				description: "all nil maps",
 				maps: []map[string]any{
 					nil,
 					nil,
@@ -115,9 +106,8 @@ var _ = Describe("Utilities", func() {
 
 	Describe("IsExistingFile", func() {
 		type testCase struct {
-			description string
-			setup       func() string
-			expected    bool
+			setup    func() string
+			expected bool
 		}
 
 		DescribeTable("checking if a file exists",
@@ -126,8 +116,7 @@ var _ = Describe("Utilities", func() {
 				result := utilities.IsExistingFile(path)
 				Expect(result).To(Equal(tc.expected))
 			},
-			Entry("existing file", testCase{
-				description: "path points to an existing file",
+			Entry("path points to an existing file", testCase{
 				setup: func() string {
 					filePath := filepath.Join(tempDir, "test-file.txt")
 					err := os.WriteFile(filePath, []byte("test content"), 0644)
@@ -136,22 +125,19 @@ var _ = Describe("Utilities", func() {
 				},
 				expected: true,
 			}),
-			Entry("directory", testCase{
-				description: "path points to a directory",
+			Entry("path points to a directory", testCase{
 				setup: func() string {
 					return tempDir
 				},
 				expected: false,
 			}),
-			Entry("non-existent path", testCase{
-				description: "path does not exist",
+			Entry("path does not exist", testCase{
 				setup: func() string {
 					return filepath.Join(tempDir, "non-existent-file.txt")
 				},
 				expected: false,
 			}),
-			Entry("empty path", testCase{
-				description: "path is empty",
+			Entry("path is empty", testCase{
 				setup: func() string {
 					return ""
 				},
@@ -162,7 +148,6 @@ var _ = Describe("Utilities", func() {
 
 	Describe("ReadFileContent", func() {
 		type testCase struct {
-			description    string
 			setup          func() string
 			expectedResult string
 			expectError    bool
@@ -180,8 +165,7 @@ var _ = Describe("Utilities", func() {
 					Expect(result).To(Equal(tc.expectedResult))
 				}
 			},
-			Entry("existing file with content", testCase{
-				description: "reading content from an existing file",
+			Entry("reading content from an existing file", testCase{
 				setup: func() string {
 					content := "This is test content.\nWith multiple lines."
 					filePath := filepath.Join(tempDir, "test-file.txt")
@@ -192,8 +176,7 @@ var _ = Describe("Utilities", func() {
 				expectedResult: "This is test content.\nWith multiple lines.",
 				expectError:    false,
 			}),
-			Entry("empty file", testCase{
-				description: "reading content from an empty file",
+			Entry("reading content from an empty file", testCase{
 				setup: func() string {
 					filePath := filepath.Join(tempDir, "empty-file.txt")
 					err := os.WriteFile(filePath, []byte(""), 0644)
@@ -203,16 +186,14 @@ var _ = Describe("Utilities", func() {
 				expectedResult: "",
 				expectError:    false,
 			}),
-			Entry("non-existent file", testCase{
-				description: "reading content from a non-existent file",
+			Entry("reading content from a non-existent file", testCase{
 				setup: func() string {
 					return filepath.Join(tempDir, "non-existent-file.txt")
 				},
 				expectedResult: "",
 				expectError:    true,
 			}),
-			Entry("directory", testCase{
-				description: "reading content from a directory",
+			Entry("reading content from a directory", testCase{
 				setup: func() string {
 					return tempDir
 				},
@@ -224,7 +205,6 @@ var _ = Describe("Utilities", func() {
 
 	Describe("AsDuration", func() {
 		type testCase struct {
-			description    string
 			input          interface{}
 			expectedResult time.Duration
 			expectedOk     bool
@@ -238,32 +218,27 @@ var _ = Describe("Utilities", func() {
 					Expect(result).To(Equal(tc.expectedResult))
 				}
 			},
-			Entry("time.Duration value", testCase{
-				description:    "input is already a time.Duration",
+			Entry("input is already a time.Duration", testCase{
 				input:          5 * time.Second,
 				expectedResult: 5 * time.Second,
 				expectedOk:     true,
 			}),
-			Entry("valid string duration", testCase{
-				description:    "input is a valid duration string",
+			Entry("input is a valid duration string", testCase{
 				input:          "10m30s",
 				expectedResult: 10*time.Minute + 30*time.Second,
 				expectedOk:     true,
 			}),
-			Entry("invalid string duration", testCase{
-				description:    "input is an invalid duration string",
+			Entry("input is an invalid duration string", testCase{
 				input:          "invalid",
 				expectedResult: 0,
 				expectedOk:     false,
 			}),
-			Entry("integer value", testCase{
-				description:    "input is an integer",
+			Entry("input is an integer", testCase{
 				input:          42,
 				expectedResult: 0,
 				expectedOk:     false,
 			}),
-			Entry("nil value", testCase{
-				description:    "input is nil",
+			Entry("input is nil", testCase{
 				input:          nil,
 				expectedResult: 0,
 				expectedOk:     false,
@@ -273,7 +248,6 @@ var _ = Describe("Utilities", func() {
 
 	Describe("AsMapStringAny", func() {
 		type testCase struct {
-			description    string
 			input          interface{}
 			expectedResult map[string]any
 			expectedOk     bool
@@ -287,38 +261,32 @@ var _ = Describe("Utilities", func() {
 					Expect(result).To(Equal(tc.expectedResult))
 				}
 			},
-			Entry("map[string]any value", testCase{
-				description:    "input is already a map[string]any",
+			Entry("input is already a map[string]any", testCase{
 				input:          map[string]any{"key1": "value1", "key2": 42},
 				expectedResult: map[string]any{"key1": "value1", "key2": 42},
 				expectedOk:     true,
 			}),
-			Entry("map[string]string value", testCase{
-				description:    "input is a map[string]string",
+			Entry("input is a map[string]string", testCase{
 				input:          map[string]string{"key1": "value1", "key2": "value2"},
 				expectedResult: map[string]any{"key1": "value1", "key2": "value2"},
 				expectedOk:     true,
 			}),
-			Entry("map[string]int value", testCase{
-				description:    "input is a map[string]int",
+			Entry("input is a map[string]int", testCase{
 				input:          map[string]int{"key1": 1, "key2": 2},
 				expectedResult: map[string]any{"key1": 1, "key2": 2},
 				expectedOk:     true,
 			}),
-			Entry("map with non-string keys", testCase{
-				description:    "input is a map with non-string keys",
+			Entry("input is a map with non-string keys", testCase{
 				input:          map[int]string{1: "value1", 2: "value2"},
 				expectedResult: nil,
 				expectedOk:     false,
 			}),
-			Entry("non-map value", testCase{
-				description:    "input is not a map",
+			Entry("input is not a map", testCase{
 				input:          "not a map",
 				expectedResult: nil,
 				expectedOk:     false,
 			}),
-			Entry("nil value", testCase{
-				description:    "input is nil",
+			Entry("input is nil", testCase{
 				input:          nil,
 				expectedResult: nil,
 				expectedOk:     false,
@@ -328,9 +296,8 @@ var _ = Describe("Utilities", func() {
 
 	Describe("AsObject", func() {
 		type testCase struct {
-			description string
-			input       interface{}
-			expectedOk  bool
+			input      interface{}
+			expectedOk bool
 		}
 
 		DescribeTable("converting to client.Object",
@@ -338,27 +305,23 @@ var _ = Describe("Utilities", func() {
 				_, ok := utilities.AsObject(tc.input)
 				Expect(ok).To(Equal(tc.expectedOk))
 			},
-			Entry("client.Object value", testCase{
-				description: "input implements client.Object",
-				input:       &corev1.ConfigMap{},
-				expectedOk:  true,
+			Entry("input implements client.Object", testCase{
+				input:      &corev1.ConfigMap{},
+				expectedOk: true,
 			}),
-			Entry("non-client.Object value", testCase{
-				description: "input does not implement client.Object",
-				input:       "not an object",
-				expectedOk:  false,
+			Entry("input does not implement client.Object", testCase{
+				input:      "not an object",
+				expectedOk: false,
 			}),
-			Entry("nil value", testCase{
-				description: "input is nil",
-				input:       nil,
-				expectedOk:  false,
+			Entry("input is nil", testCase{
+				input:      nil,
+				expectedOk: false,
 			}),
 		)
 	})
 
 	Describe("AsSliceOfObjects", func() {
 		type testCase struct {
-			description    string
 			input          interface{}
 			expectedOk     bool
 			expectedLength int
@@ -372,32 +335,37 @@ var _ = Describe("Utilities", func() {
 					Expect(result).To(HaveLen(tc.expectedLength))
 				}
 			},
-			Entry("slice of client.Object", testCase{
-				description:    "input is a slice of interfaces that implement client.Object",
+			Entry("input is a slice of client.Object", testCase{
+				input:          []client.Object{&corev1.ConfigMap{}, &corev1.ConfigMap{}},
+				expectedOk:     true,
+				expectedLength: 2,
+			}),
+			Entry("input is an empty slice of client.Object", testCase{
+				input:          []client.Object{},
+				expectedOk:     true,
+				expectedLength: 0,
+			}),
+			Entry("input is a slice of interfaces that implement client.Object", testCase{
 				input:          []interface{}{&corev1.ConfigMap{}, &corev1.ConfigMap{}},
 				expectedOk:     true,
 				expectedLength: 2,
 			}),
-			Entry("empty slice", testCase{
-				description:    "input is an empty slice",
+			Entry("input is an empty slice of interfaces", testCase{
 				input:          []interface{}{},
 				expectedOk:     true,
 				expectedLength: 0,
 			}),
-			Entry("slice with non-client.Object", testCase{
-				description:    "input is a slice containing non-client.Object values",
+			Entry("input is a slice containing non-client.Object values", testCase{
 				input:          []interface{}{&corev1.ConfigMap{}, "not an object"},
 				expectedOk:     false,
 				expectedLength: 0,
 			}),
-			Entry("non-slice value", testCase{
-				description:    "input is not a slice",
+			Entry("input is not a slice", testCase{
 				input:          "not a slice",
 				expectedOk:     false,
 				expectedLength: 0,
 			}),
-			Entry("nil value", testCase{
-				description:    "input is nil",
+			Entry("input is nil", testCase{
 				input:          nil,
 				expectedOk:     false,
 				expectedLength: 0,
@@ -407,9 +375,8 @@ var _ = Describe("Utilities", func() {
 
 	Describe("IsUnstructured", func() {
 		type testCase struct {
-			description string
-			input       client.Object
-			expected    bool
+			input    client.Object
+			expected bool
 		}
 
 		DescribeTable("checking if object is unstructured",
@@ -417,8 +384,7 @@ var _ = Describe("Utilities", func() {
 				result := utilities.IsUnstructured(tc.input)
 				Expect(result).To(Equal(tc.expected))
 			},
-			Entry("unstructured object", testCase{
-				description: "input is an Unstructured object",
+			Entry("input is an Unstructured object", testCase{
 				input: &unstructured.Unstructured{
 					Object: map[string]interface{}{
 						"apiVersion": "v1",
@@ -431,8 +397,7 @@ var _ = Describe("Utilities", func() {
 				},
 				expected: true,
 			}),
-			Entry("typed object", testCase{
-				description: "input is a ConfigMap object",
+			Entry("input is a ConfigMap object", testCase{
 				input: &corev1.ConfigMap{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "test-configmap",

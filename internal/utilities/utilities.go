@@ -11,8 +11,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// TODO: test
-
 // MergeMaps merges the given maps into one.
 func MergeMaps(maps ...map[string]any) map[string]any {
 	merged := make(map[string]any)
@@ -90,16 +88,27 @@ func AsObject(v interface{}) (client.Object, bool) {
 
 // AsSliceOfObjects attempts to convert the given value into a slice of client.Object.
 func AsSliceOfObjects(v interface{}) ([]client.Object, bool) {
-	items, ok := v.([]interface{})
-	if !ok {
+	// Check if it's already a []client.Object
+	if objs, ok := v.([]client.Object); ok {
+		return objs, true
+	}
+
+	// Use reflection to handle any slice type
+	rv := reflect.ValueOf(v)
+	if rv.Kind() != reflect.Slice {
 		return nil, false
 	}
 
-	var objs []client.Object
-	for _, item := range items {
+	// Create a slice to hold the objects
+	objs := make([]client.Object, 0, rv.Len())
+
+	// Iterate through the slice elements
+	for i := 0; i < rv.Len(); i++ {
+		item := rv.Index(i).Interface()
 		if obj, ok := AsObject(item); ok {
 			objs = append(objs, obj)
 		} else {
+			// If any element is not a client.Object, return false
 			return nil, false
 		}
 	}

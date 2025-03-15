@@ -10,8 +10,6 @@ import (
 	"github.com/eolatham/sawchain/internal/utilities"
 )
 
-// TODO: test
-
 const (
 	errNil      = "options is nil"
 	errRequired = "required argument(s) not provided"
