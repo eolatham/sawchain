@@ -31,11 +31,17 @@ type Options struct {
 //   - If includeDurations is true, checks for Timeout and Interval; otherwise disallows them.
 //   - If includeObject is true, checks for Object; otherwise disallows it.
 //   - If includeObjects is true, checks for Objects; otherwise disallows it.
+//   - If includeTemplate is true, checks for Template; otherwise disallows it.
 func parse(
-	includeDurations, includeObject, includeObjects bool,
+	includeDurations bool,
+	includeObject bool,
+	includeObjects bool,
+	includeTemplate bool,
 	args ...interface{},
 ) (*Options, error) {
-	opts := &Options{}
+	opts := &Options{
+		Bindings: map[string]any{},
+	}
 
 	for _, arg := range args {
 		if includeDurations {
@@ -76,20 +82,22 @@ func parse(
 			}
 		}
 
-		// Check for Template
-		if str, ok := arg.(string); ok {
-			if opts.Template != "" {
-				return nil, fmt.Errorf("multiple template arguments provided")
-			} else if utilities.IsExistingFile(str) {
-				content, err := utilities.ReadFileContent(str)
-				if err != nil {
-					return nil, fmt.Errorf("failed to read template file: %v", err)
+		if includeTemplate {
+			// Check for Template
+			if str, ok := arg.(string); ok {
+				if opts.Template != "" {
+					return nil, fmt.Errorf("multiple template arguments provided")
+				} else if utilities.IsExistingFile(str) {
+					content, err := utilities.ReadFileContent(str)
+					if err != nil {
+						return nil, fmt.Errorf("failed to read template file: %v", err)
+					}
+					opts.Template = content
+				} else {
+					opts.Template = str
 				}
-				opts.Template = content
-			} else {
-				opts.Template = str
+				continue
 			}
-			continue
 		}
 
 		// Check for Bindings
@@ -142,6 +150,13 @@ func requireTemplateOrObjects(opts *Options) error {
 
 // applyDefaults applies defaults to the given options where needed.
 func applyDefaults(defaults, opts *Options) *Options {
+	// Nil checks
+	if defaults == nil {
+		return opts
+	} else if opts == nil {
+		return defaults
+	}
+
 	// Default durations
 	if opts.Timeout == 0 {
 		opts.Timeout = defaults.Timeout
@@ -160,10 +175,13 @@ func applyDefaults(defaults, opts *Options) *Options {
 // and applies defaults where needed.
 func parseAndApplyDefaults(
 	defaults *Options,
-	includeDurations, includeObject, includeObjects bool,
+	includeDurations bool,
+	includeObject bool,
+	includeObjects bool,
+	includeTemplate bool,
 	args ...interface{},
 ) (*Options, error) {
-	opts, err := parse(includeDurations, includeObject, includeObjects, args...)
+	opts, err := parse(includeDurations, includeObject, includeObjects, includeTemplate, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -173,7 +191,7 @@ func parseAndApplyDefaults(
 // ParseAndRequireGlobal parses and requires options
 // for the Sawchain constructor.
 func ParseAndRequireGlobal(defaults *Options, args ...interface{}) (*Options, error) {
-	opts, err := parseAndApplyDefaults(defaults, true, false, false, args...)
+	opts, err := parseAndApplyDefaults(defaults, true, false, false, false, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -186,7 +204,7 @@ func ParseAndRequireGlobal(defaults *Options, args ...interface{}) (*Options, er
 // ParseAndRequireImmediateSingle parses and requires options
 // for Sawchain immediate single-resource operations.
 func ParseAndRequireImmediateSingle(defaults *Options, args ...interface{}) (*Options, error) {
-	opts, err := parseAndApplyDefaults(defaults, false, true, false, args...)
+	opts, err := parseAndApplyDefaults(defaults, false, true, false, true, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -199,7 +217,7 @@ func ParseAndRequireImmediateSingle(defaults *Options, args ...interface{}) (*Op
 // ParseAndRequireImmediateMultiple parses and requires options
 // for Sawchain immediate multi-resource operations.
 func ParseAndRequireImmediateMultiple(defaults *Options, args ...interface{}) (*Options, error) {
-	opts, err := parseAndApplyDefaults(defaults, false, false, true, args...)
+	opts, err := parseAndApplyDefaults(defaults, false, false, true, true, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -212,7 +230,7 @@ func ParseAndRequireImmediateMultiple(defaults *Options, args ...interface{}) (*
 // ParseAndRequireEventualSingle parses and requires options
 // for Sawchain eventual single-resource operations.
 func ParseAndRequireEventualSingle(defaults *Options, args ...interface{}) (*Options, error) {
-	opts, err := parseAndApplyDefaults(defaults, true, true, false, args...)
+	opts, err := parseAndApplyDefaults(defaults, true, true, false, true, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -228,7 +246,7 @@ func ParseAndRequireEventualSingle(defaults *Options, args ...interface{}) (*Opt
 // ParseAndRequireEventualMultiple parses and requires options
 // for Sawchain eventual multi-resource operations.
 func ParseAndRequireEventualMultiple(defaults *Options, args ...interface{}) (*Options, error) {
-	opts, err := parseAndApplyDefaults(defaults, true, false, true, args...)
+	opts, err := parseAndApplyDefaults(defaults, true, false, true, true, args...)
 	if err != nil {
 		return nil, err
 	}

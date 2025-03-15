@@ -114,18 +114,6 @@ var _ = Describe("Utilities", func() {
 	})
 
 	Describe("IsExistingFile", func() {
-		var tempDir string
-
-		BeforeEach(func() {
-			var err error
-			tempDir, err = os.MkdirTemp("", "utilities-test-")
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		AfterEach(func() {
-			os.RemoveAll(tempDir)
-		})
-
 		type testCase struct {
 			description string
 			setup       func() string
@@ -173,18 +161,6 @@ var _ = Describe("Utilities", func() {
 	})
 
 	Describe("ReadFileContent", func() {
-		var tempDir string
-
-		BeforeEach(func() {
-			var err error
-			tempDir, err = os.MkdirTemp("", "utilities-test-")
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		AfterEach(func() {
-			os.RemoveAll(tempDir)
-		})
-
 		type testCase struct {
 			description    string
 			setup          func() string
