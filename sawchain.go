@@ -23,7 +23,9 @@ const (
 	errCreatedMatcherIsNil = "internal error: created matcher is nil"
 )
 
-// Sawchain provides a Chainsaw-backed testing utility for K8s.
+// Sawchain provides utilities for K8s YAML-driven testing—backed by Chainsaw. It includes helpers
+// to reliably create/update/delete test resources and Gomega-friendly APIs to simplify assertions.
+// Use New to create a Sawchain instance.
 type Sawchain struct {
 	t    testing.TB
 	g    gomega.Gomega
@@ -47,6 +49,20 @@ type Sawchain struct {
 //
 //   - Interval (string or time.Duration): Optional. Defaults to 1s. Default polling interval for
 //     eventual assertions. If provided, must be after timeout.
+//
+// # Examples
+//
+// Create a Sawchain instance with the default settings:
+//
+//	sc := sawchain.New(t, k8sClient)
+//
+// Create a Sawchain instance with global bindings:
+//
+//	sc := sawchain.New(t, k8sClient, map[string]any{"namespace", "test"})
+//
+// Create a Sawchain instance with custom timeout and interval settings:
+//
+//	sc := sawchain.New(t, k8sClient, "20s", "2s")
 func New(t testing.TB, c client.Client, args ...interface{}) *Sawchain {
 	// Create Gomega
 	g := gomega.NewGomegaWithT(t)
