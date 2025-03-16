@@ -62,7 +62,6 @@ func ParseTemplateSingle(templateContent string) (unstructured.Unstructured, err
 // RenderTemplate renders the template into unstructured objects
 // (and processes template expressions).
 func RenderTemplate(
-	c client.Client,
 	ctx context.Context,
 	templateContent string,
 	bindings Bindings,
@@ -86,12 +85,11 @@ func RenderTemplate(
 // RenderTemplateSingle renders the single-resource template into an unstructured object
 // (and processes template expressions).
 func RenderTemplateSingle(
-	c client.Client,
 	ctx context.Context,
 	templateContent string,
 	bindings Bindings,
 ) (unstructured.Unstructured, error) {
-	rendered, err := RenderTemplate(c, ctx, templateContent, bindings)
+	rendered, err := RenderTemplate(ctx, templateContent, bindings)
 	if err != nil {
 		return unstructured.Unstructured{}, err
 	}
