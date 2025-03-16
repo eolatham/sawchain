@@ -65,7 +65,7 @@ var _ = Describe("Options", func() {
 				},
 			}),
 
-			// Applying defaults
+			// Using defaults
 			Entry("use defaults when no args provided", testCase{
 				defaults: &options.Options{
 					Timeout:  10 * time.Second,
@@ -123,7 +123,22 @@ var _ = Describe("Options", func() {
 				},
 			}),
 
-			Entry("merge multiple bindings arguments with default bindings", testCase{
+			Entry("merge multiple bindings maps", testCase{
+				defaults: nil,
+				args: []interface{}{
+					"5s",
+					"1s",
+					map[string]any{"first": "value", "shared": "first"},
+					map[string]any{"second": "value", "shared": "second"},
+				},
+				expected: &options.Options{
+					Timeout:  5 * time.Second,
+					Interval: 1 * time.Second,
+					Bindings: map[string]any{"first": "value", "second": "value", "shared": "second"},
+				},
+			}),
+
+			Entry("merge multiple bindings maps with defaults", testCase{
 				defaults: &options.Options{
 					Timeout:  10 * time.Second,
 					Interval: 2 * time.Second,
@@ -137,21 +152,6 @@ var _ = Describe("Options", func() {
 					Timeout:  10 * time.Second,
 					Interval: 2 * time.Second,
 					Bindings: map[string]any{"default": "value", "first": "value", "second": "value", "shared": "second"},
-				},
-			}),
-
-			Entry("merge multiple bindings maps", testCase{
-				defaults: nil,
-				args: []interface{}{
-					"5s",
-					"1s",
-					map[string]any{"first": "value", "shared": "first"},
-					map[string]any{"second": "value", "shared": "second"},
-				},
-				expected: &options.Options{
-					Timeout:  5 * time.Second,
-					Interval: 1 * time.Second,
-					Bindings: map[string]any{"first": "value", "second": "value", "shared": "second"},
 				},
 			}),
 
@@ -188,7 +188,7 @@ var _ = Describe("Options", func() {
 				expectedError: "unexpected argument type: string",
 			}),
 
-			Entry("disallowed Object argument", testCase{
+			Entry("disallowed object argument", testCase{
 				defaults: nil,
 				args: []interface{}{
 					"5s",
@@ -206,7 +206,7 @@ var _ = Describe("Options", func() {
 				expectedError: "unexpected argument type: *v1.ConfigMap",
 			}),
 
-			Entry("disallowed Objects argument", testCase{
+			Entry("disallowed objects argument", testCase{
 				defaults: nil,
 				args: []interface{}{
 					"5s",
@@ -239,7 +239,7 @@ var _ = Describe("Options", func() {
 			expectedError string
 		}
 
-		DescribeTable("parsing and requiring immediate single options",
+		DescribeTable("parsing and requiring immediate single-object operation options",
 			func(tc testCase) {
 				result, err := options.ParseAndRequireImmediateSingle(tc.defaults, tc.args...)
 				if tc.expectedError != "" {
@@ -251,7 +251,7 @@ var _ = Describe("Options", func() {
 				}
 			},
 
-			// Valid arguments - Template
+			// Valid arguments
 			Entry("valid template content", testCase{
 				defaults: nil,
 				args:     []interface{}{"template content"},
@@ -279,7 +279,6 @@ var _ = Describe("Options", func() {
 				},
 			}),
 
-			// Valid arguments - Object
 			Entry("valid typed object", testCase{
 				defaults: nil,
 				args: []interface{}{
@@ -336,8 +335,7 @@ var _ = Describe("Options", func() {
 				},
 			}),
 
-			// Valid arguments - Template and Object together
-			Entry("valid template and object together", testCase{
+			Entry("valid template and object", testCase{
 				defaults: nil,
 				args: []interface{}{
 					"template content",
@@ -360,31 +358,31 @@ var _ = Describe("Options", func() {
 				},
 			}),
 
-			Entry("valid template, object, and bindings together", testCase{
+			Entry("valid template, bindings, and object", testCase{
 				defaults: nil,
 				args: []interface{}{
 					"template content",
+					map[string]any{"key": "value"},
 					&corev1.ConfigMap{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "test-config",
 							Namespace: "default",
 						},
 					},
-					map[string]any{"key": "value"},
 				},
 				expected: &options.Options{
 					Template: "template content",
+					Bindings: map[string]any{"key": "value"},
 					Object: &corev1.ConfigMap{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "test-config",
 							Namespace: "default",
 						},
 					},
-					Bindings: map[string]any{"key": "value"},
 				},
 			}),
 
-			// Default bindings
+			// Using defaults
 			Entry("use default bindings with template", testCase{
 				defaults: &options.Options{
 					Bindings: map[string]any{"default": "value"},
@@ -421,6 +419,21 @@ var _ = Describe("Options", func() {
 				expected: &options.Options{
 					Template: "template content",
 					Bindings: map[string]any{"first": "value", "second": "value", "shared": "second"},
+				},
+			}),
+
+			Entry("merge multiple bindings maps with defaults", testCase{
+				defaults: &options.Options{
+					Bindings: map[string]any{"default": "value", "shared": "default"},
+				},
+				args: []interface{}{
+					"template content",
+					map[string]any{"first": "value", "shared": "first"},
+					map[string]any{"second": "value", "shared": "second"},
+				},
+				expected: &options.Options{
+					Template: "template content",
+					Bindings: map[string]any{"default": "value", "first": "value", "second": "value", "shared": "second"},
 				},
 			}),
 
@@ -501,7 +514,7 @@ var _ = Describe("Options", func() {
 			expectedError string
 		}
 
-		DescribeTable("parsing and requiring immediate multiple options",
+		DescribeTable("parsing and requiring immediate multi-object operation options",
 			func(tc testCase) {
 				result, err := options.ParseAndRequireImmediateMultiple(tc.defaults, tc.args...)
 				if tc.expectedError != "" {
@@ -513,7 +526,7 @@ var _ = Describe("Options", func() {
 				}
 			},
 
-			// Valid arguments - Template
+			// Valid arguments
 			Entry("valid template content", testCase{
 				defaults: nil,
 				args:     []interface{}{"template content"},
@@ -541,8 +554,7 @@ var _ = Describe("Options", func() {
 				},
 			}),
 
-			// Valid arguments - Objects
-			Entry("valid objects slice", testCase{
+			Entry("valid objects", testCase{
 				defaults: nil,
 				args: []interface{}{
 					[]client.Object{
@@ -579,7 +591,7 @@ var _ = Describe("Options", func() {
 				},
 			}),
 
-			Entry("valid objects slice with mixed types", testCase{
+			Entry("valid objects with mixed types", testCase{
 				defaults: nil,
 				args: []interface{}{
 					[]client.Object{
@@ -624,8 +636,7 @@ var _ = Describe("Options", func() {
 				},
 			}),
 
-			// Valid arguments - Template and Objects together
-			Entry("valid template and objects together", testCase{
+			Entry("valid template and objects", testCase{
 				defaults: nil,
 				args: []interface{}{
 					"template content",
@@ -664,28 +675,29 @@ var _ = Describe("Options", func() {
 				},
 			}),
 
-			Entry("valid template, objects, and bindings together", testCase{
+			Entry("valid template, bindings, and objects", testCase{
 				defaults: nil,
 				args: []interface{}{
 					"template content",
-					[]client.Object{
-						&corev1.ConfigMap{
-							ObjectMeta: metav1.ObjectMeta{
-								Name:      "test-config-1",
-								Namespace: "default",
-							},
-						},
-						&corev1.ConfigMap{
-							ObjectMeta: metav1.ObjectMeta{
-								Name:      "test-config-2",
-								Namespace: "default",
-							},
-						},
-					},
 					map[string]any{"key": "value"},
+					[]client.Object{
+						&corev1.ConfigMap{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      "test-config-1",
+								Namespace: "default",
+							},
+						},
+						&corev1.ConfigMap{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      "test-config-2",
+								Namespace: "default",
+							},
+						},
+					},
 				},
 				expected: &options.Options{
 					Template: "template content",
+					Bindings: map[string]any{"key": "value"},
 					Objects: []client.Object{
 						&corev1.ConfigMap{
 							ObjectMeta: metav1.ObjectMeta{
@@ -700,11 +712,10 @@ var _ = Describe("Options", func() {
 							},
 						},
 					},
-					Bindings: map[string]any{"key": "value"},
 				},
 			}),
 
-			// Default bindings
+			// Using defaults
 			Entry("use default bindings with template", testCase{
 				defaults: &options.Options{
 					Bindings: map[string]any{"default": "value"},
@@ -741,6 +752,21 @@ var _ = Describe("Options", func() {
 				expected: &options.Options{
 					Template: "template content",
 					Bindings: map[string]any{"first": "value", "second": "value", "shared": "second"},
+				},
+			}),
+
+			Entry("merge multiple bindings maps with defaults", testCase{
+				defaults: &options.Options{
+					Bindings: map[string]any{"default": "value", "shared": "default"},
+				},
+				args: []interface{}{
+					"template content",
+					map[string]any{"first": "value", "shared": "first"},
+					map[string]any{"second": "value", "shared": "second"},
+				},
+				expected: &options.Options{
+					Template: "template content",
+					Bindings: map[string]any{"default": "value", "first": "value", "second": "value", "shared": "second"},
 				},
 			}),
 
@@ -794,7 +820,7 @@ var _ = Describe("Options", func() {
 				expectedError: "unexpected argument type: time.Duration",
 			}),
 
-			Entry("disallowed single object argument", testCase{
+			Entry("disallowed object argument", testCase{
 				defaults: nil,
 				args: []interface{}{
 					&corev1.ConfigMap{
@@ -808,6 +834,706 @@ var _ = Describe("Options", func() {
 			}),
 		)
 	})
-	// TODO: test ParseAndRequireEventualSingle
-	// TODO: test ParseAndRequireEventualMultiple
+
+	Describe("ParseAndRequireEventualSingle", func() {
+		type testCase struct {
+			defaults      *options.Options
+			args          []interface{}
+			expected      *options.Options
+			expectedError string
+		}
+
+		DescribeTable("parsing and requiring eventual single-object operation options",
+			func(tc testCase) {
+				result, err := options.ParseAndRequireEventualSingle(tc.defaults, tc.args...)
+				if tc.expectedError != "" {
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring(tc.expectedError))
+				} else {
+					Expect(err).NotTo(HaveOccurred())
+					Expect(result).To(Equal(tc.expected))
+				}
+			},
+
+			// Valid arguments
+			Entry("valid durations and template content", testCase{
+				defaults: nil,
+				args:     []interface{}{"5s", "1s", "template content"},
+				expected: &options.Options{
+					Timeout:  5 * time.Second,
+					Interval: 1 * time.Second,
+					Template: "template content",
+					Bindings: map[string]any{},
+				},
+			}),
+
+			Entry("valid durations and template file", testCase{
+				defaults: nil,
+				args:     []interface{}{"5s", "1s", templateFilePath},
+				expected: &options.Options{
+					Timeout:  5 * time.Second,
+					Interval: 1 * time.Second,
+					Template: templateFileContent,
+					Bindings: map[string]any{},
+				},
+			}),
+
+			Entry("valid durations, template, and bindings", testCase{
+				defaults: nil,
+				args:     []interface{}{"5s", "1s", "template content", map[string]any{"key": "value"}},
+				expected: &options.Options{
+					Timeout:  5 * time.Second,
+					Interval: 1 * time.Second,
+					Template: "template content",
+					Bindings: map[string]any{"key": "value"},
+				},
+			}),
+
+			Entry("valid durations and typed object", testCase{
+				defaults: nil,
+				args: []interface{}{
+					"5s",
+					"1s",
+					&corev1.ConfigMap{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "test-config",
+							Namespace: "default",
+						},
+					},
+				},
+				expected: &options.Options{
+					Timeout:  5 * time.Second,
+					Interval: 1 * time.Second,
+					Object: &corev1.ConfigMap{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "test-config",
+							Namespace: "default",
+						},
+					},
+					Bindings: map[string]any{},
+				},
+			}),
+
+			Entry("valid durations and unstructured object", testCase{
+				defaults: nil,
+				args: []interface{}{
+					"5s",
+					"1s",
+					&unstructured.Unstructured{
+						Object: map[string]interface{}{
+							"apiVersion": "v1",
+							"kind":       "ConfigMap",
+							"metadata": map[string]interface{}{
+								"name":      "unstructured-config",
+								"namespace": "default",
+							},
+							"data": map[string]interface{}{
+								"key": "value",
+							},
+						},
+					},
+				},
+				expected: &options.Options{
+					Timeout:  5 * time.Second,
+					Interval: 1 * time.Second,
+					Object: &unstructured.Unstructured{
+						Object: map[string]interface{}{
+							"apiVersion": "v1",
+							"kind":       "ConfigMap",
+							"metadata": map[string]interface{}{
+								"name":      "unstructured-config",
+								"namespace": "default",
+							},
+							"data": map[string]interface{}{
+								"key": "value",
+							},
+						},
+					},
+					Bindings: map[string]any{},
+				},
+			}),
+
+			Entry("valid durations, template, bindings, and object", testCase{
+				defaults: nil,
+				args: []interface{}{
+					"5s",
+					"1s",
+					"template content",
+					map[string]any{"key": "value"},
+					&corev1.ConfigMap{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "test-config",
+							Namespace: "default",
+						},
+					},
+				},
+				expected: &options.Options{
+					Timeout:  5 * time.Second,
+					Interval: 1 * time.Second,
+					Template: "template content",
+					Bindings: map[string]any{"key": "value"},
+					Object: &corev1.ConfigMap{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "test-config",
+							Namespace: "default",
+						},
+					},
+				},
+			}),
+
+			// Using defaults
+			Entry("use defaults for durations", testCase{
+				defaults: &options.Options{
+					Timeout:  10 * time.Second,
+					Interval: 2 * time.Second,
+					Bindings: map[string]any{"default": "value"},
+				},
+				args: []interface{}{"template content"},
+				expected: &options.Options{
+					Timeout:  10 * time.Second,
+					Interval: 2 * time.Second,
+					Template: "template content",
+					Bindings: map[string]any{"default": "value"},
+				},
+			}),
+
+			Entry("override default timeout only", testCase{
+				defaults: &options.Options{
+					Timeout:  10 * time.Second,
+					Interval: 2 * time.Second,
+					Bindings: map[string]any{"default": "value"},
+				},
+				args: []interface{}{"5s", "template content"},
+				expected: &options.Options{
+					Timeout:  5 * time.Second,
+					Interval: 2 * time.Second,
+					Template: "template content",
+					Bindings: map[string]any{"default": "value"},
+				},
+			}),
+
+			Entry("override both default durations", testCase{
+				defaults: &options.Options{
+					Timeout:  10 * time.Second,
+					Interval: 2 * time.Second,
+					Bindings: map[string]any{"default": "value"},
+				},
+				args: []interface{}{"5s", "1s", "template content"},
+				expected: &options.Options{
+					Timeout:  5 * time.Second,
+					Interval: 1 * time.Second,
+					Template: "template content",
+					Bindings: map[string]any{"default": "value"},
+				},
+			}),
+
+			// Merging bindings
+			Entry("merge bindings with defaults", testCase{
+				defaults: &options.Options{
+					Timeout:  10 * time.Second,
+					Interval: 2 * time.Second,
+					Bindings: map[string]any{"default": "value", "shared": "default"},
+				},
+				args: []interface{}{
+					"template content",
+					map[string]any{"new": "value", "shared": "override"},
+				},
+				expected: &options.Options{
+					Timeout:  10 * time.Second,
+					Interval: 2 * time.Second,
+					Template: "template content",
+					Bindings: map[string]any{"default": "value", "new": "value", "shared": "override"},
+				},
+			}),
+
+			Entry("merge multiple bindings maps", testCase{
+				defaults: nil,
+				args: []interface{}{
+					"5s",
+					"1s",
+					"template content",
+					map[string]any{"first": "value", "shared": "first"},
+					map[string]any{"second": "value", "shared": "second"},
+				},
+				expected: &options.Options{
+					Timeout:  5 * time.Second,
+					Interval: 1 * time.Second,
+					Template: "template content",
+					Bindings: map[string]any{"first": "value", "second": "value", "shared": "second"},
+				},
+			}),
+
+			Entry("merge multiple bindings maps with defaults", testCase{
+				defaults: &options.Options{
+					Timeout:  10 * time.Second,
+					Interval: 2 * time.Second,
+					Bindings: map[string]any{"default": "value", "shared": "default"},
+				},
+				args: []interface{}{
+					"template content",
+					map[string]any{"first": "value", "shared": "first"},
+					map[string]any{"second": "value", "shared": "second"},
+				},
+				expected: &options.Options{
+					Timeout:  10 * time.Second,
+					Interval: 2 * time.Second,
+					Template: "template content",
+					Bindings: map[string]any{"default": "value", "first": "value", "second": "value", "shared": "second"},
+				},
+			}),
+
+			// Missing required arguments
+			Entry("missing timeout", testCase{
+				defaults:      nil,
+				args:          []interface{}{"template content"},
+				expectedError: "required argument(s) not provided: Timeout",
+			}),
+
+			Entry("missing interval", testCase{
+				defaults:      nil,
+				args:          []interface{}{"5s", "template content"},
+				expectedError: "required argument(s) not provided: Interval",
+			}),
+
+			Entry("missing template or object", testCase{
+				defaults:      nil,
+				args:          []interface{}{"5s", "1s"},
+				expectedError: "required argument(s) not provided: Template (string) or Object (client.Object)",
+			}),
+
+			// Invalid arguments
+			Entry("too many duration arguments", testCase{
+				defaults:      nil,
+				args:          []interface{}{"5s", "1s", "2s", "template content"},
+				expectedError: "too many duration arguments provided",
+			}),
+
+			Entry("multiple template arguments", testCase{
+				defaults:      nil,
+				args:          []interface{}{"5s", "1s", "template1", "template2"},
+				expectedError: "multiple template arguments provided",
+			}),
+
+			Entry("multiple object arguments", testCase{
+				defaults: nil,
+				args: []interface{}{
+					"5s",
+					"1s",
+					&corev1.ConfigMap{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "config1",
+							Namespace: "default",
+						},
+					},
+					&corev1.ConfigMap{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "config2",
+							Namespace: "default",
+						},
+					},
+				},
+				expectedError: "multiple client.Object arguments provided",
+			}),
+
+			Entry("unexpected argument type", testCase{
+				defaults:      nil,
+				args:          []interface{}{"5s", "1s", 5},
+				expectedError: "unexpected argument type: int",
+			}),
+
+			// Disallowed arguments
+			Entry("disallowed objects argument", testCase{
+				defaults: nil,
+				args: []interface{}{
+					"5s",
+					"1s",
+					[]client.Object{
+						&corev1.ConfigMap{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      "config1",
+								Namespace: "default",
+							},
+						},
+						&corev1.ConfigMap{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      "config2",
+								Namespace: "default",
+							},
+						},
+					},
+				},
+				expectedError: "unexpected argument type: []client.Object",
+			}),
+		)
+	})
+
+	Describe("ParseAndRequireEventualMultiple", func() {
+		type testCase struct {
+			defaults      *options.Options
+			args          []interface{}
+			expected      *options.Options
+			expectedError string
+		}
+
+		DescribeTable("parsing and requiring eventual multi-object operation options",
+			func(tc testCase) {
+				result, err := options.ParseAndRequireEventualMultiple(tc.defaults, tc.args...)
+				if tc.expectedError != "" {
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring(tc.expectedError))
+				} else {
+					Expect(err).NotTo(HaveOccurred())
+					Expect(result).To(Equal(tc.expected))
+				}
+			},
+
+			// Valid arguments
+			Entry("valid durations and template content", testCase{
+				defaults: nil,
+				args:     []interface{}{"5s", "1s", "template content"},
+				expected: &options.Options{
+					Timeout:  5 * time.Second,
+					Interval: 1 * time.Second,
+					Template: "template content",
+					Bindings: map[string]any{},
+				},
+			}),
+
+			Entry("valid durations and template file", testCase{
+				defaults: nil,
+				args:     []interface{}{"5s", "1s", templateFilePath},
+				expected: &options.Options{
+					Timeout:  5 * time.Second,
+					Interval: 1 * time.Second,
+					Template: templateFileContent,
+					Bindings: map[string]any{},
+				},
+			}),
+
+			Entry("valid durations, template, and bindings", testCase{
+				defaults: nil,
+				args:     []interface{}{"5s", "1s", "template content", map[string]any{"key": "value"}},
+				expected: &options.Options{
+					Timeout:  5 * time.Second,
+					Interval: 1 * time.Second,
+					Template: "template content",
+					Bindings: map[string]any{"key": "value"},
+				},
+			}),
+
+			Entry("valid durations and objects", testCase{
+				defaults: nil,
+				args: []interface{}{
+					"5s",
+					"1s",
+					[]client.Object{
+						&corev1.ConfigMap{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      "test-config-1",
+								Namespace: "default",
+							},
+						},
+						&corev1.ConfigMap{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      "test-config-2",
+								Namespace: "default",
+							},
+						},
+					},
+				},
+				expected: &options.Options{
+					Timeout:  5 * time.Second,
+					Interval: 1 * time.Second,
+					Objects: []client.Object{
+						&corev1.ConfigMap{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      "test-config-1",
+								Namespace: "default",
+							},
+						},
+						&corev1.ConfigMap{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      "test-config-2",
+								Namespace: "default",
+							},
+						},
+					},
+					Bindings: map[string]any{},
+				},
+			}),
+
+			Entry("valid durations and objects with mixed types", testCase{
+				defaults: nil,
+				args: []interface{}{
+					"5s",
+					"1s",
+					[]client.Object{
+						&corev1.ConfigMap{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      "test-config",
+								Namespace: "default",
+							},
+						},
+						&unstructured.Unstructured{
+							Object: map[string]interface{}{
+								"apiVersion": "v1",
+								"kind":       "Secret",
+								"metadata": map[string]interface{}{
+									"name":      "test-secret",
+									"namespace": "default",
+								},
+							},
+						},
+					},
+				},
+				expected: &options.Options{
+					Timeout:  5 * time.Second,
+					Interval: 1 * time.Second,
+					Objects: []client.Object{
+						&corev1.ConfigMap{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      "test-config",
+								Namespace: "default",
+							},
+						},
+						&unstructured.Unstructured{
+							Object: map[string]interface{}{
+								"apiVersion": "v1",
+								"kind":       "Secret",
+								"metadata": map[string]interface{}{
+									"name":      "test-secret",
+									"namespace": "default",
+								},
+							},
+						},
+					},
+					Bindings: map[string]any{},
+				},
+			}),
+
+			Entry("valid durations, template, bindings, and objects", testCase{
+				defaults: nil,
+				args: []interface{}{
+					"5s",
+					"1s",
+					"template content",
+					map[string]any{"key": "value"},
+					[]client.Object{
+						&corev1.ConfigMap{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      "test-config-1",
+								Namespace: "default",
+							},
+						},
+						&corev1.ConfigMap{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      "test-config-2",
+								Namespace: "default",
+							},
+						},
+					},
+				},
+				expected: &options.Options{
+					Timeout:  5 * time.Second,
+					Interval: 1 * time.Second,
+					Template: "template content",
+					Bindings: map[string]any{"key": "value"},
+					Objects: []client.Object{
+						&corev1.ConfigMap{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      "test-config-1",
+								Namespace: "default",
+							},
+						},
+						&corev1.ConfigMap{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      "test-config-2",
+								Namespace: "default",
+							},
+						},
+					},
+				},
+			}),
+
+			// Using defaults
+			Entry("use defaults for durations", testCase{
+				defaults: &options.Options{
+					Timeout:  10 * time.Second,
+					Interval: 2 * time.Second,
+					Bindings: map[string]any{"default": "value"},
+				},
+				args: []interface{}{"template content"},
+				expected: &options.Options{
+					Timeout:  10 * time.Second,
+					Interval: 2 * time.Second,
+					Template: "template content",
+					Bindings: map[string]any{"default": "value"},
+				},
+			}),
+
+			Entry("override default timeout only", testCase{
+				defaults: &options.Options{
+					Timeout:  10 * time.Second,
+					Interval: 2 * time.Second,
+					Bindings: map[string]any{"default": "value"},
+				},
+				args: []interface{}{"5s", "template content"},
+				expected: &options.Options{
+					Timeout:  5 * time.Second,
+					Interval: 2 * time.Second,
+					Template: "template content",
+					Bindings: map[string]any{"default": "value"},
+				},
+			}),
+
+			Entry("override both default durations", testCase{
+				defaults: &options.Options{
+					Timeout:  10 * time.Second,
+					Interval: 2 * time.Second,
+					Bindings: map[string]any{"default": "value"},
+				},
+				args: []interface{}{"5s", "1s", "template content"},
+				expected: &options.Options{
+					Timeout:  5 * time.Second,
+					Interval: 1 * time.Second,
+					Template: "template content",
+					Bindings: map[string]any{"default": "value"},
+				},
+			}),
+
+			// Merging bindings
+			Entry("merge bindings with defaults", testCase{
+				defaults: &options.Options{
+					Timeout:  10 * time.Second,
+					Interval: 2 * time.Second,
+					Bindings: map[string]any{"default": "value", "shared": "default"},
+				},
+				args: []interface{}{
+					"template content",
+					map[string]any{"new": "value", "shared": "override"},
+				},
+				expected: &options.Options{
+					Timeout:  10 * time.Second,
+					Interval: 2 * time.Second,
+					Template: "template content",
+					Bindings: map[string]any{"default": "value", "new": "value", "shared": "override"},
+				},
+			}),
+
+			Entry("merge multiple bindings maps", testCase{
+				defaults: nil,
+				args: []interface{}{
+					"5s",
+					"1s",
+					"template content",
+					map[string]any{"first": "value", "shared": "first"},
+					map[string]any{"second": "value", "shared": "second"},
+				},
+				expected: &options.Options{
+					Timeout:  5 * time.Second,
+					Interval: 1 * time.Second,
+					Template: "template content",
+					Bindings: map[string]any{"first": "value", "second": "value", "shared": "second"},
+				},
+			}),
+
+			Entry("merge multiple bindings maps with defaults", testCase{
+				defaults: &options.Options{
+					Timeout:  10 * time.Second,
+					Interval: 2 * time.Second,
+					Bindings: map[string]any{"default": "value", "shared": "default"},
+				},
+				args: []interface{}{
+					"template content",
+					map[string]any{"first": "value", "shared": "first"},
+					map[string]any{"second": "value", "shared": "second"},
+				},
+				expected: &options.Options{
+					Timeout:  10 * time.Second,
+					Interval: 2 * time.Second,
+					Template: "template content",
+					Bindings: map[string]any{"default": "value", "first": "value", "second": "value", "shared": "second"},
+				},
+			}),
+
+			// Missing required arguments
+			Entry("missing timeout", testCase{
+				defaults:      nil,
+				args:          []interface{}{"template content"},
+				expectedError: "required argument(s) not provided: Timeout",
+			}),
+
+			Entry("missing interval", testCase{
+				defaults:      nil,
+				args:          []interface{}{"5s", "template content"},
+				expectedError: "required argument(s) not provided: Interval",
+			}),
+
+			Entry("missing template or objects", testCase{
+				defaults:      nil,
+				args:          []interface{}{"5s", "1s"},
+				expectedError: "required argument(s) not provided: Template (string) or Objects ([]client.Object)",
+			}),
+
+			// Invalid arguments
+			Entry("too many duration arguments", testCase{
+				defaults:      nil,
+				args:          []interface{}{"5s", "1s", "2s", "template content"},
+				expectedError: "too many duration arguments provided",
+			}),
+
+			Entry("multiple template arguments", testCase{
+				defaults:      nil,
+				args:          []interface{}{"5s", "1s", "template1", "template2"},
+				expectedError: "multiple template arguments provided",
+			}),
+
+			Entry("multiple objects arguments", testCase{
+				defaults: nil,
+				args: []interface{}{
+					"5s",
+					"1s",
+					[]client.Object{
+						&corev1.ConfigMap{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      "config1",
+								Namespace: "default",
+							},
+						},
+					},
+					[]client.Object{
+						&corev1.ConfigMap{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      "config2",
+								Namespace: "default",
+							},
+						},
+					},
+				},
+				expectedError: "multiple []client.Object arguments provided",
+			}),
+
+			Entry("unexpected argument type", testCase{
+				defaults:      nil,
+				args:          []interface{}{"5s", "1s", 5},
+				expectedError: "unexpected argument type: int",
+			}),
+
+			// Disallowed arguments
+			Entry("disallowed object argument", testCase{
+				defaults: nil,
+				args: []interface{}{
+					"5s",
+					"1s",
+					&corev1.ConfigMap{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "test-config",
+							Namespace: "default",
+						},
+					},
+				},
+				expectedError: "unexpected argument type: *v1.ConfigMap",
+			}),
+		)
+	})
 })
