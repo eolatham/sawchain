@@ -101,9 +101,9 @@ func RenderTemplateSingle(
 	return rendered[0], nil
 }
 
-// ListCandidates lists resources in the cluster that might match the expectation.
+// listCandidates lists resources in the cluster that might match the expectation.
 // Based on github.com/kyverno/chainsaw/pkg/engine/operations/internal.Read.
-func ListCandidates(
+func listCandidates(
 	c client.Client,
 	ctx context.Context,
 	expected client.Object,
@@ -194,7 +194,7 @@ func Check(
 	}
 
 	// List candidates
-	candidates, err := ListCandidates(c, ctx, &expected)
+	candidates, err := listCandidates(c, ctx, &expected)
 	if err != nil {
 		if kerrors.IsNotFound(err) {
 			return unstructured.Unstructured{}, errors.New("actual resource not found")
