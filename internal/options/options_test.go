@@ -239,7 +239,7 @@ var _ = Describe("Options", func() {
 			expectedError string
 		}
 
-		DescribeTable("parsing and requiring immediate single-object operation options",
+		DescribeTable("parsing and requiring immediate single-resource operation options",
 			func(tc testCase) {
 				result, err := options.ParseAndRequireImmediateSingle(tc.defaults, tc.args...)
 				if tc.expectedError != "" {
@@ -506,7 +506,7 @@ var _ = Describe("Options", func() {
 		)
 	})
 
-	Describe("ParseAndRequireImmediateMultiple", func() {
+	Describe("ParseAndRequireImmediateMulti", func() {
 		type testCase struct {
 			defaults      *options.Options
 			args          []interface{}
@@ -514,9 +514,9 @@ var _ = Describe("Options", func() {
 			expectedError string
 		}
 
-		DescribeTable("parsing and requiring immediate multi-object operation options",
+		DescribeTable("parsing and requiring immediate multi-resource operation options",
 			func(tc testCase) {
-				result, err := options.ParseAndRequireImmediateMultiple(tc.defaults, tc.args...)
+				result, err := options.ParseAndRequireImmediateMulti(tc.defaults, tc.args...)
 				if tc.expectedError != "" {
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring(tc.expectedError))
@@ -843,7 +843,7 @@ var _ = Describe("Options", func() {
 			expectedError string
 		}
 
-		DescribeTable("parsing and requiring eventual single-object operation options",
+		DescribeTable("parsing and requiring eventual single-resource operation options",
 			func(tc testCase) {
 				result, err := options.ParseAndRequireEventualSingle(tc.defaults, tc.args...)
 				if tc.expectedError != "" {
@@ -1167,7 +1167,7 @@ var _ = Describe("Options", func() {
 		)
 	})
 
-	Describe("ParseAndRequireEventualMultiple", func() {
+	Describe("ParseAndRequireEventualMulti", func() {
 		type testCase struct {
 			defaults      *options.Options
 			args          []interface{}
@@ -1175,9 +1175,9 @@ var _ = Describe("Options", func() {
 			expectedError string
 		}
 
-		DescribeTable("parsing and requiring eventual multi-object operation options",
+		DescribeTable("parsing and requiring eventual multi-resource operation options",
 			func(tc testCase) {
-				result, err := options.ParseAndRequireEventualMultiple(tc.defaults, tc.args...)
+				result, err := options.ParseAndRequireEventualMulti(tc.defaults, tc.args...)
 				if tc.expectedError != "" {
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring(tc.expectedError))

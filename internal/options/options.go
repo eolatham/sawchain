@@ -212,9 +212,9 @@ func ParseAndRequireImmediateSingle(defaults *Options, args ...interface{}) (*Op
 	return opts, nil
 }
 
-// ParseAndRequireImmediateMultiple parses and requires options
+// ParseAndRequireImmediateMulti parses and requires options
 // for Sawchain immediate multi-resource operations.
-func ParseAndRequireImmediateMultiple(defaults *Options, args ...interface{}) (*Options, error) {
+func ParseAndRequireImmediateMulti(defaults *Options, args ...interface{}) (*Options, error) {
 	opts, err := parseAndApplyDefaults(defaults, false, false, true, true, args...)
 	if err != nil {
 		return nil, err
@@ -241,9 +241,9 @@ func ParseAndRequireEventualSingle(defaults *Options, args ...interface{}) (*Opt
 	return opts, nil
 }
 
-// ParseAndRequireEventualMultiple parses and requires options
+// ParseAndRequireEventualMulti parses and requires options
 // for Sawchain eventual multi-resource operations.
-func ParseAndRequireEventualMultiple(defaults *Options, args ...interface{}) (*Options, error) {
+func ParseAndRequireEventualMulti(defaults *Options, args ...interface{}) (*Options, error) {
 	opts, err := parseAndApplyDefaults(defaults, true, false, true, true, args...)
 	if err != nil {
 		return nil, err
