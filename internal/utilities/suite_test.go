@@ -6,23 +6,42 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes/scheme"
 )
 
-var tempDir string
+// Values must be assigned inline to beat static Entry parsing!
+var (
+	tempDir        = createTempDir()
+	emptyScheme    = createEmptyScheme()
+	standardScheme = createStandardScheme()
+)
 
 func TestUtilities(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Utilities Suite")
 }
 
-var _ = BeforeSuite(func() {
-	// Create a temporary directory for test files
-	var err error
-	tempDir, err = os.MkdirTemp("", "utilities-test-")
-	Expect(err).NotTo(HaveOccurred())
+var _ = AfterSuite(func() {
+	Expect(os.RemoveAll(tempDir)).To(Succeed())
 })
 
-var _ = AfterSuite(func() {
-	// Clean up the temporary directory
-	os.RemoveAll(tempDir)
-})
+func createTempDir() string {
+	tempDir, err := os.MkdirTemp("", "utilities-test-")
+	if err != nil {
+		panic(err)
+	}
+	return tempDir
+}
+
+func createEmptyScheme() *runtime.Scheme {
+	return runtime.NewScheme()
+}
+
+func createStandardScheme() *runtime.Scheme {
+	s := createEmptyScheme()
+	if err := scheme.AddToScheme(s); err != nil {
+		panic(err)
+	}
+	return s
+}

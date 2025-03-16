@@ -8,6 +8,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -167,6 +168,26 @@ func TypedFromUnstructured(
 	return clientObj, nil
 }
 
+// GetGroupVersionKind extracts the GroupVersionKind from a client.Object.
+// If the GVK is empty, it attempts to get it from the scheme.
+func GetGroupVersionKind(obj client.Object, scheme *runtime.Scheme) (schema.GroupVersionKind, error) {
+	if scheme == nil {
+		return schema.GroupVersionKind{}, fmt.Errorf("scheme is nil")
+	}
+	gvk := obj.GetObjectKind().GroupVersionKind()
+	if gvk.Empty() {
+		gvks, _, err := scheme.ObjectKinds(obj)
+		if err != nil {
+			return schema.GroupVersionKind{}, fmt.Errorf("failed to get GroupVersionKind for object: %w", err)
+		}
+		if len(gvks) == 0 {
+			return schema.GroupVersionKind{}, fmt.Errorf("could not determine GroupVersionKind for object of type %T", obj)
+		}
+		gvk = gvks[0]
+	}
+	return gvk, nil
+}
+
 // UnstructuredFromObject uses the client scheme to convert
 // the given object to an unstructured object.
 func UnstructuredFromObject(
@@ -186,21 +207,11 @@ func UnstructuredFromObject(
 		return unstructured.Unstructured{}, fmt.Errorf("failed to convert object to unstructured: %w", err)
 	}
 
-	// Get GVK
-	gvk := obj.GetObjectKind().GroupVersionKind()
-	if gvk.Empty() {
-		// Try to get GVK from scheme
-		gvks, _, err := scheme.ObjectKinds(obj)
-		if err != nil {
-			return unstructured.Unstructured{}, fmt.Errorf("failed to get GroupVersionKind for object: %w", err)
-		}
-		if len(gvks) == 0 {
-			return unstructured.Unstructured{}, fmt.Errorf("could not determine GroupVersionKind for object of type %T", obj)
-		}
-		gvk = gvks[0]
-	}
-
 	// Set GVK
+	gvk, err := GetGroupVersionKind(obj, scheme)
+	if err != nil {
+		return unstructured.Unstructured{}, err
+	}
 	unstructuredObj.SetGroupVersionKind(gvk)
 	return unstructuredObj, nil
 }

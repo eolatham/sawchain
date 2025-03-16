@@ -11,7 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -409,16 +409,88 @@ var _ = Describe("Utilities", func() {
 		)
 	})
 
-	Describe("TypedFromUnstructured and UnstructuredFromObject", func() {
-		var k8sClient client.Client
+	Describe("GetGroupVersionKind", func() {
+		type testCase struct {
+			object        client.Object
+			scheme        *runtime.Scheme
+			expectedGVK   schema.GroupVersionKind
+			expectedError string
+		}
 
-		BeforeEach(func() {
-			// Create a client with the standard Kubernetes scheme
-			s := runtime.NewScheme()
-			err := scheme.AddToScheme(s)
-			Expect(err).NotTo(HaveOccurred())
-			k8sClient = fake.NewClientBuilder().WithScheme(s).Build()
-		})
+		DescribeTable("extracting GroupVersionKind from objects",
+			func(tc testCase) {
+				gvk, err := utilities.GetGroupVersionKind(tc.object, tc.scheme)
+				if tc.expectedError != "" {
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring(tc.expectedError))
+				} else {
+					Expect(err).NotTo(HaveOccurred())
+					Expect(gvk.Group).To(Equal(tc.expectedGVK.Group))
+					Expect(gvk.Version).To(Equal(tc.expectedGVK.Version))
+					Expect(gvk.Kind).To(Equal(tc.expectedGVK.Kind))
+				}
+			},
+			Entry("object with TypeMeta set", testCase{
+				object: &corev1.ConfigMap{
+					TypeMeta: metav1.TypeMeta{
+						APIVersion: "v1",
+						Kind:       "ConfigMap",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-cm",
+						Namespace: "default",
+					},
+				},
+				scheme: standardScheme,
+				expectedGVK: schema.GroupVersionKind{
+					Group:   "",
+					Version: "v1",
+					Kind:    "ConfigMap",
+				},
+				expectedError: "",
+			}),
+			Entry("object without TypeMeta set", testCase{
+				object: &corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-cm",
+						Namespace: "default",
+					},
+				},
+				scheme: standardScheme,
+				expectedGVK: schema.GroupVersionKind{
+					Group:   "",
+					Version: "v1",
+					Kind:    "ConfigMap",
+				},
+				expectedError: "",
+			}),
+			Entry("object with nil scheme", testCase{
+				object: &corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-cm",
+						Namespace: "default",
+					},
+				},
+				scheme:        nil,
+				expectedGVK:   schema.GroupVersionKind{},
+				expectedError: "scheme is nil",
+			}),
+			Entry("object with empty scheme", testCase{
+				object: &corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-cm",
+						Namespace: "default",
+					},
+				},
+				scheme:        emptyScheme,
+				expectedGVK:   schema.GroupVersionKind{},
+				expectedError: "failed to get GroupVersionKind for object",
+			}),
+		)
+	})
+
+	Describe("TypedFromUnstructured and UnstructuredFromObject", func() {
+		var k8sClient = fake.NewClientBuilder().WithScheme(standardScheme).Build()
 
 		Context("TypedFromUnstructured", func() {
 			It("converts an unstructured ConfigMap to a typed ConfigMap", func() {
