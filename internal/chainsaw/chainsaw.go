@@ -19,8 +19,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// TODO: test
-
 type Bindings = apis.Bindings
 
 const errExpectedSingleResource = "expected template to contain a single resource; found %d"
