@@ -57,8 +57,8 @@ func ParseTemplateSingle(templateContent string) (unstructured.Unstructured, err
 	return parsed[0], nil
 }
 
-// RenderTemplate renders the template into unstructured objects
-// (and processes template expressions).
+// RenderTemplate renders the template into unstructured objects (and processes template expressions).
+// Bindings are injected as is without type conversions, even when the template wraps them in quotes.
 func RenderTemplate(
 	ctx context.Context,
 	templateContent string,
@@ -81,7 +81,8 @@ func RenderTemplate(
 }
 
 // RenderTemplateSingle renders the single-resource template into an unstructured object
-// (and processes template expressions).
+// (and processes template expressions). Bindings are injected as is without
+// type conversions, even when the template wraps them in quotes.
 func RenderTemplateSingle(
 	ctx context.Context,
 	templateContent string,
@@ -98,7 +99,8 @@ func RenderTemplateSingle(
 }
 
 // Match compares candidates with the expectation and returns the first match
-// or an error if no match is found.
+// or an error if no match is found. Does not handle non-resource matching.
+// Based on github.com/kyverno/chainsaw/pkg/engine/operations/assert.Exec.
 func Match(
 	ctx context.Context,
 	candidates []unstructured.Unstructured,
@@ -159,8 +161,8 @@ func listCandidates(
 	return results, nil
 }
 
-// Check is equivalent to a Chainsaw assert resource operation, except that it does not do polling
-// or handle non-resource assertions. It returns the first matching resource on success.
+// Check is equivalent to a Chainsaw assert resource operation without polling. Does not
+// handle non-resource assertions. Returns the first matching resource on success.
 // Based on github.com/kyverno/chainsaw/pkg/engine/operations/assert.Exec.
 func Check(
 	c client.Client,
