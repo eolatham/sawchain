@@ -8,6 +8,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	ginkgotypes "github.com/onsi/ginkgo/v2/types"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -16,8 +18,8 @@ import (
 
 var (
 	ctx       context.Context
-	k8sClient client.Client
 	testEnv   *envtest.Environment
+	k8sClient client.Client
 )
 
 func TestChainsaw(t *testing.T) {
@@ -50,6 +52,17 @@ var _ = BeforeSuite(func() {
 	k8sClient, err = client.New(config, client.Options{})
 	Expect(err).NotTo(HaveOccurred())
 	Expect(k8sClient).NotTo(BeNil())
+
+	// Create namespace used in tests
+	ns := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "other-namespace",
+		},
+	}
+	Expect(k8sClient.Create(ctx, ns)).To(Succeed(), "Failed to create other-namespace")
+	Eventually(func() error {
+		return k8sClient.Get(ctx, client.ObjectKeyFromObject(ns), ns)
+	}).Should(Succeed(), "Timed out waiting for other-namespace to be created")
 })
 
 var _ = AfterSuite(func() {

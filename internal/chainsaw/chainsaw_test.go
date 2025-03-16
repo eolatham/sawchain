@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	. "github.com/eolatham/sawchain/internal/chainsaw"
 )
@@ -1559,10 +1560,17 @@ data:
 
 						createdResources = make([]unstructured.Unstructured, 0, len(resources))
 						for _, resource := range resources {
-							// Create a copy to avoid modifying the original
-							obj := resource.DeepCopy()
+							obj := resource.DeepCopy() // Avoid modifying original
 							Expect(k8sClient.Create(ctx, obj)).To(Succeed(), "Failed to create test resource")
 							createdResources = append(createdResources, *obj)
+						}
+
+						// Wait for resources to be fully created
+						for _, resource := range createdResources {
+							checkObj := resource.DeepCopy() // Avoid modifying original
+							Eventually(func() error {
+								return k8sClient.Get(ctx, client.ObjectKeyFromObject(checkObj), checkObj)
+							}).Should(Succeed(), "Timed out waiting for resource to be created")
 						}
 					}
 
@@ -1578,7 +1586,16 @@ data:
 				AfterEach(func() {
 					// Delete resources
 					for _, resource := range createdResources {
-						Expect(k8sClient.Delete(ctx, &resource)).To(Succeed(), "Failed to delete test resource")
+						Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, &resource))).
+							To(Succeed(), "Failed to delete test resource")
+
+					}
+
+					// Wait for resources to be fully deleted
+					for _, resource := range createdResources {
+						Eventually(func() error {
+							return k8sClient.Get(ctx, client.ObjectKeyFromObject(&resource), &resource)
+						}).ShouldNot(Succeed(), "Timed out waiting for resource to be deleted")
 					}
 				})
 
@@ -1884,6 +1901,95 @@ data:
 					"v1/ConfigMap/default/test-check-length-fail",
 					"data.(length(value) > `1` && length(value) < `10`): Invalid value: false: Expected value: true",
 				},
+			}),
+			Entry("should match ConfigMap based on data across namespaces", testCase{
+				resourcesYaml: `apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-config-ns1
+  namespace: default
+data:
+  unique-key: wrong-value
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-config-ns2
+  namespace: other-namespace
+data:
+  unique-key: target-value`,
+				expectedYaml: `apiVersion: v1
+kind: ConfigMap
+data:
+  unique-key: target-value`,
+				bindings: map[string]any{},
+				expectedMatch: unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"apiVersion": "v1",
+						"kind":       "ConfigMap",
+						"metadata": map[string]interface{}{
+							"name":      "test-config-ns2",
+							"namespace": "other-namespace",
+						},
+						"data": map[string]interface{}{
+							"unique-key": "target-value",
+						},
+					},
+				},
+				expectedErrs: nil,
+			}),
+			Entry("should match Secret based on labels across namespaces", testCase{
+				resourcesYaml: `apiVersion: v1
+kind: Secret
+metadata:
+  name: test-secret-ns1
+  namespace: default
+  labels:
+    app: target-app
+    environment: dev
+type: Opaque
+data:
+  username: dXNlcm5hbWU=
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: test-secret-ns2
+  namespace: other-namespace
+  labels:
+    app: target-app
+    environment: production
+    extra: label
+type: Opaque
+data:
+  username: dXNlcm5hbWU=`,
+				expectedYaml: `apiVersion: v1
+kind: Secret
+metadata:
+  labels:
+    app: target-app
+    environment: production`,
+				bindings: map[string]any{},
+				expectedMatch: unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"apiVersion": "v1",
+						"kind":       "Secret",
+						"metadata": map[string]interface{}{
+							"name":      "test-secret-ns2",
+							"namespace": "other-namespace",
+							"labels": map[string]interface{}{
+								"app":         "target-app",
+								"environment": "production",
+								"extra":       "label",
+							},
+						},
+						"type": "Opaque",
+						"data": map[string]interface{}{
+							"username": "dXNlcm5hbWU=",
+						},
+					},
+				},
+				expectedErrs: nil,
 			}),
 		)
 	})
