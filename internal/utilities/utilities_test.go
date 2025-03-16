@@ -619,7 +619,7 @@ var _ = Describe("Utilities", func() {
 		Context("Round-trip conversions", func() {
 			It("performs a round-trip conversion with TypeMeta set", func() {
 				// Start with a typed ConfigMap with TypeMeta
-				originalCM := &corev1.ConfigMap{
+				originalCm := &corev1.ConfigMap{
 					TypeMeta: metav1.TypeMeta{
 						APIVersion: "v1",
 						Kind:       "ConfigMap",
@@ -644,7 +644,7 @@ var _ = Describe("Utilities", func() {
 				}
 
 				// Convert to unstructured
-				unstructuredObj, err := utilities.UnstructuredFromObject(k8sClient, originalCM)
+				unstructuredObj, err := utilities.UnstructuredFromObject(k8sClient, originalCm)
 				Expect(err).NotTo(HaveOccurred(), "Error converting to unstructured")
 
 				// Convert back to typed
@@ -652,20 +652,20 @@ var _ = Describe("Utilities", func() {
 				Expect(err).NotTo(HaveOccurred(), "Error converting back to typed")
 
 				// Verify it's a ConfigMap
-				roundTripCM, ok := typedObj.(*corev1.ConfigMap)
+				roundTripCm, ok := typedObj.(*corev1.ConfigMap)
 				Expect(ok).To(BeTrue(), "Expected a *corev1.ConfigMap")
 
 				// Verify all metadata is preserved
-				Expect(roundTripCM.Name).To(Equal(originalCM.Name))
-				Expect(roundTripCM.Namespace).To(Equal(originalCM.Namespace))
-				Expect(roundTripCM.Labels).To(Equal(originalCM.Labels))
-				Expect(roundTripCM.Annotations).To(Equal(originalCM.Annotations))
+				Expect(roundTripCm.Name).To(Equal(originalCm.Name))
+				Expect(roundTripCm.Namespace).To(Equal(originalCm.Namespace))
+				Expect(roundTripCm.Labels).To(Equal(originalCm.Labels))
+				Expect(roundTripCm.Annotations).To(Equal(originalCm.Annotations))
 
 				// Verify all data is preserved
-				Expect(roundTripCM.Data).To(Equal(originalCM.Data))
+				Expect(roundTripCm.Data).To(Equal(originalCm.Data))
 
 				// Verify GVK is preserved
-				gvk := roundTripCM.GetObjectKind().GroupVersionKind()
+				gvk := roundTripCm.GetObjectKind().GroupVersionKind()
 				Expect(gvk.Group).To(Equal(""))
 				Expect(gvk.Version).To(Equal("v1"))
 				Expect(gvk.Kind).To(Equal("ConfigMap"))
@@ -673,7 +673,7 @@ var _ = Describe("Utilities", func() {
 
 			It("performs a round-trip conversion without TypeMeta set", func() {
 				// Start with a typed ConfigMap without TypeMeta
-				originalCM := &corev1.ConfigMap{
+				originalCm := &corev1.ConfigMap{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "test-cm",
 						Namespace: "default",
@@ -687,11 +687,11 @@ var _ = Describe("Utilities", func() {
 				}
 
 				// Verify TypeMeta is empty
-				Expect(originalCM.APIVersion).To(BeEmpty())
-				Expect(originalCM.Kind).To(BeEmpty())
+				Expect(originalCm.APIVersion).To(BeEmpty())
+				Expect(originalCm.Kind).To(BeEmpty())
 
 				// Convert to unstructured
-				unstructuredObj, err := utilities.UnstructuredFromObject(k8sClient, originalCM)
+				unstructuredObj, err := utilities.UnstructuredFromObject(k8sClient, originalCm)
 				Expect(err).NotTo(HaveOccurred(), "Error converting to unstructured")
 
 				// Verify GVK was determined correctly
@@ -703,19 +703,19 @@ var _ = Describe("Utilities", func() {
 				Expect(err).NotTo(HaveOccurred(), "Error converting back to typed")
 
 				// Verify it's a ConfigMap
-				roundTripCM, ok := typedObj.(*corev1.ConfigMap)
+				roundTripCm, ok := typedObj.(*corev1.ConfigMap)
 				Expect(ok).To(BeTrue(), "Expected a *corev1.ConfigMap")
 
 				// Verify metadata is preserved
-				Expect(roundTripCM.Name).To(Equal(originalCM.Name))
-				Expect(roundTripCM.Namespace).To(Equal(originalCM.Namespace))
-				Expect(roundTripCM.Labels).To(Equal(originalCM.Labels))
+				Expect(roundTripCm.Name).To(Equal(originalCm.Name))
+				Expect(roundTripCm.Namespace).To(Equal(originalCm.Namespace))
+				Expect(roundTripCm.Labels).To(Equal(originalCm.Labels))
 
 				// Verify data is preserved
-				Expect(roundTripCM.Data).To(Equal(originalCM.Data))
+				Expect(roundTripCm.Data).To(Equal(originalCm.Data))
 
 				// Verify GVK is set correctly after round trip
-				gvk := roundTripCM.GetObjectKind().GroupVersionKind()
+				gvk := roundTripCm.GetObjectKind().GroupVersionKind()
 				Expect(gvk.Group).To(Equal(""))
 				Expect(gvk.Version).To(Equal("v1"))
 				Expect(gvk.Kind).To(Equal("ConfigMap"))

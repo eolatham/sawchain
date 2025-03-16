@@ -99,6 +99,33 @@ func RenderTemplateSingle(
 	return rendered[0], nil
 }
 
+// Match compares candidates with the expectation and returns the first match
+// or an error if no match is found.
+func Match(
+	ctx context.Context,
+	candidates []unstructured.Unstructured,
+	expected unstructured.Unstructured,
+	bindings Bindings,
+) (unstructured.Unstructured, error) {
+	var errs []error
+	for _, candidate := range candidates {
+		fieldErrs, err := checks.Check(ctx, compilers, candidate.UnstructuredContent(), bindings,
+			ptr.To(v1alpha1.NewCheck(expected.UnstructuredContent())))
+		if err != nil {
+			return unstructured.Unstructured{}, err
+		}
+		if len(fieldErrs) != 0 {
+			errs = append(errs,
+				operrors.ResourceError(compilers, expected, candidate, true, bindings, fieldErrs),
+			)
+		} else {
+			// Match found
+			return candidate, nil
+		}
+	}
+	return unstructured.Unstructured{}, multierr.Combine(errs...)
+}
+
 // listCandidates lists resources in the cluster that might match the expectation.
 // Based on github.com/kyverno/chainsaw/pkg/engine/operations/internal.Read.
 func listCandidates(
@@ -134,36 +161,9 @@ func listCandidates(
 	return results, nil
 }
 
-// Match compares candidates with the expectation and returns the first match
-// or an error if no match is found.
-func Match(
-	ctx context.Context,
-	candidates []unstructured.Unstructured,
-	expected unstructured.Unstructured,
-	bindings Bindings,
-) (unstructured.Unstructured, error) {
-	var errs []error
-	for _, candidate := range candidates {
-		fieldErrs, err := checks.Check(ctx, compilers, candidate.UnstructuredContent(), bindings,
-			ptr.To(v1alpha1.NewCheck(expected.UnstructuredContent())))
-		if err != nil {
-			return unstructured.Unstructured{}, err
-		}
-		if len(fieldErrs) != 0 {
-			errs = append(errs,
-				operrors.ResourceError(compilers, expected, candidate, true, bindings, fieldErrs),
-			)
-		} else {
-			// Match found
-			return candidate, nil
-		}
-	}
-	return unstructured.Unstructured{}, multierr.Combine(errs...)
-}
-
-// Check is equivalent to a Chainsaw assert operation without polling.
+// Check is equivalent to a Chainsaw assert resource operation, except that it does not do polling
+// or handle non-resource assertions. It returns the first matching resource on success.
 // Based on github.com/kyverno/chainsaw/pkg/engine/operations/assert.Exec.
-// Returns the first matching resource on success.
 func Check(
 	c client.Client,
 	ctx context.Context,
@@ -176,19 +176,6 @@ func Check(
 	}
 	if err := templating.ResourceRef(ctx, compilers, &expected, bindings); err != nil {
 		return unstructured.Unstructured{}, err
-	}
-
-	// Execute non-resource check
-	if expected.GetAPIVersion() == "" || expected.GetKind() == "" {
-		fieldErrs, err := checks.Check(ctx, compilers, nil, bindings,
-			ptr.To(v1alpha1.NewCheck(expected.UnstructuredContent())))
-		if err != nil {
-			return unstructured.Unstructured{}, err
-		}
-		if len(fieldErrs) != 0 {
-			return unstructured.Unstructured{}, multierr.Combine(fieldErrs.ToAggregate().Errors()...)
-		}
-		return unstructured.Unstructured{}, nil
 	}
 
 	// List candidates
