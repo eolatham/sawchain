@@ -45,7 +45,7 @@ func (m *chainsawMatcher) Match(actual interface{}) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	expected, err := chainsaw.ParseTemplateSingle(m.templateContent)
+	expected, err := chainsaw.RenderTemplateSingle(context.TODO(), m.templateContent, m.bindings)
 	if err != nil {
 		return false, err
 	}

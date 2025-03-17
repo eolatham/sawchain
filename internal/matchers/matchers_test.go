@@ -306,9 +306,7 @@ metadata:
 				expectedErr:     "failed to parse template",
 			}),
 
-			// TODO: confirm how Chainsaw handles missing bindings in assertions
-			// from the test failure, it seems that Chainsaw ignores the missing binding in this case
-			FEntry("should error on missing binding", testCase{
+			Entry("should error on missing binding", testCase{
 				description: "Missing binding",
 				actual: createConfigMap("test-config", "default", map[string]string{
 					"key1": "value1",
