@@ -607,6 +607,49 @@ var _ = Describe("Utilities", func() {
 				// Verify returned object is nil
 				Expect(typedObj).To(BeNil())
 			})
+
+			It("handles input that is already a typed object by returning it as-is", func() {
+				// Create a typed ConfigMap
+				cm := &corev1.ConfigMap{
+					TypeMeta: metav1.TypeMeta{
+						APIVersion: "v1",
+						Kind:       "ConfigMap",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-cm",
+						Namespace: "default",
+					},
+					Data: map[string]string{
+						"key1": "value1",
+					},
+				}
+
+				// Create an unstructured version of the ConfigMap
+				unstructuredObj := unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"apiVersion": "v1",
+						"kind":       "ConfigMap",
+						"metadata": map[string]interface{}{
+							"name":      "test-cm",
+							"namespace": "default",
+						},
+						"data": map[string]interface{}{
+							"key1": "value1",
+						},
+					},
+				}
+
+				// Convert to typed object
+				typedObj, err := utilities.TypedFromUnstructured(k8sClient, unstructuredObj)
+				Expect(err).NotTo(HaveOccurred())
+
+				// Verify it's a ConfigMap with correct data
+				resultCm, ok := typedObj.(*corev1.ConfigMap)
+				Expect(ok).To(BeTrue(), "Expected a *corev1.ConfigMap")
+				Expect(resultCm.Name).To(Equal(cm.Name))
+				Expect(resultCm.Namespace).To(Equal(cm.Namespace))
+				Expect(resultCm.Data).To(HaveKeyWithValue("key1", "value1"))
+			})
 		})
 
 		Context("UnstructuredFromObject", func() {
@@ -685,6 +728,41 @@ var _ = Describe("Utilities", func() {
 				// Verify other metadata
 				Expect(unstructuredObj.GetName()).To(Equal("test-cm"))
 				Expect(unstructuredObj.GetNamespace()).To(Equal("default"))
+			})
+
+			It("handles input that is already an unstructured object by returning it as-is", func() {
+				// Create an unstructured object
+				originalUnstructured := &unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"apiVersion": "v1",
+						"kind":       "ConfigMap",
+						"metadata": map[string]interface{}{
+							"name":      "test-cm",
+							"namespace": "default",
+						},
+						"data": map[string]interface{}{
+							"key1": "value1",
+						},
+					},
+				}
+
+				// Convert to unstructured (should be a no-op essentially)
+				resultUnstructured, err := utilities.UnstructuredFromObject(k8sClient, originalUnstructured)
+
+				// Verify no error occurred
+				Expect(err).NotTo(HaveOccurred())
+
+				// Verify the result matches the original
+				Expect(resultUnstructured.GetAPIVersion()).To(Equal(originalUnstructured.GetAPIVersion()))
+				Expect(resultUnstructured.GetKind()).To(Equal(originalUnstructured.GetKind()))
+				Expect(resultUnstructured.GetName()).To(Equal(originalUnstructured.GetName()))
+				Expect(resultUnstructured.GetNamespace()).To(Equal(originalUnstructured.GetNamespace()))
+
+				// Verify data is preserved
+				data, found, err := unstructured.NestedStringMap(resultUnstructured.Object, "data")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue(), "Data field not found in result unstructured object")
+				Expect(data).To(HaveKeyWithValue("key1", "value1"))
 			})
 		})
 

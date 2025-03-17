@@ -13,8 +13,6 @@ import (
 	"github.com/eolatham/sawchain/internal/utilities"
 )
 
-// TODO: test
-
 // chainsawMatcher is a Gomega matcher that checks if
 // a client.Object matches a Chainsaw resource template.
 type chainsawMatcher struct {
@@ -110,16 +108,14 @@ func NewStatusConditionMatcher(
 apiVersion: %s
 kind: %s
 status:
-	(conditions[?type == $conditionType]):
-	- status: ($expectedStatus)`,
+  (conditions[?type == '%s']):
+  - status: '%s'`,
 				apiVersion,
 				kind,
+				conditionType,
+				expectedStatus,
 			)
 			return templateContent, nil
 		},
-		bindings: chainsaw.BindingsFromMap(map[string]any{
-			"conditionType":  conditionType,
-			"expectedStatus": expectedStatus,
-		}),
 	}
 }
