@@ -34,6 +34,7 @@ func BindingsFromMap(m map[string]any) Bindings {
 	return b
 }
 
+// TODO: make private?
 // ParseTemplate parses the template into unstructured objects
 // (without processing template expressions).
 func ParseTemplate(templateContent string) ([]unstructured.Unstructured, error) {
@@ -44,6 +45,7 @@ func ParseTemplate(templateContent string) ([]unstructured.Unstructured, error) 
 	return objs, nil
 }
 
+// TODO: make private?
 // ParseTemplateSingle parses the single-resource template into an unstructured object
 // (without processing template expressions).
 func ParseTemplateSingle(templateContent string) (unstructured.Unstructured, error) {
@@ -161,6 +163,7 @@ func listCandidates(
 	return results, nil
 }
 
+// TODO: take template as input and render it internally with RenderTemplateSingle (instead of using ResourceRef)
 // Check is equivalent to a Chainsaw assert resource operation without polling. Does not
 // handle non-resource assertions. Returns the first matching resource on success.
 // Based on github.com/kyverno/chainsaw/pkg/engine/operations/assert.Exec.
@@ -170,7 +173,7 @@ func Check(
 	expected unstructured.Unstructured,
 	bindings Bindings,
 ) (unstructured.Unstructured, error) {
-	// Render resource metadata
+	// Render expected resource
 	if bindings == nil {
 		bindings = apis.NewBindings()
 	}
