@@ -44,19 +44,6 @@ func parseTemplate(templateContent string) ([]unstructured.Unstructured, error) 
 	return objs, nil
 }
 
-// parseTemplateSingle parses the single-resource template into an unstructured object
-// (without processing template expressions).
-func parseTemplateSingle(templateContent string) (unstructured.Unstructured, error) {
-	parsed, err := parseTemplate(templateContent)
-	if err != nil {
-		return unstructured.Unstructured{}, err
-	}
-	if len(parsed) != 1 {
-		return unstructured.Unstructured{}, fmt.Errorf(errExpectedSingleResource, len(parsed))
-	}
-	return parsed[0], nil
-}
-
 // RenderTemplate renders the template into unstructured objects (and processes template expressions).
 // Bindings are injected as is without type conversions, even when the template wraps them in quotes.
 func RenderTemplate(
