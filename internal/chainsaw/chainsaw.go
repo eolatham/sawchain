@@ -34,10 +34,9 @@ func BindingsFromMap(m map[string]any) Bindings {
 	return b
 }
 
-// TODO: make private?
-// ParseTemplate parses the template into unstructured objects
+// parseTemplate parses the template into unstructured objects
 // (without processing template expressions).
-func ParseTemplate(templateContent string) ([]unstructured.Unstructured, error) {
+func parseTemplate(templateContent string) ([]unstructured.Unstructured, error) {
 	objs, err := resource.Parse([]byte(templateContent), true)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse template: %w", err)
@@ -45,11 +44,10 @@ func ParseTemplate(templateContent string) ([]unstructured.Unstructured, error) 
 	return objs, nil
 }
 
-// TODO: make private?
-// ParseTemplateSingle parses the single-resource template into an unstructured object
+// parseTemplateSingle parses the single-resource template into an unstructured object
 // (without processing template expressions).
-func ParseTemplateSingle(templateContent string) (unstructured.Unstructured, error) {
-	parsed, err := ParseTemplate(templateContent)
+func parseTemplateSingle(templateContent string) (unstructured.Unstructured, error) {
+	parsed, err := parseTemplate(templateContent)
 	if err != nil {
 		return unstructured.Unstructured{}, err
 	}
@@ -66,7 +64,7 @@ func RenderTemplate(
 	templateContent string,
 	bindings Bindings,
 ) ([]unstructured.Unstructured, error) {
-	parsed, err := ParseTemplate(templateContent)
+	parsed, err := parseTemplate(templateContent)
 	if err != nil {
 		return nil, err
 	}
@@ -163,21 +161,18 @@ func listCandidates(
 	return results, nil
 }
 
-// TODO: take template as input and render it internally with RenderTemplateSingle (instead of using ResourceRef)
 // Check is equivalent to a Chainsaw assert resource operation without polling. Does not
 // handle non-resource assertions. Returns the first matching resource on success.
 // Based on github.com/kyverno/chainsaw/pkg/engine/operations/assert.Exec.
 func Check(
 	c client.Client,
 	ctx context.Context,
-	expected unstructured.Unstructured,
+	templateContent string,
 	bindings Bindings,
 ) (unstructured.Unstructured, error) {
 	// Render expected resource
-	if bindings == nil {
-		bindings = apis.NewBindings()
-	}
-	if err := templating.ResourceRef(ctx, compilers, &expected, bindings); err != nil {
+	expected, err := RenderTemplateSingle(ctx, templateContent, bindings)
+	if err != nil {
 		return unstructured.Unstructured{}, err
 	}
 

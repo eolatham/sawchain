@@ -68,530 +68,6 @@ var _ = Describe("Chainsaw", func() {
 		)
 	})
 
-	Describe("ParseTemplate", func() {
-		type testCase struct {
-			templateContent string
-			expectedObjs    []unstructured.Unstructured
-			expectedErrs    []string
-		}
-
-		DescribeTable("parsing templates into unstructured objects",
-			func(tc testCase) {
-				// Test ParseTemplate
-				objs, err := ParseTemplate(tc.templateContent)
-				// Check error
-				if len(tc.expectedErrs) > 0 {
-					Expect(err).To(HaveOccurred())
-					for _, expectedErr := range tc.expectedErrs {
-						Expect(err.Error()).To(ContainSubstring(expectedErr))
-					}
-				} else {
-					Expect(err).NotTo(HaveOccurred())
-				}
-				// Check objects
-				Expect(objs).To(ConsistOf(tc.expectedObjs))
-			},
-			// Single resource tests
-			Entry("should parse a single ConfigMap", testCase{
-				templateContent: `apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: test-config
-  namespace: default
-data:
-  key1: value1
-  key2: value2`,
-				expectedObjs: []unstructured.Unstructured{
-					{
-						Object: map[string]interface{}{
-							"apiVersion": "v1",
-							"kind":       "ConfigMap",
-							"metadata": map[string]interface{}{
-								"name":      "test-config",
-								"namespace": "default",
-							},
-							"data": map[string]interface{}{
-								"key1": "value1",
-								"key2": "value2",
-							},
-						},
-					},
-				},
-				expectedErrs: nil,
-			}),
-			Entry("should parse a single Secret", testCase{
-				templateContent: `apiVersion: v1
-kind: Secret
-metadata:
-  name: test-secret
-  namespace: default
-type: Opaque
-data:
-  username: dXNlcm5hbWU=
-  password: cGFzc3dvcmQ=`,
-				expectedObjs: []unstructured.Unstructured{
-					{
-						Object: map[string]interface{}{
-							"apiVersion": "v1",
-							"kind":       "Secret",
-							"metadata": map[string]interface{}{
-								"name":      "test-secret",
-								"namespace": "default",
-							},
-							"type": "Opaque",
-							"data": map[string]interface{}{
-								"username": "dXNlcm5hbWU=",
-								"password": "cGFzc3dvcmQ=",
-							},
-						},
-					},
-				},
-				expectedErrs: nil,
-			}),
-			// Multi-resource tests
-			Entry("should parse multiple resources with different kinds", testCase{
-				templateContent: `apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: test-config
-  namespace: default
-data:
-  key1: value1
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: test-secret
-  namespace: default
-type: Opaque
-data:
-  username: dXNlcm5hbWU=`,
-				expectedObjs: []unstructured.Unstructured{
-					{
-						Object: map[string]interface{}{
-							"apiVersion": "v1",
-							"kind":       "ConfigMap",
-							"metadata": map[string]interface{}{
-								"name":      "test-config",
-								"namespace": "default",
-							},
-							"data": map[string]interface{}{
-								"key1": "value1",
-							},
-						},
-					},
-					{
-						Object: map[string]interface{}{
-							"apiVersion": "v1",
-							"kind":       "Secret",
-							"metadata": map[string]interface{}{
-								"name":      "test-secret",
-								"namespace": "default",
-							},
-							"type": "Opaque",
-							"data": map[string]interface{}{
-								"username": "dXNlcm5hbWU=",
-							},
-						},
-					},
-				},
-				expectedErrs: nil,
-			}),
-			Entry("should parse multiple resources of the same kind", testCase{
-				templateContent: `apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: test-config-1
-  namespace: default
-data:
-  key1: value1
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: test-config-2
-  namespace: default
-data:
-  key2: value2`,
-				expectedObjs: []unstructured.Unstructured{
-					{
-						Object: map[string]interface{}{
-							"apiVersion": "v1",
-							"kind":       "ConfigMap",
-							"metadata": map[string]interface{}{
-								"name":      "test-config-1",
-								"namespace": "default",
-							},
-							"data": map[string]interface{}{
-								"key1": "value1",
-							},
-						},
-					},
-					{
-						Object: map[string]interface{}{
-							"apiVersion": "v1",
-							"kind":       "ConfigMap",
-							"metadata": map[string]interface{}{
-								"name":      "test-config-2",
-								"namespace": "default",
-							},
-							"data": map[string]interface{}{
-								"key2": "value2",
-							},
-						},
-					},
-				},
-				expectedErrs: nil,
-			}),
-			Entry("should parse multiple resources with template expressions", testCase{
-				templateContent: `apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: test-config
-  namespace: default
-data:
-  key1: ($binding1)
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: test-secret
-  namespace: default
-type: Opaque
-data:
-  password: ($binding2)`,
-				expectedObjs: []unstructured.Unstructured{
-					{
-						Object: map[string]interface{}{
-							"apiVersion": "v1",
-							"kind":       "ConfigMap",
-							"metadata": map[string]interface{}{
-								"name":      "test-config",
-								"namespace": "default",
-							},
-							"data": map[string]interface{}{
-								"key1": "($binding1)",
-							},
-						},
-					},
-					{
-						Object: map[string]interface{}{
-							"apiVersion": "v1",
-							"kind":       "Secret",
-							"metadata": map[string]interface{}{
-								"name":      "test-secret",
-								"namespace": "default",
-							},
-							"type": "Opaque",
-							"data": map[string]interface{}{
-								"password": "($binding2)",
-							},
-						},
-					},
-				},
-				expectedErrs: nil,
-			}),
-			Entry("should parse multiple resources with different namespaces", testCase{
-				templateContent: `apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: test-config
-  namespace: default
-data:
-  key1: value1
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: test-config
-  namespace: other-namespace
-data:
-  key1: value1`,
-				expectedObjs: []unstructured.Unstructured{
-					{
-						Object: map[string]interface{}{
-							"apiVersion": "v1",
-							"kind":       "ConfigMap",
-							"metadata": map[string]interface{}{
-								"name":      "test-config",
-								"namespace": "default",
-							},
-							"data": map[string]interface{}{
-								"key1": "value1",
-							},
-						},
-					},
-					{
-						Object: map[string]interface{}{
-							"apiVersion": "v1",
-							"kind":       "ConfigMap",
-							"metadata": map[string]interface{}{
-								"name":      "test-config",
-								"namespace": "other-namespace",
-							},
-							"data": map[string]interface{}{
-								"key1": "value1",
-							},
-						},
-					},
-				},
-				expectedErrs: nil,
-			}),
-			// Edge cases
-			Entry("should handle empty template", testCase{
-				templateContent: ``,
-				expectedObjs:    []unstructured.Unstructured{},
-				expectedErrs:    nil,
-			}),
-			Entry("should handle template with only comments", testCase{
-				templateContent: `# This is just a comment
-# Another comment line`,
-				expectedObjs: []unstructured.Unstructured{},
-				expectedErrs: nil,
-			}),
-			Entry("should parse resource with missing required fields", testCase{
-				templateContent: `apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: test-config
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: test-secret`,
-				expectedObjs: []unstructured.Unstructured{
-					{
-						Object: map[string]interface{}{
-							"apiVersion": "v1",
-							"kind":       "ConfigMap",
-							"metadata": map[string]interface{}{
-								"name": "test-config",
-							},
-						},
-					},
-					{
-						Object: map[string]interface{}{
-							"apiVersion": "v1",
-							"kind":       "Secret",
-							"metadata": map[string]interface{}{
-								"name": "test-secret",
-							},
-						},
-					},
-				},
-				expectedErrs: nil,
-			}),
-			// Error cases
-			Entry("should fail on empty documents", testCase{
-				templateContent: `---
----
----`,
-				expectedObjs: nil,
-				expectedErrs: []string{
-					"failed to parse template: Object 'Kind' is missing",
-				},
-			}),
-			Entry("should fail on invalid YAML", testCase{
-				templateContent: `apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: test-config
-  namespace: default
-data:
-  key1: value1
-  key2: value2
- badindent: fail
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: test-secret
-  namespace: default`,
-				expectedObjs: nil,
-				expectedErrs: []string{
-					"failed to parse template:",
-					"did not find expected key",
-				},
-			}),
-			Entry("should fail on non-YAML content", testCase{
-				templateContent: `This is not YAML content at all.`,
-				expectedObjs:    nil,
-				expectedErrs: []string{
-					"failed to parse template:",
-					"cannot unmarshal",
-				},
-			}),
-			Entry("should fail on malformed YAML with missing colon", testCase{
-				templateContent: `apiVersion v1
-kind: ConfigMap
-metadata:
-  name: test-config`,
-				expectedObjs: nil,
-				expectedErrs: []string{
-					"failed to parse template:",
-					"mapping values are not allowed in this context",
-				},
-			}),
-		)
-	})
-
-	Describe("ParseTemplateSingle", func() {
-		type testCase struct {
-			templateContent string
-			expectedObj     unstructured.Unstructured
-			expectedErrs    []string
-		}
-
-		DescribeTable("parsing single-resource templates into unstructured objects",
-			func(tc testCase) {
-				// Test ParseTemplateSingle
-				obj, err := ParseTemplateSingle(tc.templateContent)
-				// Check error
-				if len(tc.expectedErrs) > 0 {
-					Expect(err).To(HaveOccurred())
-					for _, expectedErr := range tc.expectedErrs {
-						Expect(err.Error()).To(ContainSubstring(expectedErr))
-					}
-				} else {
-					Expect(err).NotTo(HaveOccurred())
-				}
-				// Check object
-				Expect(obj).To(Equal(tc.expectedObj))
-			},
-			// Valid single resource tests
-			Entry("should parse a single ConfigMap", testCase{
-				templateContent: `apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: test-config
-  namespace: default
-data:
-  key1: value1
-  key2: value2`,
-				expectedObj: unstructured.Unstructured{
-					Object: map[string]interface{}{
-						"apiVersion": "v1",
-						"kind":       "ConfigMap",
-						"metadata": map[string]interface{}{
-							"name":      "test-config",
-							"namespace": "default",
-						},
-						"data": map[string]interface{}{
-							"key1": "value1",
-							"key2": "value2",
-						},
-					},
-				},
-				expectedErrs: nil,
-			}),
-			Entry("should parse a single Secret", testCase{
-				templateContent: `apiVersion: v1
-kind: Secret
-metadata:
-  name: test-secret
-  namespace: default
-type: Opaque
-data:
-  username: dXNlcm5hbWU=
-  password: cGFzc3dvcmQ=`,
-				expectedObj: unstructured.Unstructured{
-					Object: map[string]interface{}{
-						"apiVersion": "v1",
-						"kind":       "Secret",
-						"metadata": map[string]interface{}{
-							"name":      "test-secret",
-							"namespace": "default",
-						},
-						"type": "Opaque",
-						"data": map[string]interface{}{
-							"username": "dXNlcm5hbWU=",
-							"password": "cGFzc3dvcmQ=",
-						},
-					},
-				},
-				expectedErrs: nil,
-			}),
-			Entry("should parse a template with binding expressions", testCase{
-				templateContent: `apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: ($name)
-  namespace: ($namespace)
-data:
-  key1: ($value1)
-  key2: ($value2)`,
-				expectedObj: unstructured.Unstructured{
-					Object: map[string]interface{}{
-						"apiVersion": "v1",
-						"kind":       "ConfigMap",
-						"metadata": map[string]interface{}{
-							"name":      "($name)",
-							"namespace": "($namespace)",
-						},
-						"data": map[string]interface{}{
-							"key1": "($value1)",
-							"key2": "($value2)",
-						},
-					},
-				},
-				expectedErrs: nil,
-			}),
-			// Error cases
-			Entry("should fail on empty template", testCase{
-				templateContent: ``,
-				expectedObj:     unstructured.Unstructured{},
-				expectedErrs: []string{
-					"expected template to contain a single resource; found 0",
-				},
-			}),
-			Entry("should fail on multiple resources", testCase{
-				templateContent: `apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: test-config-1
-  namespace: default
-data:
-  key1: value1
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: test-config-2
-  namespace: default
-data:
-  key2: value2`,
-				expectedObj: unstructured.Unstructured{},
-				expectedErrs: []string{
-					"expected template to contain a single resource; found 2",
-				},
-			}),
-			Entry("should fail on invalid YAML", testCase{
-				templateContent: `apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: test-config
-  namespace: default
-data:
-  key1: value1
-  key2: value2
- badindent: fail`,
-				expectedObj: unstructured.Unstructured{},
-				expectedErrs: []string{
-					"failed to parse template:",
-					"did not find expected key",
-				},
-			}),
-			Entry("should fail on non-YAML content", testCase{
-				templateContent: `This is not YAML content at all.`,
-				expectedObj:     unstructured.Unstructured{},
-				expectedErrs: []string{
-					"failed to parse template:",
-					"cannot unmarshal",
-				},
-			}),
-		)
-	})
-
 	Describe("RenderTemplate", func() {
 		type testCase struct {
 			templateContent string
@@ -783,7 +259,7 @@ data:
 				expectedErrs: nil,
 			}),
 			// Edge cases
-			Entry("should handle template with no bindings", testCase{
+			Entry("should handle template with nil bindings", testCase{
 				templateContent: `apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -792,7 +268,7 @@ metadata:
 data:
   key1: value1
   key2: value2`,
-				bindings: map[string]any{},
+				bindings: nil,
 				expectedObjs: []unstructured.Unstructured{
 					{
 						Object: map[string]interface{}{
@@ -981,7 +457,7 @@ data:
 				expectedErrs: nil,
 			}),
 			// Edge cases
-			Entry("should handle template with no bindings", testCase{
+			Entry("should handle template with nil bindings", testCase{
 				templateContent: `apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -990,7 +466,7 @@ metadata:
 data:
   key1: value1
   key2: value2`,
-				bindings: map[string]any{},
+				bindings: nil,
 				expectedObj: unstructured.Unstructured{
 					Object: map[string]interface{}{
 						"apiVersion": "v1",
@@ -1539,23 +1015,22 @@ data:
 
 	Describe("Check", func() {
 		type testCase struct {
-			resourcesYaml string
-			expectedYaml  string
-			bindings      map[string]any
-			expectedMatch unstructured.Unstructured
-			expectedErrs  []string
+			resourcesYaml   string
+			templateContent string
+			bindings        map[string]any
+			expectedMatch   unstructured.Unstructured
+			expectedErrs    []string
 		}
 
 		DescribeTableSubtree("checking resources in the cluster",
 			func(tc testCase) {
 				var createdResources []unstructured.Unstructured
-				var expected unstructured.Unstructured
 				var bindings apis.Bindings
 
 				BeforeEach(func() {
 					// Create resources if provided
 					if tc.resourcesYaml != "" {
-						resources, err := ParseTemplate(tc.resourcesYaml)
+						resources, err := RenderTemplate(ctx, tc.resourcesYaml, nil)
 						Expect(err).NotTo(HaveOccurred(), "Failed to parse test resources")
 
 						createdResources = make([]unstructured.Unstructured, 0, len(resources))
@@ -1573,11 +1048,6 @@ data:
 							}).Should(Succeed(), "Timed out waiting for resource to be created")
 						}
 					}
-
-					// Parse expected resource
-					var err error
-					expected, err = ParseTemplateSingle(tc.expectedYaml)
-					Expect(err).NotTo(HaveOccurred(), "Failed to parse expected resource")
 
 					// Create bindings
 					bindings = BindingsFromMap(tc.bindings)
@@ -1601,7 +1071,7 @@ data:
 
 				It("should check resources correctly", func() {
 					// Test Check
-					match, err := Check(k8sClient, ctx, expected, bindings)
+					match, err := Check(k8sClient, ctx, tc.templateContent, bindings)
 
 					// Check error
 					if len(tc.expectedErrs) > 0 {
@@ -1645,7 +1115,7 @@ metadata:
 data:
   key1: value1
   key2: value2`,
-				expectedYaml: `apiVersion: v1
+				templateContent: `apiVersion: v1
 kind: ConfigMap
 metadata:
   name: test-check-configmap
@@ -1683,7 +1153,7 @@ data:
   key1: value1
   key2: value2
   key3: value3`,
-				expectedYaml: `apiVersion: v1
+				templateContent: `apiVersion: v1
 kind: ConfigMap
 metadata:
   name: test-check-partial
@@ -1716,7 +1186,7 @@ metadata:
   namespace: default
 data:
   key1: binding-value`,
-				expectedYaml: `apiVersion: v1
+				templateContent: `apiVersion: v1
 kind: ConfigMap
 metadata:
   name: ($name)
@@ -1767,7 +1237,7 @@ metadata:
   namespace: default
 data:
   key1: value3`,
-				expectedYaml: `apiVersion: v1
+				templateContent: `apiVersion: v1
 kind: ConfigMap
 metadata:
   namespace: default
@@ -1792,7 +1262,7 @@ data:
 			// Error cases
 			Entry("should fail when resource not found", testCase{
 				resourcesYaml: ``,
-				expectedYaml: `apiVersion: v1
+				templateContent: `apiVersion: v1
 kind: ConfigMap
 metadata:
   name: nonexistent-configmap
@@ -1811,7 +1281,7 @@ metadata:
   namespace: default
 data:
   key1: actual-value`,
-				expectedYaml: `apiVersion: v1
+				templateContent: `apiVersion: v1
 kind: ConfigMap
 metadata:
   name: test-check-nomatch
@@ -1837,7 +1307,7 @@ metadata:
   namespace: default
 data:
   key1: value1`,
-				expectedYaml: `apiVersion: v1
+				templateContent: `apiVersion: v1
 kind: ConfigMap
 metadata:
   name: ($missing_binding)
@@ -1857,7 +1327,7 @@ metadata:
   namespace: default
 data:
   value: "hello"`,
-				expectedYaml: `apiVersion: v1
+				templateContent: `apiVersion: v1
 kind: ConfigMap
 metadata:
   name: test-check-length
@@ -1888,7 +1358,7 @@ metadata:
   namespace: default
 data:
   value: "this string is too long"`,
-				expectedYaml: `apiVersion: v1
+				templateContent: `apiVersion: v1
 kind: ConfigMap
 metadata:
   name: test-check-length-fail
@@ -1918,7 +1388,7 @@ metadata:
   namespace: other-namespace
 data:
   unique-key: target-value`,
-				expectedYaml: `apiVersion: v1
+				templateContent: `apiVersion: v1
 kind: ConfigMap
 data:
   unique-key: target-value`,
@@ -1963,7 +1433,7 @@ metadata:
 type: Opaque
 data:
   username: dXNlcm5hbWU=`,
-				expectedYaml: `apiVersion: v1
+				templateContent: `apiVersion: v1
 kind: Secret
 metadata:
   labels:
