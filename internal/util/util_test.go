@@ -1,10 +1,11 @@
-package utilities_test
+package util_test
 
 import (
 	"os"
 	"path/filepath"
 	"time"
 
+	"github.com/eolatham/sawchain/internal/util"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -14,11 +15,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-
-	"github.com/eolatham/sawchain/internal/utilities"
 )
 
-var _ = Describe("Utilities", func() {
+var _ = Describe("Util", func() {
 	Describe("MergeMaps", func() {
 		type testCase struct {
 			maps     []map[string]any
@@ -27,7 +26,7 @@ var _ = Describe("Utilities", func() {
 
 		DescribeTable("merging maps",
 			func(tc testCase) {
-				result := utilities.MergeMaps(tc.maps...)
+				result := util.MergeMaps(tc.maps...)
 				Expect(result).To(Equal(tc.expected))
 			},
 			Entry("no maps provided", testCase{
@@ -113,7 +112,7 @@ var _ = Describe("Utilities", func() {
 		DescribeTable("checking if a file exists",
 			func(tc testCase) {
 				path := tc.setup()
-				result := utilities.IsExistingFile(path)
+				result := util.IsExistingFile(path)
 				Expect(result).To(Equal(tc.expected))
 			},
 			Entry("path points to an existing file", testCase{
@@ -156,7 +155,7 @@ var _ = Describe("Utilities", func() {
 		DescribeTable("reading file content",
 			func(tc testCase) {
 				path := tc.setup()
-				result, err := utilities.ReadFileContent(path)
+				result, err := util.ReadFileContent(path)
 
 				if tc.expectError {
 					Expect(err).To(HaveOccurred())
@@ -212,7 +211,7 @@ var _ = Describe("Utilities", func() {
 
 		DescribeTable("converting to duration",
 			func(tc testCase) {
-				result, ok := utilities.AsDuration(tc.input)
+				result, ok := util.AsDuration(tc.input)
 				Expect(ok).To(Equal(tc.expectedOk))
 				if tc.expectedOk {
 					Expect(result).To(Equal(tc.expectedResult))
@@ -255,7 +254,7 @@ var _ = Describe("Utilities", func() {
 
 		DescribeTable("converting to map[string]any",
 			func(tc testCase) {
-				result, ok := utilities.AsMapStringAny(tc.input)
+				result, ok := util.AsMapStringAny(tc.input)
 				Expect(ok).To(Equal(tc.expectedOk))
 				if tc.expectedOk {
 					Expect(result).To(Equal(tc.expectedResult))
@@ -302,7 +301,7 @@ var _ = Describe("Utilities", func() {
 
 		DescribeTable("converting to client.Object",
 			func(tc testCase) {
-				_, ok := utilities.AsObject(tc.input)
+				_, ok := util.AsObject(tc.input)
 				Expect(ok).To(Equal(tc.expectedOk))
 			},
 			Entry("input implements client.Object", testCase{
@@ -329,7 +328,7 @@ var _ = Describe("Utilities", func() {
 
 		DescribeTable("converting to []client.Object",
 			func(tc testCase) {
-				result, ok := utilities.AsSliceOfObjects(tc.input)
+				result, ok := util.AsSliceOfObjects(tc.input)
 				Expect(ok).To(Equal(tc.expectedOk))
 				if tc.expectedOk {
 					Expect(result).To(HaveLen(tc.expectedLength))
@@ -381,7 +380,7 @@ var _ = Describe("Utilities", func() {
 
 		DescribeTable("checking if object is unstructured",
 			func(tc testCase) {
-				result := utilities.IsUnstructured(tc.input)
+				result := util.IsUnstructured(tc.input)
 				Expect(result).To(Equal(tc.expected))
 			},
 			Entry("input is an Unstructured object", testCase{
@@ -419,7 +418,7 @@ var _ = Describe("Utilities", func() {
 
 		DescribeTable("extracting GroupVersionKind from objects",
 			func(tc testCase) {
-				gvk, err := utilities.GetGroupVersionKind(tc.object, tc.scheme)
+				gvk, err := util.GetGroupVersionKind(tc.object, tc.scheme)
 				if tc.expectedError != "" {
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring(tc.expectedError))
@@ -511,7 +510,7 @@ var _ = Describe("Utilities", func() {
 				}
 
 				// Convert to typed object
-				typedObj, err := utilities.TypedFromUnstructured(k8sClient, unstructuredObj)
+				typedObj, err := util.TypedFromUnstructured(k8sClient, unstructuredObj)
 
 				// Verify no error occurred
 				Expect(err).NotTo(HaveOccurred())
@@ -547,7 +546,7 @@ var _ = Describe("Utilities", func() {
 				}
 
 				// Try to convert to typed object
-				typedObj, err := utilities.TypedFromUnstructured(k8sClient, unstructuredObj)
+				typedObj, err := util.TypedFromUnstructured(k8sClient, unstructuredObj)
 
 				// Verify error occurred
 				Expect(err).To(HaveOccurred())
@@ -571,7 +570,7 @@ var _ = Describe("Utilities", func() {
 				}
 
 				// Try to convert to typed object
-				typedObj, err := utilities.TypedFromUnstructured(k8sClient, unstructuredObj)
+				typedObj, err := util.TypedFromUnstructured(k8sClient, unstructuredObj)
 
 				// Verify error occurred
 				Expect(err).To(HaveOccurred())
@@ -598,7 +597,7 @@ var _ = Describe("Utilities", func() {
 				}
 
 				// Try to convert to typed object
-				typedObj, err := utilities.TypedFromUnstructured(k8sClient, unstructuredObj)
+				typedObj, err := util.TypedFromUnstructured(k8sClient, unstructuredObj)
 
 				// Verify error occurred
 				Expect(err).To(HaveOccurred())
@@ -640,7 +639,7 @@ var _ = Describe("Utilities", func() {
 				}
 
 				// Convert to typed object
-				typedObj, err := utilities.TypedFromUnstructured(k8sClient, unstructuredObj)
+				typedObj, err := util.TypedFromUnstructured(k8sClient, unstructuredObj)
 				Expect(err).NotTo(HaveOccurred())
 
 				// Verify it's a ConfigMap with correct data
@@ -674,7 +673,7 @@ var _ = Describe("Utilities", func() {
 				}
 
 				// Convert to unstructured
-				unstructuredObj, err := utilities.UnstructuredFromObject(k8sClient, cm)
+				unstructuredObj, err := util.UnstructuredFromObject(k8sClient, cm)
 
 				// Verify no error occurred
 				Expect(err).NotTo(HaveOccurred())
@@ -716,7 +715,7 @@ var _ = Describe("Utilities", func() {
 				Expect(cm.Kind).To(BeEmpty())
 
 				// Convert to unstructured
-				unstructuredObj, err := utilities.UnstructuredFromObject(k8sClient, cm)
+				unstructuredObj, err := util.UnstructuredFromObject(k8sClient, cm)
 
 				// Verify no error occurred
 				Expect(err).NotTo(HaveOccurred())
@@ -747,7 +746,7 @@ var _ = Describe("Utilities", func() {
 				}
 
 				// Convert to unstructured (should be a no-op essentially)
-				resultUnstructured, err := utilities.UnstructuredFromObject(k8sClient, originalUnstructured)
+				resultUnstructured, err := util.UnstructuredFromObject(k8sClient, originalUnstructured)
 
 				// Verify no error occurred
 				Expect(err).NotTo(HaveOccurred())
@@ -783,7 +782,7 @@ var _ = Describe("Utilities", func() {
 						},
 						Annotations: map[string]string{
 							"description": "Test ConfigMap",
-							"created-by":  "utilities-test",
+							"created-by":  "util-test",
 						},
 					},
 					Data: map[string]string{
@@ -794,11 +793,11 @@ var _ = Describe("Utilities", func() {
 				}
 
 				// Convert to unstructured
-				unstructuredObj, err := utilities.UnstructuredFromObject(k8sClient, originalCm)
+				unstructuredObj, err := util.UnstructuredFromObject(k8sClient, originalCm)
 				Expect(err).NotTo(HaveOccurred(), "Error converting to unstructured")
 
 				// Convert back to typed
-				typedObj, err := utilities.TypedFromUnstructured(k8sClient, unstructuredObj)
+				typedObj, err := util.TypedFromUnstructured(k8sClient, unstructuredObj)
 				Expect(err).NotTo(HaveOccurred(), "Error converting back to typed")
 
 				// Verify it's a ConfigMap
@@ -841,7 +840,7 @@ var _ = Describe("Utilities", func() {
 				Expect(originalCm.Kind).To(BeEmpty())
 
 				// Convert to unstructured
-				unstructuredObj, err := utilities.UnstructuredFromObject(k8sClient, originalCm)
+				unstructuredObj, err := util.UnstructuredFromObject(k8sClient, originalCm)
 				Expect(err).NotTo(HaveOccurred(), "Error converting to unstructured")
 
 				// Verify GVK was determined correctly
@@ -849,7 +848,7 @@ var _ = Describe("Utilities", func() {
 				Expect(unstructuredObj.GetKind()).To(Equal("ConfigMap"))
 
 				// Convert back to typed
-				typedObj, err := utilities.TypedFromUnstructured(k8sClient, unstructuredObj)
+				typedObj, err := util.TypedFromUnstructured(k8sClient, unstructuredObj)
 				Expect(err).NotTo(HaveOccurred(), "Error converting back to typed")
 
 				// Verify it's a ConfigMap

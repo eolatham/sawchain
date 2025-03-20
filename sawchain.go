@@ -11,7 +11,7 @@ import (
 
 	"github.com/eolatham/sawchain/internal/matchers"
 	"github.com/eolatham/sawchain/internal/options"
-	"github.com/eolatham/sawchain/internal/utilities"
+	"github.com/eolatham/sawchain/internal/util"
 )
 
 // TODO: test
@@ -337,12 +337,12 @@ func (s *Sawchain) CheckResourcesFunc(ctx context.Context, args ...interface{}) 
 
 // Match returns a matcher that checks if a client.Object matches a Chainsaw resource template.
 func (s *Sawchain) MatchYAML(template string, bindings ...map[string]any) types.GomegaMatcher {
-	if utilities.IsExistingFile(template) {
+	if util.IsExistingFile(template) {
 		var err error
-		template, err = utilities.ReadFileContent(template)
+		template, err = util.ReadFileContent(template)
 		s.g.Expect(err).NotTo(gomega.HaveOccurred(), "internal error: failed to read template file")
 	}
-	matcher := matchers.NewChainsawMatcher(s.c, template, utilities.MergeMaps(bindings...))
+	matcher := matchers.NewChainsawMatcher(s.c, template, util.MergeMaps(bindings...))
 	s.g.Expect(matcher).NotTo(gomega.BeNil(), errCreatedMatcherIsNil)
 	return matcher
 }

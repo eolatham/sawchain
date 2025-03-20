@@ -10,21 +10,21 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/eolatham/sawchain/internal/chainsaw"
-	"github.com/eolatham/sawchain/internal/utilities"
+	"github.com/eolatham/sawchain/internal/util"
 )
 
 // chainsawMatcher is a Gomega matcher that checks if
 // a client.Object matches a Chainsaw resource template.
 type chainsawMatcher struct {
-	// K8s client used for type conversions
+	// K8s client used for type conversions.
 	c client.Client
-	// Function to create template content
+	// Function to create template content.
 	createTemplateContent func(c client.Client, obj client.Object) (string, error)
-	// Current template content
+	// Current template content.
 	templateContent string
-	// Template bindings
+	// Template bindings.
 	bindings chainsaw.Bindings
-	// Current match error
+	// Current match error.
 	matchError error
 }
 
@@ -33,11 +33,11 @@ func (m *chainsawMatcher) Match(actual interface{}) (bool, error) {
 	if actual == nil {
 		return false, errors.New("chainsawMatcher expects a client.Object but got nil")
 	}
-	obj, ok := utilities.AsObject(actual)
+	obj, ok := util.AsObject(actual)
 	if !ok {
 		return false, fmt.Errorf("chainsawMatcher expects a client.Object but got %T", actual)
 	}
-	candidate, err := utilities.UnstructuredFromObject(m.c, obj)
+	candidate, err := util.UnstructuredFromObject(m.c, obj)
 	if err != nil {
 		return false, err
 	}
@@ -90,14 +90,14 @@ func NewChainsawMatcher(
 // if resources have the expected status condition.
 func NewStatusConditionMatcher(
 	c client.Client,
-	conditionType,
+	conditionType string,
 	expectedStatus string,
 ) types.GomegaMatcher {
 	return &chainsawMatcher{
 		c: c,
 		createTemplateContent: func(c client.Client, obj client.Object) (string, error) {
 			// Extract apiVersion and kind from object
-			gvk, err := utilities.GetGroupVersionKind(obj, c.Scheme())
+			gvk, err := util.GetGroupVersionKind(obj, c.Scheme())
 			if err != nil {
 				return "", fmt.Errorf("failed to create template content: %w", err)
 			}

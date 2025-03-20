@@ -6,10 +6,14 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	"github.com/eolatham/sawchain/internal/testutil"
 )
 
-// Values must be assigned inline to beat static Entry parsing!
-var templateFilePath, templateFileContent = createTemplateFile()
+const templateFileContent = "template file content"
+
+// Variables must be assigned inline to beat static Entry parsing!
+var templateFilePath = testutil.CreateTempFile("template-*.yaml", templateFileContent)
 
 func TestOptions(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -19,17 +23,3 @@ func TestOptions(t *testing.T) {
 var _ = AfterSuite(func() {
 	Expect(os.Remove(templateFilePath)).To(Succeed())
 })
-
-func createTemplateFile() (string, string) {
-	file, err := os.CreateTemp("", "template-*.yaml")
-	if err != nil {
-		panic(err)
-	}
-	path := file.Name()
-	content := "template file content"
-	err = os.WriteFile(path, []byte(content), 0644)
-	if err != nil {
-		panic(err)
-	}
-	return path, content
-}

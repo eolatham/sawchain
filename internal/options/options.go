@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/eolatham/sawchain/internal/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	"github.com/eolatham/sawchain/internal/utilities"
 )
 
 const (
@@ -44,7 +43,7 @@ func parse(
 	for _, arg := range args {
 		if includeDurations {
 			// Check for Timeout and Interval
-			if d, ok := utilities.AsDuration(arg); ok {
+			if d, ok := util.AsDuration(arg); ok {
 				if opts.Timeout != 0 && opts.Interval != 0 {
 					return nil, fmt.Errorf("too many duration arguments provided")
 				} else if opts.Timeout == 0 {
@@ -58,7 +57,7 @@ func parse(
 
 		if includeObject {
 			// Check for Object
-			if obj, ok := utilities.AsObject(arg); ok {
+			if obj, ok := util.AsObject(arg); ok {
 				if opts.Object != nil {
 					return nil, fmt.Errorf("multiple client.Object arguments provided")
 				} else {
@@ -70,7 +69,7 @@ func parse(
 
 		if includeObjects {
 			// Check for Objects
-			if objs, ok := utilities.AsSliceOfObjects(arg); ok {
+			if objs, ok := util.AsSliceOfObjects(arg); ok {
 				if opts.Objects != nil {
 					return nil, fmt.Errorf("multiple []client.Object arguments provided")
 				} else {
@@ -85,8 +84,8 @@ func parse(
 			if str, ok := arg.(string); ok {
 				if opts.Template != "" {
 					return nil, fmt.Errorf("multiple template arguments provided")
-				} else if utilities.IsExistingFile(str) {
-					content, err := utilities.ReadFileContent(str)
+				} else if util.IsExistingFile(str) {
+					content, err := util.ReadFileContent(str)
 					if err != nil {
 						return nil, fmt.Errorf("failed to read template file: %v", err)
 					}
@@ -99,8 +98,8 @@ func parse(
 		}
 
 		// Check for Bindings
-		if bindings, ok := utilities.AsMapStringAny(arg); ok {
-			opts.Bindings = utilities.MergeMaps(opts.Bindings, bindings)
+		if bindings, ok := util.AsMapStringAny(arg); ok {
+			opts.Bindings = util.MergeMaps(opts.Bindings, bindings)
 			continue
 		}
 
@@ -164,7 +163,7 @@ func applyDefaults(defaults, opts *Options) *Options {
 	}
 
 	// Merge bindings
-	opts.Bindings = utilities.MergeMaps(defaults.Bindings, opts.Bindings)
+	opts.Bindings = util.MergeMaps(defaults.Bindings, opts.Bindings)
 
 	return opts
 }

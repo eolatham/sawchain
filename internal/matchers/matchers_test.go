@@ -16,8 +16,10 @@ import (
 
 // TODO: revise these tests
 
-// Helper function to create a ConfigMap
-func createConfigMap(name, namespace string, data map[string]string) *corev1.ConfigMap {
+func createConfigMap(
+	name, namespace string,
+	data map[string]string,
+) *corev1.ConfigMap {
 	return &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "v1",
@@ -31,8 +33,10 @@ func createConfigMap(name, namespace string, data map[string]string) *corev1.Con
 	}
 }
 
-// Helper function to create an unstructured ConfigMap
-func createUnstructuredConfigMap(name, namespace string, data map[string]string) *unstructured.Unstructured {
+func createUnstructuredConfigMap(
+	name, namespace string,
+	data map[string]string,
+) *unstructured.Unstructured {
 	obj := &unstructured.Unstructured{}
 	obj.SetAPIVersion("v1")
 	obj.SetKind("ConfigMap")
@@ -48,8 +52,10 @@ func createUnstructuredConfigMap(name, namespace string, data map[string]string)
 	return obj
 }
 
-// Helper function to create a resource with status conditions
-func createResourceWithConditions(apiVersion, kind, name, namespace string, conditions []metav1.Condition) *unstructured.Unstructured {
+func createResourceWithConditions(
+	apiVersion, kind, name, namespace string,
+	conditions []metav1.Condition,
+) *unstructured.Unstructured {
 	obj := &unstructured.Unstructured{}
 	obj.SetAPIVersion(apiVersion)
 	obj.SetKind(kind)
