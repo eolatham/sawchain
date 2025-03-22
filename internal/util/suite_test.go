@@ -13,8 +13,8 @@ import (
 // Variables must be assigned inline to beat static Entry parsing!
 var (
 	tempDir        = testutil.CreateTempDir("util-test-")
-	emptyScheme    = testutil.CreateEmptyScheme()
-	standardScheme = testutil.CreateStandardScheme()
+	emptyScheme    = testutil.NewEmptyScheme()
+	standardScheme = testutil.NewStandardScheme()
 )
 
 func TestUtil(t *testing.T) {

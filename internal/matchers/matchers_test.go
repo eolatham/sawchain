@@ -3,135 +3,57 @@ package matchers_test
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/eolatham/sawchain/internal/matchers"
+	"github.com/eolatham/sawchain/internal/testutil"
 )
 
-// TODO: revise these tests
-
-func createConfigMap(
-	name, namespace string,
-	data map[string]string,
-) *corev1.ConfigMap {
-	return &corev1.ConfigMap{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "v1",
-			Kind:       "ConfigMap",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
-		Data: data,
-	}
-}
-
-func createUnstructuredConfigMap(
-	name, namespace string,
-	data map[string]string,
-) *unstructured.Unstructured {
-	obj := &unstructured.Unstructured{}
-	obj.SetAPIVersion("v1")
-	obj.SetKind("ConfigMap")
-	obj.SetName(name)
-	obj.SetNamespace(namespace)
-
-	dataMap := make(map[string]interface{})
-	for k, v := range data {
-		dataMap[k] = v
-	}
-	obj.Object["data"] = dataMap
-
-	return obj
-}
-
-func createResourceWithConditions(
-	apiVersion, kind, name, namespace string,
-	conditions []metav1.Condition,
-) *unstructured.Unstructured {
-	obj := &unstructured.Unstructured{}
-	obj.SetAPIVersion(apiVersion)
-	obj.SetKind(kind)
-	obj.SetName(name)
-	obj.SetNamespace(namespace)
-
-	status := map[string]interface{}{}
-	conditionsData := make([]interface{}, len(conditions))
-
-	for i, condition := range conditions {
-		conditionMap := map[string]string{
-			"type":               condition.Type,
-			"status":             string(condition.Status),
-			"reason":             condition.Reason,
-			"message":            condition.Message,
-			"lastTransitionTime": condition.LastTransitionTime.String(),
-		}
-		conditionsData[i] = conditionMap
-	}
-
-	status["conditions"] = conditionsData
-	obj.Object["status"] = status
-
-	return obj
-}
-
 var _ = Describe("Matchers", func() {
-	var (
-		fakeClient client.Client
-		scheme     *runtime.Scheme
-	)
-
-	BeforeEach(func() {
-		scheme = runtime.NewScheme()
-		Expect(corev1.AddToScheme(scheme)).To(Succeed())
-		fakeClient = fake.NewClientBuilder().WithScheme(scheme).Build()
-	})
-
 	Describe("NewChainsawMatcher", func() {
 		type testCase struct {
-			description     string
-			actual          interface{}
-			templateContent string
-			bindings        map[string]any
-			shouldMatch     bool
-			expectedErr     string
+			actual              interface{}
+			templateContent     string
+			bindings            map[string]any
+			shouldMatch         bool
+			expectedInternalErr string
+			expectedMatchErr    string
 		}
 
 		DescribeTable("matching resources against templates",
 			func(tc testCase) {
-				matcher := matchers.NewChainsawMatcher(fakeClient, tc.templateContent, tc.bindings)
+				matcher := matchers.NewChainsawMatcher(standardClient, tc.templateContent, tc.bindings)
 
+				// Test Match
 				match, err := matcher.Match(tc.actual)
-
-				if tc.expectedErr != "" {
+				Expect(match).To(Equal(tc.shouldMatch))
+				if tc.expectedInternalErr != "" {
 					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring(tc.expectedErr))
+					Expect(err.Error()).To(ContainSubstring(tc.expectedInternalErr))
 				} else {
 					Expect(err).NotTo(HaveOccurred())
-					Expect(match).To(Equal(tc.shouldMatch))
 				}
 
-				// Test failure messages
-				if !tc.shouldMatch && tc.expectedErr == "" {
-					Expect(matcher.FailureMessage(tc.actual)).To(ContainSubstring("to match template"))
+				// Test FailureMessage
+				failureMsg := matcher.FailureMessage(tc.actual)
+				Expect(failureMsg).To(ContainSubstring("to match template"))
+				if tc.expectedMatchErr != "" {
+					Expect(failureMsg).To(ContainSubstring(tc.expectedMatchErr))
 				}
 
-				if tc.shouldMatch && tc.expectedErr == "" {
-					Expect(matcher.NegatedFailureMessage(tc.actual)).To(ContainSubstring("not to match template"))
+				// Test NegatedFailureMessage
+				negatedFailureMsg := matcher.NegatedFailureMessage(tc.actual)
+				Expect(negatedFailureMsg).To(ContainSubstring("not to match template"))
+				if tc.expectedMatchErr != "" {
+					Expect(negatedFailureMsg).To(ContainSubstring(tc.expectedMatchErr))
 				}
 			},
 
 			// Success cases with typed objects
-			Entry("should match identical ConfigMap", testCase{
-				description: "Exact match with typed ConfigMap",
-				actual: createConfigMap("test-config", "default", map[string]string{
+			Entry("typed exact match", testCase{
+				actual: testutil.NewConfigMap("test-config", "default", map[string]string{
 					"key1": "value1",
 					"key2": "value2",
 				}),
@@ -149,9 +71,8 @@ data:
 				shouldMatch: true,
 			}),
 
-			Entry("should match ConfigMap with subset of fields", testCase{
-				description: "Partial match with typed ConfigMap",
-				actual: createConfigMap("test-config", "default", map[string]string{
+			Entry("typed subset match", testCase{
+				actual: testutil.NewConfigMap("test-config", "default", map[string]string{
 					"key1": "value1",
 					"key2": "value2",
 					"key3": "value3",
@@ -169,9 +90,8 @@ data:
 				shouldMatch: true,
 			}),
 
-			Entry("should match ConfigMap with bindings", testCase{
-				description: "Match with bindings in typed ConfigMap",
-				actual: createConfigMap("test-config", "default", map[string]string{
+			Entry("typed match with bindings", testCase{
+				actual: testutil.NewConfigMap("test-config", "default", map[string]string{
 					"key1": "bound-value",
 					"key2": "value2",
 				}),
@@ -191,9 +111,8 @@ data:
 			}),
 
 			// Success cases with unstructured objects
-			Entry("should match unstructured ConfigMap", testCase{
-				description: "Exact match with unstructured ConfigMap",
-				actual: createUnstructuredConfigMap("test-config", "default", map[string]string{
+			Entry("unstructured exact match", testCase{
+				actual: testutil.NewUnstructuredConfigMap("test-config", "default", map[string]string{
 					"key1": "value1",
 					"key2": "value2",
 				}),
@@ -211,9 +130,8 @@ data:
 				shouldMatch: true,
 			}),
 
-			Entry("should match unstructured ConfigMap with bindings", testCase{
-				description: "Match with bindings in unstructured ConfigMap",
-				actual: createUnstructuredConfigMap("test-config", "default", map[string]string{
+			Entry("unstructured match with bindings", testCase{
+				actual: testutil.NewUnstructuredConfigMap("test-config", "default", map[string]string{
 					"key1": "bound-value",
 					"key2": "value2",
 				}),
@@ -233,9 +151,8 @@ data:
 			}),
 
 			// Failure cases
-			Entry("should not match when values differ", testCase{
-				description: "Mismatch in values",
-				actual: createConfigMap("test-config", "default", map[string]string{
+			Entry("no match with different value", testCase{
+				actual: testutil.NewConfigMap("test-config", "default", map[string]string{
 					"key1": "wrong-value",
 					"key2": "value2",
 				}),
@@ -248,13 +165,13 @@ metadata:
 data:
   key1: expected-value
 `,
-				bindings:    map[string]any{},
-				shouldMatch: false,
+				bindings:         map[string]any{},
+				shouldMatch:      false,
+				expectedMatchErr: "data.key1: Invalid value: \"wrong-value\": Expected value: \"expected-value\"",
 			}),
 
-			Entry("should not match when required fields missing", testCase{
-				description: "Missing required fields",
-				actual: createConfigMap("test-config", "default", map[string]string{
+			Entry("no match with missing field", testCase{
+				actual: testutil.NewConfigMap("test-config", "default", map[string]string{
 					"key2": "value2",
 				}),
 				templateContent: `
@@ -266,14 +183,14 @@ metadata:
 data:
   key1: value1
 `,
-				bindings:    map[string]any{},
-				shouldMatch: false,
+				bindings:         map[string]any{},
+				shouldMatch:      false,
+				expectedMatchErr: "data.key1: Required value: field not found in the input object",
 			}),
 
 			// Edge cases
-			Entry("should handle template with only metadata", testCase{
-				description: "Template with only metadata",
-				actual: createConfigMap("test-config", "default", map[string]string{
+			Entry("match with metadata only", testCase{
+				actual: testutil.NewConfigMap("test-config", "default", map[string]string{
 					"key1": "value1",
 				}),
 				templateContent: `
@@ -288,35 +205,31 @@ metadata:
 			}),
 
 			// Error cases
-			Entry("should error on nil input", testCase{
-				description:     "Nil input",
-				actual:          nil,
-				templateContent: `apiVersion: v1\nkind: ConfigMap`,
-				bindings:        map[string]any{},
-				expectedErr:     "chainsawMatcher expects a client.Object but got nil",
+			Entry("error on nil input", testCase{
+				actual:              nil,
+				templateContent:     `apiVersion: v1\nkind: ConfigMap`,
+				bindings:            map[string]any{},
+				expectedInternalErr: "chainsawMatcher expects a client.Object but got nil",
 			}),
 
-			Entry("should error on non-object input", testCase{
-				description:     "Non-object input",
-				actual:          "not an object",
-				templateContent: `apiVersion: v1\nkind: ConfigMap`,
-				bindings:        map[string]any{},
-				expectedErr:     "chainsawMatcher expects a client.Object but got string",
+			Entry("error on non-object input", testCase{
+				actual:              "not an object",
+				templateContent:     `apiVersion: v1\nkind: ConfigMap`,
+				bindings:            map[string]any{},
+				expectedInternalErr: "chainsawMatcher expects a client.Object but got string",
 			}),
 
-			Entry("should error on invalid template", testCase{
-				description: "Invalid template",
-				actual: createConfigMap("test-config", "default", map[string]string{
+			Entry("error on invalid template", testCase{
+				actual: testutil.NewConfigMap("test-config", "default", map[string]string{
 					"key1": "value1",
 				}),
-				templateContent: `invalid: yaml: content`,
-				bindings:        map[string]any{},
-				expectedErr:     "failed to parse template",
+				templateContent:     `invalid: yaml: content`,
+				bindings:            map[string]any{},
+				expectedInternalErr: "failed to parse template",
 			}),
 
-			Entry("should error on missing binding", testCase{
-				description: "Missing binding",
-				actual: createConfigMap("test-config", "default", map[string]string{
+			Entry("error on undefined binding", testCase{
+				actual: testutil.NewConfigMap("test-config", "default", map[string]string{
 					"key1": "value1",
 				}),
 				templateContent: `
@@ -325,51 +238,56 @@ kind: ConfigMap
 metadata:
   name: ($missing)
 `,
-				bindings:    map[string]any{},
-				expectedErr: "variable not defined: $missing",
+				bindings:            map[string]any{},
+				expectedInternalErr: "variable not defined: $missing",
 			}),
 		)
 	})
 
 	Describe("NewStatusConditionMatcher", func() {
 		type testCase struct {
-			description    string
-			actual         interface{}
-			conditionType  string
-			expectedStatus string
-			shouldMatch    bool
-			expectedErr    string
+			client              client.Client
+			actual              interface{}
+			conditionType       string
+			expectedStatus      string
+			shouldMatch         bool
+			expectedInternalErr string
+			expectedMatchErr    string
 		}
 
 		DescribeTable("matching resources against status conditions",
 			func(tc testCase) {
-				matcher := matchers.NewStatusConditionMatcher(fakeClient, tc.conditionType, tc.expectedStatus)
+				matcher := matchers.NewStatusConditionMatcher(tc.client, tc.conditionType, tc.expectedStatus)
 
+				// Test Match
 				match, err := matcher.Match(tc.actual)
-
-				if tc.expectedErr != "" {
+				Expect(match).To(Equal(tc.shouldMatch))
+				if tc.expectedInternalErr != "" {
 					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring(tc.expectedErr))
+					Expect(err.Error()).To(ContainSubstring(tc.expectedInternalErr))
 				} else {
 					Expect(err).NotTo(HaveOccurred())
-					Expect(match).To(Equal(tc.shouldMatch))
 				}
 
-				// Test failure messages
-				if !tc.shouldMatch && tc.expectedErr == "" {
-					Expect(matcher.FailureMessage(tc.actual)).To(ContainSubstring("to match template"))
+				// Test FailureMessage
+				failureMsg := matcher.FailureMessage(tc.actual)
+				Expect(failureMsg).To(ContainSubstring("to match template"))
+				if tc.expectedMatchErr != "" {
+					Expect(failureMsg).To(ContainSubstring(tc.expectedMatchErr))
 				}
 
-				if tc.shouldMatch && tc.expectedErr == "" {
-					Expect(matcher.NegatedFailureMessage(tc.actual)).To(ContainSubstring("not to match template"))
+				// Test NegatedFailureMessage
+				negatedFailureMsg := matcher.NegatedFailureMessage(tc.actual)
+				Expect(negatedFailureMsg).To(ContainSubstring("not to match template"))
+				if tc.expectedMatchErr != "" {
+					Expect(negatedFailureMsg).To(ContainSubstring(tc.expectedMatchErr))
 				}
 			},
 
-			// Success cases with unstructured objects
-			// TODO: add a test case for an actual typed object
-			Entry("should match when condition status is True", testCase{
-				description: "Condition status is True",
-				actual: createResourceWithConditions("example.com/v1", "TestResource", "test-resource", "default", []metav1.Condition{
+			// Success cases with typed objects
+			Entry("condition Ready=True match", testCase{
+				client: clientWithTestResource,
+				actual: testutil.NewTestResource("test-resource", "default", []metav1.Condition{
 					{
 						Type:   "Ready",
 						Status: metav1.ConditionTrue,
@@ -380,9 +298,9 @@ metadata:
 				shouldMatch:    true,
 			}),
 
-			Entry("should match when condition status is False", testCase{
-				description: "Condition status is False",
-				actual: createResourceWithConditions("example.com/v1", "TestResource", "test-resource", "default", []metav1.Condition{
+			Entry("condition Ready=False match", testCase{
+				client: clientWithTestResource,
+				actual: testutil.NewTestResource("test-resource", "default", []metav1.Condition{
 					{
 						Type:   "Ready",
 						Status: metav1.ConditionFalse,
@@ -393,9 +311,10 @@ metadata:
 				shouldMatch:    true,
 			}),
 
-			Entry("should match when condition status is Unknown", testCase{
-				description: "Condition status is Unknown",
-				actual: createResourceWithConditions("example.com/v1", "TestResource", "test-resource", "default", []metav1.Condition{
+			// Success cases with unstructured objects
+			Entry("condition Ready=Unknown match", testCase{
+				client: clientWithTestResource,
+				actual: testutil.NewUnstructuredTestResource("test-resource", "default", []metav1.Condition{
 					{
 						Type:   "Ready",
 						Status: metav1.ConditionUnknown,
@@ -406,9 +325,9 @@ metadata:
 				shouldMatch:    true,
 			}),
 
-			Entry("should match with multiple conditions", testCase{
-				description: "Multiple conditions with match",
-				actual: createResourceWithConditions("example.com/v1", "TestResource", "test-resource", "default", []metav1.Condition{
+			Entry("match with multiple conditions", testCase{
+				client: clientWithTestResource,
+				actual: testutil.NewUnstructuredTestResource("test-resource", "default", []metav1.Condition{
 					{
 						Type:   "Available",
 						Status: metav1.ConditionTrue,
@@ -428,43 +347,46 @@ metadata:
 			}),
 
 			// Failure cases
-			Entry("should not match when condition status differs", testCase{
-				description: "Condition status differs",
-				actual: createResourceWithConditions("example.com/v1", "TestResource", "test-resource", "default", []metav1.Condition{
+			Entry("no match with different status", testCase{
+				client: clientWithTestResource,
+				actual: testutil.NewTestResource("test-resource", "default", []metav1.Condition{
 					{
 						Type:   "Ready",
 						Status: metav1.ConditionFalse,
 					},
 				}),
-				conditionType:  "Ready",
-				expectedStatus: "True",
-				shouldMatch:    false,
+				conditionType:    "Ready",
+				expectedStatus:   "True",
+				shouldMatch:      false,
+				expectedMatchErr: "status.(conditions[?type == 'Ready'])[0].status: Invalid value: \"False\": Expected value: \"True\"",
 			}),
 
-			Entry("should not match when condition type not found", testCase{
-				description: "Condition type not found",
-				actual: createResourceWithConditions("example.com/v1", "TestResource", "test-resource", "default", []metav1.Condition{
+			Entry("no match with missing condition", testCase{
+				client: clientWithTestResource,
+				actual: testutil.NewTestResource("test-resource", "default", []metav1.Condition{
 					{
 						Type:   "Available",
 						Status: metav1.ConditionTrue,
 					},
 				}),
-				conditionType:  "Ready",
-				expectedStatus: "True",
-				shouldMatch:    false,
+				conditionType:    "Ready",
+				expectedStatus:   "True",
+				shouldMatch:      false,
+				expectedMatchErr: "status.(conditions[?type == 'Ready']): Invalid value: []interface {}{}: lengths of slices don't match",
 			}),
 
 			// Edge cases
-			Entry("should handle empty conditions array", testCase{
-				description:    "Empty conditions array",
-				actual:         createResourceWithConditions("example.com/v1", "TestResource", "test-resource", "default", []metav1.Condition{}),
-				conditionType:  "Ready",
-				expectedStatus: "True",
-				shouldMatch:    false,
+			Entry("no match with empty conditions", testCase{
+				client:           clientWithTestResource,
+				actual:           testutil.NewTestResource("test-resource", "default", []metav1.Condition{}),
+				conditionType:    "Ready",
+				expectedStatus:   "True",
+				shouldMatch:      false,
+				expectedMatchErr: "status.(conditions[?type == 'Ready']): Invalid value: \"null\": value is null",
 			}),
 
-			Entry("should handle missing status field", testCase{
-				description: "Missing status field",
+			Entry("no match with missing status field", testCase{
+				client: clientWithTestResource,
 				actual: func() *unstructured.Unstructured {
 					obj := &unstructured.Unstructured{}
 					obj.SetAPIVersion("example.com/v1")
@@ -473,67 +395,41 @@ metadata:
 					obj.SetNamespace("default")
 					return obj
 				}(),
-				conditionType:  "Ready",
-				expectedStatus: "True",
-				shouldMatch:    false,
+				conditionType:    "Ready",
+				expectedStatus:   "True",
+				shouldMatch:      false,
+				expectedMatchErr: "status: Required value: field not found in the input object",
 			}),
 
 			// Error cases
-			Entry("should error on nil input", testCase{
-				description:    "Nil input",
-				actual:         nil,
-				conditionType:  "Ready",
-				expectedStatus: "True",
-				expectedErr:    "chainsawMatcher expects a client.Object but got nil",
+			Entry("error on nil input", testCase{
+				client:              clientWithTestResource,
+				actual:              nil,
+				conditionType:       "Ready",
+				expectedStatus:      "True",
+				expectedInternalErr: "chainsawMatcher expects a client.Object but got nil",
 			}),
 
-			Entry("should error on non-object input", testCase{
-				description:    "Non-object input",
-				actual:         "not an object",
-				conditionType:  "Ready",
-				expectedStatus: "True",
-				expectedErr:    "chainsawMatcher expects a client.Object but got string",
+			Entry("error on non-object input", testCase{
+				client:              clientWithTestResource,
+				actual:              "not an object",
+				conditionType:       "Ready",
+				expectedStatus:      "True",
+				expectedInternalErr: "chainsawMatcher expects a client.Object but got string",
+			}),
+
+			Entry("error on unrecognized type", testCase{
+				client: standardClient, // standardClient doesn't have TestResource
+				actual: testutil.NewTestResource("test-resource", "default", []metav1.Condition{
+					{
+						Type:   "Ready",
+						Status: metav1.ConditionTrue,
+					},
+				}),
+				conditionType:       "Ready",
+				expectedStatus:      "True",
+				expectedInternalErr: "failed to convert object to unstructured: no kind is registered for the type testutil.TestResource in scheme",
 			}),
 		)
-	})
-
-	// Test template generation for status condition matcher
-	Describe("StatusConditionMatcher template generation", func() {
-		It("should generate correct template for status condition", func() {
-			// Create a resource with status conditions
-			resource := createResourceWithConditions("example.com/v1", "TestResource", "test-resource", "default", []metav1.Condition{
-				{
-					Type:   "Ready",
-					Status: metav1.ConditionTrue,
-				},
-			})
-
-			// Register the GVK in the scheme
-			gvk := schema.GroupVersionKind{
-				Group:   "example.com",
-				Version: "v1",
-				Kind:    "TestResource",
-			}
-			scheme.AddKnownTypeWithName(gvk, &unstructured.Unstructured{})
-
-			// Create a client with the updated scheme
-			client := fake.NewClientBuilder().WithScheme(scheme).Build()
-
-			// Create a matcher
-			matcher := matchers.NewStatusConditionMatcher(client, "Ready", "True")
-
-			// Match should succeed
-			match, err := matcher.Match(resource)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(match).To(BeTrue())
-
-			// We can't directly access the private fields, but we can check the failure message
-			// which should contain the template content
-			failureMessage := matcher.FailureMessage(resource)
-			Expect(failureMessage).To(ContainSubstring("apiVersion: example.com/v1"))
-			Expect(failureMessage).To(ContainSubstring("kind: TestResource"))
-			Expect(failureMessage).To(ContainSubstring("status:"))
-			Expect(failureMessage).To(ContainSubstring("conditions"))
-		})
 	})
 })

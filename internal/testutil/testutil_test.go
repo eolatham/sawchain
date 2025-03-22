@@ -47,7 +47,7 @@ var _ = Describe("Testutil", func() {
 
 	DescribeTable("CreateEmptyScheme",
 		func() {
-			scheme := testutil.CreateEmptyScheme()
+			scheme := testutil.NewEmptyScheme()
 			Expect(scheme).NotTo(BeNil())
 			// Empty scheme should not have any types registered
 			Expect(scheme.AllKnownTypes()).To(HaveLen(0))
@@ -57,7 +57,7 @@ var _ = Describe("Testutil", func() {
 
 	DescribeTable("CreateStandardScheme",
 		func() {
-			scheme := testutil.CreateStandardScheme()
+			scheme := testutil.NewStandardScheme()
 			Expect(scheme).NotTo(BeNil())
 			// Standard scheme should have types registered from k8s
 			Expect(scheme.AllKnownTypes()).NotTo(BeEmpty())

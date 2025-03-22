@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/onsi/gomega/types"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -55,18 +56,18 @@ func (m *chainsawMatcher) Match(actual interface{}) (bool, error) {
 
 // FailureMessage implements the Gomega matcher interface.
 func (m *chainsawMatcher) FailureMessage(actual interface{}) string {
-	baseMessage := fmt.Sprintf("Expected\n\t%#v\nto match template\n\t%#v", actual, m.templateContent)
+	baseMessage := fmt.Sprintf("Expected %+v to match template:\n", actual) + strings.Trim(m.templateContent, "\n") + "\n"
 	if m.matchError != nil {
-		return fmt.Sprintf("%s: %v", baseMessage, m.matchError)
+		return fmt.Sprintf("%s\n%v", baseMessage, m.matchError)
 	}
 	return baseMessage
 }
 
 // NegatedFailureMessage implements the Gomega matcher interface.
 func (m *chainsawMatcher) NegatedFailureMessage(actual interface{}) string {
-	baseMessage := fmt.Sprintf("Expected\n\t%#v\nnot to match template\n\t%#v", actual, m.templateContent)
+	baseMessage := fmt.Sprintf("Expected %+v not to match template:\n", actual) + strings.Trim(m.templateContent, "\n") + "\n"
 	if m.matchError != nil {
-		return fmt.Sprintf("%s: %v", baseMessage, m.matchError)
+		return fmt.Sprintf("%s\n%v", baseMessage, m.matchError)
 	}
 	return baseMessage
 }
