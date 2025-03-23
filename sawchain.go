@@ -14,8 +14,6 @@ import (
 	"github.com/eolatham/sawchain/internal/util"
 )
 
-// TODO: test
-
 const (
 	errInvalidArgs         = "invalid arguments"
 	errNilOpts             = "internal error: parsed options is nil"
@@ -153,6 +151,7 @@ func (s *Sawchain) CreateResourceAndWait(ctx context.Context, args ...interface{
 	return nil
 }
 
+// TODO: document
 // CreateResourcesAndWait creates multiple resources and waits for client cache to sync.
 func (s *Sawchain) CreateResourcesAndWait(ctx context.Context, args ...interface{}) error {
 	// Parse options
@@ -165,6 +164,7 @@ func (s *Sawchain) CreateResourcesAndWait(ctx context.Context, args ...interface
 
 // UPDATE OPERATIONS
 
+// TODO: document
 // UpdateResourceAndWait updates a resource and waits for client cache to sync.
 func (s *Sawchain) UpdateResourceAndWait(ctx context.Context, args ...interface{}) error {
 	// Parse options
@@ -175,6 +175,7 @@ func (s *Sawchain) UpdateResourceAndWait(ctx context.Context, args ...interface{
 	return nil
 }
 
+// TODO: document
 // UpdateResourcesAndWait updates multiple resources and waits for client cache to sync.
 func (s *Sawchain) UpdateResourcesAndWait(ctx context.Context, args ...interface{}) error {
 	// Parse options
@@ -187,6 +188,7 @@ func (s *Sawchain) UpdateResourcesAndWait(ctx context.Context, args ...interface
 
 // DELETE OPERATIONS
 
+// TODO: document
 // DeleteResourceAndWait deletes a resource and waits for client cache to sync.
 func (s *Sawchain) DeleteResourceAndWait(ctx context.Context, args ...interface{}) error {
 	// Parse options
@@ -197,6 +199,7 @@ func (s *Sawchain) DeleteResourceAndWait(ctx context.Context, args ...interface{
 	return nil
 }
 
+// TODO: document
 // DeleteResourcesAndWait deletes multiple resources and waits for client cache to sync.
 func (s *Sawchain) DeleteResourcesAndWait(ctx context.Context, args ...interface{}) error {
 	// Parse options
@@ -209,6 +212,7 @@ func (s *Sawchain) DeleteResourcesAndWait(ctx context.Context, args ...interface
 
 // GET OPERATIONS
 
+// TODO: document
 // GetResource gets a resource from the cluster.
 func (s *Sawchain) GetResource(ctx context.Context, args ...interface{}) error {
 	// Parse options
@@ -219,6 +223,7 @@ func (s *Sawchain) GetResource(ctx context.Context, args ...interface{}) error {
 	return nil
 }
 
+// TODO: document
 // GetResources gets multiple resources from the cluster.
 func (s *Sawchain) GetResources(ctx context.Context, args ...interface{}) error {
 	// Parse options
@@ -229,6 +234,7 @@ func (s *Sawchain) GetResources(ctx context.Context, args ...interface{}) error 
 	return nil
 }
 
+// TODO: document
 // GetResourceFunc returns a function that gets a resource for use with Eventually.
 func (s *Sawchain) GetResourceFunc(ctx context.Context, args ...interface{}) func() error {
 	// Parse options
@@ -239,6 +245,7 @@ func (s *Sawchain) GetResourceFunc(ctx context.Context, args ...interface{}) fun
 	return nil
 }
 
+// TODO: document
 // GetResourcesFunc returns a function that gets multiple resources for use with Eventually.
 func (s *Sawchain) GetResourcesFunc(ctx context.Context, args ...interface{}) func() error {
 	// Parse options
@@ -251,6 +258,7 @@ func (s *Sawchain) GetResourcesFunc(ctx context.Context, args ...interface{}) fu
 
 // FETCH OPERATIONS
 
+// TODO: document
 // FetchResource fetches a resource from the cluster.
 func (s *Sawchain) FetchResource(ctx context.Context, args ...interface{}) client.Object {
 	// Parse options
@@ -261,6 +269,7 @@ func (s *Sawchain) FetchResource(ctx context.Context, args ...interface{}) clien
 	return nil
 }
 
+// TODO: document
 // FetchResources fetches multiple resources from the cluster.
 func (s *Sawchain) FetchResources(ctx context.Context, args ...interface{}) []client.Object {
 	// Parse options
@@ -271,6 +280,7 @@ func (s *Sawchain) FetchResources(ctx context.Context, args ...interface{}) []cl
 	return nil
 }
 
+// TODO: document
 // FetchResourceFunc returns a function that fetches a resource for use with Eventually.
 func (s *Sawchain) FetchResourceFunc(ctx context.Context, args ...interface{}) func() client.Object {
 	// Parse options
@@ -281,6 +291,7 @@ func (s *Sawchain) FetchResourceFunc(ctx context.Context, args ...interface{}) f
 	return nil
 }
 
+// TODO: document
 // FetchResourcesFunc returns a function that fetches multiple resources for use with Eventually.
 func (s *Sawchain) FetchResourcesFunc(ctx context.Context, args ...interface{}) func() []client.Object {
 	// Parse options
@@ -293,6 +304,7 @@ func (s *Sawchain) FetchResourcesFunc(ctx context.Context, args ...interface{}) 
 
 // CHECK OPERATIONS
 
+// TODO: document
 // CheckResource checks if a resource matches the expected state.
 func (s *Sawchain) CheckResource(ctx context.Context, args ...interface{}) error {
 	// Parse options
@@ -303,6 +315,7 @@ func (s *Sawchain) CheckResource(ctx context.Context, args ...interface{}) error
 	return nil
 }
 
+// TODO: document
 // CheckResources checks if multiple resources match the expected state.
 func (s *Sawchain) CheckResources(ctx context.Context, args ...interface{}) error {
 	// Parse options
@@ -313,6 +326,7 @@ func (s *Sawchain) CheckResources(ctx context.Context, args ...interface{}) erro
 	return nil
 }
 
+// TODO: document
 // CheckResourceFunc returns a function that checks a resource for use with Eventually.
 func (s *Sawchain) CheckResourceFunc(ctx context.Context, args ...interface{}) func() error {
 	// Parse options
@@ -323,6 +337,7 @@ func (s *Sawchain) CheckResourceFunc(ctx context.Context, args ...interface{}) f
 	return nil
 }
 
+// TODO: document
 // CheckResourcesFunc returns a function that checks multiple resources for use with Eventually.
 func (s *Sawchain) CheckResourcesFunc(ctx context.Context, args ...interface{}) func() error {
 	// Parse options
@@ -335,6 +350,7 @@ func (s *Sawchain) CheckResourcesFunc(ctx context.Context, args ...interface{}) 
 
 // CUSTOM MATCHERS
 
+// TODO: document
 // Match returns a matcher that checks if a client.Object matches a Chainsaw resource template.
 func (s *Sawchain) MatchYAML(template string, bindings ...map[string]any) types.GomegaMatcher {
 	if util.IsExistingFile(template) {
@@ -347,6 +363,7 @@ func (s *Sawchain) MatchYAML(template string, bindings ...map[string]any) types.
 	return matcher
 }
 
+// TODO: document
 // HaveStatusCondition returns a matcher that checks if a client.Object has a specific status condition.
 func (s *Sawchain) HaveStatusCondition(conditionType, expectedStatus string) types.GomegaMatcher {
 	matcher := matchers.NewStatusConditionMatcher(s.c, conditionType, expectedStatus)
