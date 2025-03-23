@@ -13,7 +13,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/eolatham/sawchain/internal/util"
 )
@@ -490,8 +489,6 @@ var _ = Describe("Util", func() {
 	})
 
 	Describe("TypedFromUnstructured and UnstructuredFromObject", func() {
-		var k8sClient = fake.NewClientBuilder().WithScheme(standardScheme).Build()
-
 		Context("TypedFromUnstructured", func() {
 			It("converts an unstructured ConfigMap to a typed ConfigMap", func() {
 				// Create an unstructured ConfigMap
@@ -870,6 +867,181 @@ var _ = Describe("Util", func() {
 				Expect(gvk.Version).To(Equal("v1"))
 				Expect(gvk.Kind).To(Equal("ConfigMap"))
 			})
+		})
+	})
+
+	Describe("CopyUnstructuredToObject", func() {
+		It("copies unstructured to unstructured object directly", func() {
+			// Create source unstructured object
+			srcUnstructured := unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"apiVersion": "v1",
+					"kind":       "ConfigMap",
+					"metadata": map[string]interface{}{
+						"name":      "source-cm",
+						"namespace": "default",
+						"labels": map[string]interface{}{
+							"app": "test",
+						},
+					},
+					"data": map[string]interface{}{
+						"key1": "value1",
+						"key2": "value2",
+					},
+				},
+			}
+
+			// Create destination unstructured object
+			dstUnstructured := &unstructured.Unstructured{}
+
+			// Copy source to destination
+			err := util.CopyUnstructuredToObject(k8sClient, srcUnstructured, dstUnstructured)
+
+			// Verify no error occurred
+			Expect(err).NotTo(HaveOccurred())
+
+			// Verify metadata was copied correctly
+			Expect(dstUnstructured.GetName()).To(Equal("source-cm"))
+			Expect(dstUnstructured.GetNamespace()).To(Equal("default"))
+			Expect(dstUnstructured.GetKind()).To(Equal("ConfigMap"))
+			Expect(dstUnstructured.GetAPIVersion()).To(Equal("v1"))
+
+			// Verify labels were copied
+			labels := dstUnstructured.GetLabels()
+			Expect(labels).To(HaveLen(1))
+			Expect(labels).To(HaveKeyWithValue("app", "test"))
+
+			// Verify data was copied
+			data, found, err := unstructured.NestedStringMap(dstUnstructured.Object, "data")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue(), "data field not found in destination object")
+			Expect(data).To(HaveLen(2))
+			Expect(data).To(HaveKeyWithValue("key1", "value1"))
+			Expect(data).To(HaveKeyWithValue("key2", "value2"))
+		})
+
+		It("copies unstructured to typed object correctly", func() {
+			// Create source unstructured object
+			srcUnstructured := unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"apiVersion": "v1",
+					"kind":       "ConfigMap",
+					"metadata": map[string]interface{}{
+						"name":      "source-cm",
+						"namespace": "default",
+						"labels": map[string]interface{}{
+							"app": "test",
+						},
+					},
+					"data": map[string]interface{}{
+						"key1": "value1",
+						"key2": "value2",
+					},
+				},
+			}
+
+			// Create destination typed object
+			dstTyped := &corev1.ConfigMap{}
+
+			// Copy source to destination
+			err := util.CopyUnstructuredToObject(k8sClient, srcUnstructured, dstTyped)
+
+			// Verify no error occurred
+			Expect(err).NotTo(HaveOccurred())
+
+			// Verify metadata was copied correctly
+			Expect(dstTyped.Name).To(Equal("source-cm"))
+			Expect(dstTyped.Namespace).To(Equal("default"))
+
+			// Verify labels were copied
+			Expect(dstTyped.Labels).To(HaveLen(1))
+			Expect(dstTyped.Labels).To(HaveKeyWithValue("app", "test"))
+
+			// Verify data was copied
+			Expect(dstTyped.Data).To(HaveLen(2))
+			Expect(dstTyped.Data).To(HaveKeyWithValue("key1", "value1"))
+			Expect(dstTyped.Data).To(HaveKeyWithValue("key2", "value2"))
+		})
+
+		It("returns error when destination type doesn't match source type", func() {
+			// Create source unstructured ConfigMap
+			srcUnstructured := unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"apiVersion": "v1",
+					"kind":       "ConfigMap",
+					"metadata": map[string]interface{}{
+						"name":      "source-cm",
+						"namespace": "default",
+					},
+					"data": map[string]interface{}{
+						"key1": "value1",
+					},
+				},
+			}
+
+			// Create destination typed Secret (wrong type)
+			dstTyped := &corev1.Secret{}
+
+			// Try to copy source to destination
+			err := util.CopyUnstructuredToObject(k8sClient, srcUnstructured, dstTyped)
+
+			// Verify error occurred
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("destination object type"))
+			Expect(err.Error()).To(ContainSubstring("doesn't match source type"))
+		})
+
+		It("returns error when unstructured has unknown GVK", func() {
+			// Create source unstructured with unknown GVK
+			srcUnstructured := unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"apiVersion": "unknown.group/v1",
+					"kind":       "UnknownKind",
+					"metadata": map[string]interface{}{
+						"name":      "source-unknown",
+						"namespace": "default",
+					},
+				},
+			}
+
+			// Create destination typed object
+			dstTyped := &corev1.ConfigMap{}
+
+			// Try to copy source to destination
+			err := util.CopyUnstructuredToObject(k8sClient, srcUnstructured, dstTyped)
+
+			// Verify error occurred
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("failed to convert source to typed object"))
+			Expect(err.Error()).To(ContainSubstring("failed to create object for GroupVersionKind unknown.group/v1, Kind=UnknownKind"))
+			Expect(err.Error()).To(ContainSubstring("no kind \"UnknownKind\" is registered for version \"unknown.group/v1\" in scheme"))
+		})
+
+		It("returns error for invalid unstructured data", func() {
+			// Create source unstructured with invalid data
+			srcUnstructured := unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"apiVersion": "v1",
+					"kind":       "ConfigMap",
+					"metadata": map[string]interface{}{
+						"name": "test-cm",
+						// Add an invalid field type that will cause conversion to fail
+						"creationTimestamp": map[string]string{"invalid": "timestamp"},
+					},
+				},
+			}
+
+			// Create destination typed object
+			dstTyped := &corev1.ConfigMap{}
+
+			// Try to copy source to destination
+			err := util.CopyUnstructuredToObject(k8sClient, srcUnstructured, dstTyped)
+
+			// Verify error occurred
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("failed to convert source to typed object"))
+			Expect(err.Error()).To(ContainSubstring("failed to convert unstructured object to typed"))
+			Expect(err.Error()).To(ContainSubstring("json: cannot unmarshal object into Go value of type string"))
 		})
 	})
 })

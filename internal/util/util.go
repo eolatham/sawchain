@@ -215,3 +215,39 @@ func UnstructuredFromObject(
 	unstructuredObj.SetGroupVersionKind(gvk)
 	return unstructuredObj, nil
 }
+
+// CopyUnstructuredToObject deep copies the contents of the unstructured source into the destination
+// object. If the destination object is typed, the source is converted before copying.
+func CopyUnstructuredToObject(
+	c client.Client,
+	src unstructured.Unstructured,
+	dst client.Object,
+) error {
+	// Copy directly if destination is already unstructured
+	if dstUnstructured, ok := dst.(*unstructured.Unstructured); ok {
+		src.DeepCopyInto(dstUnstructured)
+		return nil
+	}
+
+	// Convert source to typed object
+	srcTyped, err := TypedFromUnstructured(c, src)
+	if err != nil {
+		return fmt.Errorf("failed to convert source to typed object: %w", err)
+	}
+
+	// Verify destination is the correct type
+	if reflect.TypeOf(dst) != reflect.TypeOf(srcTyped) {
+		return fmt.Errorf("destination object type %T doesn't match source type %T", dst, srcTyped)
+	}
+
+	// Copy to destination using reflection
+	srcValue := reflect.ValueOf(srcTyped)
+	deepCopyMethod := srcValue.MethodByName("DeepCopyInto")
+	if !deepCopyMethod.IsValid() {
+		return fmt.Errorf("source object of type %T doesn't have DeepCopyInto method", srcTyped)
+	}
+	args := []reflect.Value{reflect.ValueOf(dst)}
+	deepCopyMethod.Call(args)
+
+	return nil
+}

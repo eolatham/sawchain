@@ -6,6 +6,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/eolatham/sawchain/internal/testutil"
 )
@@ -15,6 +16,7 @@ var (
 	tempDir        = testutil.CreateTempDir("util-test-")
 	emptyScheme    = testutil.NewEmptyScheme()
 	standardScheme = testutil.NewStandardScheme()
+	k8sClient      = fake.NewClientBuilder().WithScheme(standardScheme).Build()
 )
 
 func TestUtil(t *testing.T) {
