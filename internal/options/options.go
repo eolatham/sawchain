@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/eolatham/sawchain/internal/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/eolatham/sawchain/internal/util"
 )
 
 const (

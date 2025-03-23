@@ -74,8 +74,8 @@ func NewStandardSchemeWithTestResource() *runtime.Scheme {
 	return s
 }
 
-// TODO: document, test, and make use of the functions below
-
+// NewConfigMap returns a typed ConfigMap
+// with the given name, namespace, and data.
 func NewConfigMap(
 	name, namespace string,
 	data map[string]string,
@@ -93,6 +93,8 @@ func NewConfigMap(
 	}
 }
 
+// NewUnstructuredConfigMap returns an unstructured ConfigMap
+// with the given name, namespace, and data.
 func NewUnstructuredConfigMap(
 	name, namespace string,
 	data map[string]string,
@@ -112,6 +114,8 @@ func NewUnstructuredConfigMap(
 	return obj
 }
 
+// NewTestResource returns a typed TestResource
+// with the given name, namespace, and a status conditions.
 func NewTestResource(
 	name, namespace string,
 	conditions []metav1.Condition,
@@ -131,6 +135,8 @@ func NewTestResource(
 	}
 }
 
+// NewUnstructuredTestResource returns an unstructured TestResource
+// with the given name, namespace, and a status conditions.
 func NewUnstructuredTestResource(
 	name, namespace string,
 	conditions []metav1.Condition,
