@@ -508,7 +508,7 @@ var _ = Describe("Util", func() {
 				}
 
 				// Convert to typed object
-				typedObj, err := util.TypedFromUnstructured(k8sClient, unstructuredObj)
+				typedObj, err := util.TypedFromUnstructured(standardClient, unstructuredObj)
 
 				// Verify no error occurred
 				Expect(err).NotTo(HaveOccurred())
@@ -544,7 +544,7 @@ var _ = Describe("Util", func() {
 				}
 
 				// Try to convert to typed object
-				typedObj, err := util.TypedFromUnstructured(k8sClient, unstructuredObj)
+				typedObj, err := util.TypedFromUnstructured(standardClient, unstructuredObj)
 
 				// Verify error occurred
 				Expect(err).To(HaveOccurred())
@@ -568,7 +568,7 @@ var _ = Describe("Util", func() {
 				}
 
 				// Try to convert to typed object
-				typedObj, err := util.TypedFromUnstructured(k8sClient, unstructuredObj)
+				typedObj, err := util.TypedFromUnstructured(standardClient, unstructuredObj)
 
 				// Verify error occurred
 				Expect(err).To(HaveOccurred())
@@ -595,7 +595,7 @@ var _ = Describe("Util", func() {
 				}
 
 				// Try to convert to typed object
-				typedObj, err := util.TypedFromUnstructured(k8sClient, unstructuredObj)
+				typedObj, err := util.TypedFromUnstructured(standardClient, unstructuredObj)
 
 				// Verify error occurred
 				Expect(err).To(HaveOccurred())
@@ -637,7 +637,7 @@ var _ = Describe("Util", func() {
 				}
 
 				// Convert to typed object
-				typedObj, err := util.TypedFromUnstructured(k8sClient, unstructuredObj)
+				typedObj, err := util.TypedFromUnstructured(standardClient, unstructuredObj)
 				Expect(err).NotTo(HaveOccurred())
 
 				// Verify it's a ConfigMap with correct data
@@ -671,7 +671,7 @@ var _ = Describe("Util", func() {
 				}
 
 				// Convert to unstructured
-				unstructuredObj, err := util.UnstructuredFromObject(k8sClient, cm)
+				unstructuredObj, err := util.UnstructuredFromObject(standardClient, cm)
 
 				// Verify no error occurred
 				Expect(err).NotTo(HaveOccurred())
@@ -713,7 +713,7 @@ var _ = Describe("Util", func() {
 				Expect(cm.Kind).To(BeEmpty())
 
 				// Convert to unstructured
-				unstructuredObj, err := util.UnstructuredFromObject(k8sClient, cm)
+				unstructuredObj, err := util.UnstructuredFromObject(standardClient, cm)
 
 				// Verify no error occurred
 				Expect(err).NotTo(HaveOccurred())
@@ -744,7 +744,7 @@ var _ = Describe("Util", func() {
 				}
 
 				// Convert to unstructured (should be a no-op essentially)
-				resultUnstructured, err := util.UnstructuredFromObject(k8sClient, originalUnstructured)
+				resultUnstructured, err := util.UnstructuredFromObject(standardClient, originalUnstructured)
 
 				// Verify no error occurred
 				Expect(err).NotTo(HaveOccurred())
@@ -791,11 +791,11 @@ var _ = Describe("Util", func() {
 				}
 
 				// Convert to unstructured
-				unstructuredObj, err := util.UnstructuredFromObject(k8sClient, originalCm)
+				unstructuredObj, err := util.UnstructuredFromObject(standardClient, originalCm)
 				Expect(err).NotTo(HaveOccurred(), "Error converting to unstructured")
 
 				// Convert back to typed
-				typedObj, err := util.TypedFromUnstructured(k8sClient, unstructuredObj)
+				typedObj, err := util.TypedFromUnstructured(standardClient, unstructuredObj)
 				Expect(err).NotTo(HaveOccurred(), "Error converting back to typed")
 
 				// Verify it's a ConfigMap
@@ -838,7 +838,7 @@ var _ = Describe("Util", func() {
 				Expect(originalCm.Kind).To(BeEmpty())
 
 				// Convert to unstructured
-				unstructuredObj, err := util.UnstructuredFromObject(k8sClient, originalCm)
+				unstructuredObj, err := util.UnstructuredFromObject(standardClient, originalCm)
 				Expect(err).NotTo(HaveOccurred(), "Error converting to unstructured")
 
 				// Verify GVK was determined correctly
@@ -846,7 +846,7 @@ var _ = Describe("Util", func() {
 				Expect(unstructuredObj.GetKind()).To(Equal("ConfigMap"))
 
 				// Convert back to typed
-				typedObj, err := util.TypedFromUnstructured(k8sClient, unstructuredObj)
+				typedObj, err := util.TypedFromUnstructured(standardClient, unstructuredObj)
 				Expect(err).NotTo(HaveOccurred(), "Error converting back to typed")
 
 				// Verify it's a ConfigMap
@@ -895,7 +895,7 @@ var _ = Describe("Util", func() {
 			dstUnstructured := &unstructured.Unstructured{}
 
 			// Copy source to destination
-			err := util.CopyUnstructuredToObject(k8sClient, srcUnstructured, dstUnstructured)
+			err := util.CopyUnstructuredToObject(standardClient, srcUnstructured, dstUnstructured)
 
 			// Verify no error occurred
 			Expect(err).NotTo(HaveOccurred())
@@ -944,7 +944,7 @@ var _ = Describe("Util", func() {
 			dstTyped := &corev1.ConfigMap{}
 
 			// Copy source to destination
-			err := util.CopyUnstructuredToObject(k8sClient, srcUnstructured, dstTyped)
+			err := util.CopyUnstructuredToObject(standardClient, srcUnstructured, dstTyped)
 
 			// Verify no error occurred
 			Expect(err).NotTo(HaveOccurred())
@@ -983,7 +983,7 @@ var _ = Describe("Util", func() {
 			dstTyped := &corev1.Secret{}
 
 			// Try to copy source to destination
-			err := util.CopyUnstructuredToObject(k8sClient, srcUnstructured, dstTyped)
+			err := util.CopyUnstructuredToObject(standardClient, srcUnstructured, dstTyped)
 
 			// Verify error occurred
 			Expect(err).To(HaveOccurred())
@@ -1008,7 +1008,7 @@ var _ = Describe("Util", func() {
 			dstTyped := &corev1.ConfigMap{}
 
 			// Try to copy source to destination
-			err := util.CopyUnstructuredToObject(k8sClient, srcUnstructured, dstTyped)
+			err := util.CopyUnstructuredToObject(standardClient, srcUnstructured, dstTyped)
 
 			// Verify error occurred
 			Expect(err).To(HaveOccurred())
@@ -1035,7 +1035,7 @@ var _ = Describe("Util", func() {
 			dstTyped := &corev1.ConfigMap{}
 
 			// Try to copy source to destination
-			err := util.CopyUnstructuredToObject(k8sClient, srcUnstructured, dstTyped)
+			err := util.CopyUnstructuredToObject(standardClient, srcUnstructured, dstTyped)
 
 			// Verify error occurred
 			Expect(err).To(HaveOccurred())

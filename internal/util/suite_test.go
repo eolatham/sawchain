@@ -16,7 +16,7 @@ var (
 	tempDir        = testutil.CreateTempDir("util-test-")
 	emptyScheme    = testutil.NewEmptyScheme()
 	standardScheme = testutil.NewStandardScheme()
-	k8sClient      = fake.NewClientBuilder().WithScheme(standardScheme).Build()
+	standardClient = fake.NewClientBuilder().WithScheme(standardScheme).Build()
 )
 
 func TestUtil(t *testing.T) {
