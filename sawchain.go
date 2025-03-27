@@ -9,6 +9,7 @@ import (
 	"github.com/onsi/gomega/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/eolatham/sawchain/internal/chainsaw"
 	"github.com/eolatham/sawchain/internal/matchers"
 	"github.com/eolatham/sawchain/internal/options"
 	"github.com/eolatham/sawchain/internal/util"
@@ -72,6 +73,16 @@ func New(t testing.TB, c client.Client, args ...interface{}) *Sawchain {
 	g.Expect(opts).NotTo(gomega.BeNil(), errNilOpts)
 	// Instantiate Sawchain
 	return &Sawchain{t: t, g: g, c: c, opts: *opts}
+}
+
+// HELPER FUNCTIONS
+
+func (s *Sawchain) get(ctx context.Context, obj client.Object) error {
+	return s.c.Get(ctx, client.ObjectKeyFromObject(obj), obj)
+}
+
+func (s *Sawchain) getFunc(ctx context.Context, obj client.Object) func() error {
+	return func() error { return s.get(ctx, obj) }
 }
 
 // CREATE OPERATIONS
@@ -147,7 +158,22 @@ func (s *Sawchain) CreateResourceAndWait(ctx context.Context, args ...interface{
 	opts, err := options.ParseAndRequireEventualSingle(&s.opts, args...)
 	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidArgs)
 	s.g.Expect(opts).NotTo(gomega.BeNil(), errNilOpts)
-	// TODO: implement
+	// Create resource
+	if opts.Template != "" {
+		// Create with template
+		unstructuredObj, err := chainsaw.RenderTemplateSingle(ctx, opts.Template, chainsaw.BindingsFromMap(opts.Bindings))
+		s.g.Expect(err).NotTo(gomega.HaveOccurred(), "TODO")
+		s.g.Expect(s.c.Create(ctx, &unstructuredObj)).To(gomega.Succeed(), "TODO")
+		s.g.Eventually(s.getFunc(ctx, &unstructuredObj), opts.Timeout, opts.Interval).Should(gomega.Succeed(), "TODO")
+		// Save to object
+		if opts.Object != nil {
+			s.g.Expect(util.CopyUnstructuredToObject(s.c, unstructuredObj, opts.Object)).To(gomega.Succeed(), "TODO")
+		}
+	} else {
+		// Create with object
+		s.g.Expect(s.c.Create(ctx, opts.Object)).To(gomega.Succeed(), "TODO")
+		s.g.Eventually(s.getFunc(ctx, opts.Object), opts.Timeout, opts.Interval).Should(gomega.Succeed(), "TODO")
+	}
 	return nil
 }
 
