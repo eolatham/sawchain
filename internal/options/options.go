@@ -129,7 +129,7 @@ func requireTemplateOrObject(opts *Options) error {
 	if opts == nil {
 		return errors.New(errNil)
 	}
-	if opts.Template == "" && opts.Object == nil {
+	if opts.Template == "" && util.IsNil(opts.Object) {
 		return errors.New(errRequired + ": Template (string) or Object (client.Object)")
 	}
 	return nil

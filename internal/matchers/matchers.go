@@ -31,7 +31,7 @@ type chainsawMatcher struct {
 
 // Match implements the Gomega matcher interface.
 func (m *chainsawMatcher) Match(actual interface{}) (bool, error) {
-	if actual == nil {
+	if util.IsNil(actual) {
 		return false, errors.New("chainsawMatcher expects a client.Object but got nil")
 	}
 	obj, ok := util.AsObject(actual)

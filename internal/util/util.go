@@ -117,6 +117,22 @@ func AsSliceOfObjects(v interface{}) ([]client.Object, bool) {
 	return objs, true
 }
 
+// IsNil checks if the given interface is nil
+// or has a nil underlying value.
+func IsNil(v interface{}) bool {
+	if v == nil {
+		return true
+	}
+	rv := reflect.ValueOf(v)
+	kind := rv.Kind()
+	if kind == reflect.Chan || kind == reflect.Func ||
+		kind == reflect.Interface || kind == reflect.Map ||
+		kind == reflect.Ptr || kind == reflect.Slice {
+		return rv.IsNil()
+	}
+	return false
+}
+
 // IsUnstructured checks if the given object's value
 // is of type unstructured.Unstructured.
 func IsUnstructured(obj client.Object) bool {
@@ -223,6 +239,11 @@ func CopyUnstructuredToObject(
 	src unstructured.Unstructured,
 	dst client.Object,
 ) error {
+	// Check for nil destination
+	if IsNil(dst) {
+		return fmt.Errorf("destination object is nil")
+	}
+
 	// Copy directly if destination is already unstructured
 	if dstUnstructured, ok := dst.(*unstructured.Unstructured); ok {
 		src.DeepCopyInto(dstUnstructured)

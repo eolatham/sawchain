@@ -372,6 +372,68 @@ var _ = Describe("Util", func() {
 		)
 	})
 
+	Describe("IsNil", func() {
+		type testCase struct {
+			input    interface{}
+			expected bool
+		}
+
+		DescribeTable("checking if a value is nil",
+			func(tc testCase) {
+				result := util.IsNil(tc.input)
+				Expect(result).To(Equal(tc.expected))
+			},
+			Entry("nil interface", testCase{
+				input:    nil,
+				expected: true,
+			}),
+			Entry("nil pointer", testCase{
+				input:    (*string)(nil),
+				expected: true,
+			}),
+			Entry("nil slice", testCase{
+				input:    []string(nil),
+				expected: true,
+			}),
+			Entry("nil map", testCase{
+				input:    map[string]string(nil),
+				expected: true,
+			}),
+			Entry("nil function", testCase{
+				input:    (func())(nil),
+				expected: true,
+			}),
+			Entry("nil channel", testCase{
+				input:    (chan int)(nil),
+				expected: true,
+			}),
+			Entry("non-nil pointer", testCase{
+				input:    &corev1.ConfigMap{},
+				expected: false,
+			}),
+			Entry("non-nil slice", testCase{
+				input:    []string{},
+				expected: false,
+			}),
+			Entry("non-nil map", testCase{
+				input:    map[string]string{},
+				expected: false,
+			}),
+			Entry("non-nil struct", testCase{
+				input:    corev1.ConfigMap{},
+				expected: false,
+			}),
+			Entry("non-nil primitive", testCase{
+				input:    42,
+				expected: false,
+			}),
+			Entry("non-nil string", testCase{
+				input:    "not nil",
+				expected: false,
+			}),
+		)
+	})
+
 	Describe("IsUnstructured", func() {
 		type testCase struct {
 			input    client.Object
@@ -961,6 +1023,31 @@ var _ = Describe("Util", func() {
 			Expect(dstTyped.Data).To(HaveLen(2))
 			Expect(dstTyped.Data).To(HaveKeyWithValue("key1", "value1"))
 			Expect(dstTyped.Data).To(HaveKeyWithValue("key2", "value2"))
+		})
+
+		It("returns error when destination object is nil", func() {
+			// Create source unstructured ConfigMap
+			srcUnstructured := unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"apiVersion": "v1",
+					"kind":       "ConfigMap",
+					"metadata": map[string]interface{}{
+						"name":      "source-cm",
+						"namespace": "default",
+					},
+					"data": map[string]interface{}{
+						"key1": "value1",
+					},
+				},
+			}
+
+			// Try to copy source to nil destination
+			var nilDst *corev1.ConfigMap = nil
+			err := util.CopyUnstructuredToObject(standardClient, srcUnstructured, nilDst)
+
+			// Verify error occurred
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("destination object is nil"))
 		})
 
 		It("returns error when destination type doesn't match source type", func() {
