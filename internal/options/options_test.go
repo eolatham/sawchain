@@ -445,6 +445,14 @@ var _ = Describe("Options", func() {
 			}),
 
 			// Invalid arguments
+			Entry("nil object", testCase{
+				defaults: nil,
+				args: []interface{}{
+					(*corev1.ConfigMap)(nil),
+				},
+				expectedError: "provided client.Object is nil or has a nil underlying value",
+			}),
+
 			Entry("multiple template arguments", testCase{
 				defaults:      nil,
 				args:          []interface{}{"template1", "template2"},
@@ -778,6 +786,22 @@ var _ = Describe("Options", func() {
 			}),
 
 			// Invalid arguments
+			Entry("objects containing nil object", testCase{
+				defaults: nil,
+				args: []interface{}{
+					[]client.Object{
+						&corev1.ConfigMap{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      "valid-config",
+								Namespace: "default",
+							},
+						},
+						(*corev1.ConfigMap)(nil),
+					},
+				},
+				expectedError: "provided []client.Object contains an element that is nil or has a nil underlying value",
+			}),
+
 			Entry("multiple template arguments", testCase{
 				defaults:      nil,
 				args:          []interface{}{"template1", "template2"},
@@ -1102,6 +1126,14 @@ var _ = Describe("Options", func() {
 			}),
 
 			// Invalid arguments
+			Entry("nil object", testCase{
+				defaults: nil,
+				args: []interface{}{
+					(*corev1.ConfigMap)(nil),
+				},
+				expectedError: "provided client.Object is nil or has a nil underlying value",
+			}),
+
 			Entry("too many duration arguments", testCase{
 				defaults:      nil,
 				args:          []interface{}{"5s", "1s", "2s", "template content"},
@@ -1476,6 +1508,22 @@ var _ = Describe("Options", func() {
 			}),
 
 			// Invalid arguments
+			Entry("objects containing nil object", testCase{
+				defaults: nil,
+				args: []interface{}{
+					[]client.Object{
+						&corev1.ConfigMap{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      "valid-config",
+								Namespace: "default",
+							},
+						},
+						(*corev1.ConfigMap)(nil),
+					},
+				},
+				expectedError: "provided []client.Object contains an element that is nil or has a nil underlying value",
+			}),
+
 			Entry("too many duration arguments", testCase{
 				defaults:      nil,
 				args:          []interface{}{"5s", "1s", "2s", "template content"},

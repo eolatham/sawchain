@@ -62,6 +62,10 @@ func parse(
 				if opts.Object != nil {
 					return nil, fmt.Errorf("multiple client.Object arguments provided")
 				} else {
+					if util.IsNil(obj) {
+						return nil, fmt.Errorf(
+							"provided client.Object is nil or has a nil underlying value")
+					}
 					opts.Object = obj
 				}
 				continue
@@ -74,6 +78,12 @@ func parse(
 				if opts.Objects != nil {
 					return nil, fmt.Errorf("multiple []client.Object arguments provided")
 				} else {
+					for _, obj := range objs {
+						if util.IsNil(obj) {
+							return nil, fmt.Errorf(
+								"provided []client.Object contains an element that is nil or has a nil underlying value")
+						}
+					}
 					opts.Objects = objs
 				}
 				continue
@@ -129,7 +139,7 @@ func requireTemplateOrObject(opts *Options) error {
 	if opts == nil {
 		return errors.New(errNil)
 	}
-	if opts.Template == "" && util.IsNil(opts.Object) {
+	if opts.Template == "" && opts.Object == nil {
 		return errors.New(errRequired + ": Template (string) or Object (client.Object)")
 	}
 	return nil
