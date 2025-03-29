@@ -13,7 +13,7 @@ import (
 	"github.com/kyverno/chainsaw/pkg/engine/templating"
 	"github.com/kyverno/chainsaw/pkg/loaders/resource"
 	"go.uber.org/multierr"
-	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -166,7 +166,7 @@ func Check(
 	// List candidates
 	candidates, err := listCandidates(c, ctx, &expected)
 	if err != nil {
-		if kerrors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			return unstructured.Unstructured{}, errors.New("actual resource not found")
 		}
 		return unstructured.Unstructured{}, err

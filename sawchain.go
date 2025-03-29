@@ -2,11 +2,14 @@ package sawchain
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/eolatham/sawchain/internal/chainsaw"
@@ -96,6 +99,39 @@ func (s *Sawchain) get(ctx context.Context, obj client.Object) error {
 
 func (s *Sawchain) getFunc(ctx context.Context, obj client.Object) func() error {
 	return func() error { return s.get(ctx, obj) }
+}
+
+func (s *Sawchain) checkResourceVersion(ctx context.Context, obj client.Object, minResourceVersion string) error {
+	if err := s.get(ctx, obj); err != nil {
+		return err
+	}
+	actualResourceVersion := obj.GetResourceVersion()
+	if actualResourceVersion < minResourceVersion {
+		// TODO: include object key in error message
+		return fmt.Errorf("insufficient resource version: expected at least %s but got %s",
+			minResourceVersion, actualResourceVersion)
+	}
+	return nil
+}
+
+func (s *Sawchain) checkResourceVersionFunc(ctx context.Context, obj client.Object, minResourceVersion string) func() error {
+	return func() error { return s.checkResourceVersion(ctx, obj, minResourceVersion) }
+}
+
+func (s *Sawchain) checkNotFound(ctx context.Context, obj client.Object) error {
+	err := s.get(ctx, obj)
+	if err == nil {
+		// TODO: include object key in error message
+		return errors.New("expected resource not to be found")
+	}
+	if !apierrors.IsNotFound(err) {
+		return err
+	}
+	return nil
+}
+
+func (s *Sawchain) checkNotFoundFunc(ctx context.Context, obj client.Object) func() error {
+	return func() error { return s.checkNotFound(ctx, obj) }
 }
 
 // CREATE OPERATIONS
@@ -269,7 +305,34 @@ func (s *Sawchain) UpdateResourceAndWait(ctx context.Context, args ...interface{
 	opts, err := options.ParseAndRequireEventualSingle(&s.opts, args...)
 	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidArgs)
 	s.g.Expect(opts).NotTo(gomega.BeNil(), errNilOpts)
-	// TODO: implement
+
+	if opts.Template != "" {
+		// Render template
+		unstructuredObj, err := chainsaw.RenderTemplateSingle(ctx, opts.Template, chainsaw.BindingsFromMap(opts.Bindings))
+		s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidTemplate)
+
+		// Update resource
+		s.g.Expect(s.c.Update(ctx, &unstructuredObj)).To(gomega.Succeed(), errFailedUpdateWithTemplate)
+
+		// Wait for cache to sync
+		updatedResourceVersion := unstructuredObj.GetResourceVersion()
+		s.g.Eventually(s.checkResourceVersionFunc(ctx, &unstructuredObj, updatedResourceVersion),
+			opts.Timeout, opts.Interval).Should(gomega.Succeed(), errCacheNotSynced)
+
+		// Save object
+		if opts.Object != nil {
+			s.g.Expect(util.CopyUnstructuredToObject(s.c, unstructuredObj, opts.Object)).To(gomega.Succeed(), errFailedSave)
+		}
+	} else {
+		// Update resource
+		s.g.Expect(s.c.Update(ctx, opts.Object)).To(gomega.Succeed(), errFailedUpdateWithObject)
+
+		// Wait for cache to sync
+		updatedResourceVersion := opts.Object.GetResourceVersion()
+		s.g.Eventually(s.checkResourceVersionFunc(ctx, opts.Object, updatedResourceVersion),
+			opts.Timeout, opts.Interval).Should(gomega.Succeed(), errCacheNotSynced)
+	}
+
 	return nil
 }
 
@@ -280,7 +343,66 @@ func (s *Sawchain) UpdateResourcesAndWait(ctx context.Context, args ...interface
 	opts, err := options.ParseAndRequireEventualMulti(&s.opts, args...)
 	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidArgs)
 	s.g.Expect(opts).NotTo(gomega.BeNil(), errNilOpts)
-	// TODO: implement
+
+	if opts.Template != "" {
+		// Render template
+		unstructuredObjs, err := chainsaw.RenderTemplate(ctx, opts.Template, chainsaw.BindingsFromMap(opts.Bindings))
+		s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidTemplate)
+
+		// Validate objects length
+		if opts.Objects != nil {
+			s.g.Expect(opts.Objects).To(gomega.HaveLen(len(unstructuredObjs)), errInvalidObjectsLength)
+		}
+
+		// Update resources
+		for _, unstructuredObj := range unstructuredObjs {
+			s.g.Expect(s.c.Update(ctx, &unstructuredObj)).To(gomega.Succeed(), errFailedUpdateWithTemplate)
+		}
+
+		// Wait for cache to sync
+		updatedResourceVersions := make([]string, len(unstructuredObjs))
+		for i := range unstructuredObjs {
+			updatedResourceVersions[i] = unstructuredObjs[i].GetResourceVersion()
+		}
+		checkAll := func() error {
+			for i := range unstructuredObjs {
+				// Use index to update object in outer scope
+				if err := s.checkResourceVersion(ctx, &unstructuredObjs[i], updatedResourceVersions[i]); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+		s.g.Eventually(checkAll, opts.Timeout, opts.Interval).Should(gomega.Succeed(), errCacheNotSynced)
+
+		// Save objects
+		if opts.Objects != nil {
+			for i, unstructuredObj := range unstructuredObjs {
+				s.g.Expect(util.CopyUnstructuredToObject(s.c, unstructuredObj, opts.Objects[i])).To(gomega.Succeed(), errFailedSave)
+			}
+		}
+	} else {
+		// Update resources
+		for _, obj := range opts.Objects {
+			s.g.Expect(s.c.Update(ctx, obj)).To(gomega.Succeed(), errFailedUpdateWithObject)
+		}
+
+		// Wait for cache to sync
+		updatedResourceVersions := make([]string, len(opts.Objects))
+		for i := range opts.Objects {
+			updatedResourceVersions[i] = opts.Objects[i].GetResourceVersion()
+		}
+		checkAll := func() error {
+			for i := range opts.Objects {
+				if err := s.checkResourceVersion(ctx, opts.Objects[i], updatedResourceVersions[i]); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+		s.g.Eventually(checkAll, opts.Timeout, opts.Interval).Should(gomega.Succeed(), errCacheNotSynced)
+	}
+
 	return nil
 }
 
@@ -293,7 +415,30 @@ func (s *Sawchain) DeleteResourceAndWait(ctx context.Context, args ...interface{
 	opts, err := options.ParseAndRequireEventualSingle(&s.opts, args...)
 	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidArgs)
 	s.g.Expect(opts).NotTo(gomega.BeNil(), errNilOpts)
-	// TODO: implement
+
+	if opts.Template != "" {
+		// Render template
+		unstructuredObj, err := chainsaw.RenderTemplateSingle(ctx, opts.Template, chainsaw.BindingsFromMap(opts.Bindings))
+		s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidTemplate)
+
+		// Delete resource
+		s.g.Expect(s.c.Delete(ctx, &unstructuredObj)).To(gomega.Succeed(), errFailedDeleteWithTemplate)
+
+		// Wait for cache to sync
+		s.g.Eventually(s.checkNotFoundFunc(ctx, &unstructuredObj), opts.Timeout, opts.Interval).Should(gomega.Succeed(), errCacheNotSynced)
+
+		// Save object
+		if opts.Object != nil {
+			s.g.Expect(util.CopyUnstructuredToObject(s.c, unstructuredObj, opts.Object)).To(gomega.Succeed(), errFailedSave)
+		}
+	} else {
+		// Delete resource
+		s.g.Expect(s.c.Delete(ctx, opts.Object)).To(gomega.Succeed(), errFailedDeleteWithObject)
+
+		// Wait for cache to sync
+		s.g.Eventually(s.checkNotFoundFunc(ctx, opts.Object), opts.Timeout, opts.Interval).Should(gomega.Succeed(), errCacheNotSynced)
+	}
+
 	return nil
 }
 
@@ -304,7 +449,58 @@ func (s *Sawchain) DeleteResourcesAndWait(ctx context.Context, args ...interface
 	opts, err := options.ParseAndRequireEventualMulti(&s.opts, args...)
 	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidArgs)
 	s.g.Expect(opts).NotTo(gomega.BeNil(), errNilOpts)
-	// TODO: implement
+
+	if opts.Template != "" {
+		// Render template
+		unstructuredObjs, err := chainsaw.RenderTemplate(ctx, opts.Template, chainsaw.BindingsFromMap(opts.Bindings))
+		s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidTemplate)
+
+		// Validate objects length
+		if opts.Objects != nil {
+			s.g.Expect(opts.Objects).To(gomega.HaveLen(len(unstructuredObjs)), errInvalidObjectsLength)
+		}
+
+		// Delete resources
+		for _, unstructuredObj := range unstructuredObjs {
+			s.g.Expect(s.c.Delete(ctx, &unstructuredObj)).To(gomega.Succeed(), errFailedDeleteWithTemplate)
+		}
+
+		// Wait for cache to sync
+		checkAll := func() error {
+			for i := range unstructuredObjs {
+				// Use index to update object in outer scope
+				if err := s.checkNotFound(ctx, &unstructuredObjs[i]); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+		s.g.Eventually(checkAll, opts.Timeout, opts.Interval).Should(gomega.Succeed(), errCacheNotSynced)
+
+		// Save objects
+		if opts.Objects != nil {
+			for i, unstructuredObj := range unstructuredObjs {
+				s.g.Expect(util.CopyUnstructuredToObject(s.c, unstructuredObj, opts.Objects[i])).To(gomega.Succeed(), errFailedSave)
+			}
+		}
+	} else {
+		// Delete resources
+		for _, obj := range opts.Objects {
+			s.g.Expect(s.c.Delete(ctx, obj)).To(gomega.Succeed(), errFailedDeleteWithObject)
+		}
+
+		// Wait for cache to sync
+		checkAll := func() error {
+			for _, obj := range opts.Objects {
+				if err := s.checkNotFound(ctx, obj); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+		s.g.Eventually(checkAll, opts.Timeout, opts.Interval).Should(gomega.Succeed(), errCacheNotSynced)
+	}
+
 	return nil
 }
 
