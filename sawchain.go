@@ -284,7 +284,6 @@ func (s *Sawchain) CreateResourceAndWait(ctx context.Context, args ...interface{
 // Create resources with a Chainsaw template and bindings:
 //
 //	sc.CreateResourcesAndWait(ctx, `
-//	  ---
 //	  apiVersion: v1
 //	  kind: ConfigMap
 //	  metadata:
@@ -305,7 +304,6 @@ func (s *Sawchain) CreateResourceAndWait(ctx context.Context, args ...interface{
 // Create resources with a Chainsaw template and save the resources' states to objects:
 //
 //	sc.CreateResourcesAndWait(ctx, []client.Object{obj1, obj2}, `
-//	  ---
 //	  apiVersion: v1
 //	  kind: ConfigMap
 //	  metadata:

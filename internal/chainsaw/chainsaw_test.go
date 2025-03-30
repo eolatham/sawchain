@@ -96,14 +96,16 @@ var _ = Describe("Chainsaw", func() {
 			},
 			// Single resource tests
 			Entry("should render a single ConfigMap with bindings", testCase{
-				templateContent: `apiVersion: v1
+				templateContent: `
+apiVersion: v1
 kind: ConfigMap
 metadata:
   name: ($name)
   namespace: default
 data:
   key1: ($value1)
-  key2: ($value2)`,
+  key2: ($value2)
+`,
 				bindings: map[string]any{
 					"name":   "test-config",
 					"value1": "rendered-value-1",
@@ -128,7 +130,8 @@ data:
 				expectedErrs: nil,
 			}),
 			Entry("should render a single Secret with bindings", testCase{
-				templateContent: `apiVersion: v1
+				templateContent: `
+apiVersion: v1
 kind: Secret
 metadata:
   name: ($name)
@@ -136,7 +139,8 @@ metadata:
 type: Opaque
 data:
   username: ($username)
-  password: ($password)`,
+  password: ($password)
+`,
 				bindings: map[string]any{
 					"name":     "test-secret",
 					"username": "dXNlcm5hbWU=",
@@ -163,7 +167,8 @@ data:
 			}),
 			// Multi-resource tests
 			Entry("should render multiple resources with bindings", testCase{
-				templateContent: `apiVersion: v1
+				templateContent: `
+apiVersion: v1
 kind: ConfigMap
 metadata:
   name: ($config_name)
@@ -178,7 +183,8 @@ metadata:
   namespace: ($namespace)
 type: Opaque
 data:
-  password: ($password)`,
+  password: ($password)
+`,
 				bindings: map[string]any{
 					"config_name": "test-config",
 					"secret_name": "test-secret",
@@ -219,7 +225,8 @@ data:
 			}),
 			// Complex binding tests
 			Entry("should render with complex binding types", testCase{
-				templateContent: `apiVersion: v1
+				templateContent: `
+apiVersion: v1
 kind: ConfigMap
 metadata:
   name: complex-bindings
@@ -229,7 +236,8 @@ data:
   boolValue: "($boolValue)"
   floatValue: "($floatValue)"
   mapValue: "($mapValue)"
-  sliceValue: "($sliceValue)"`,
+  sliceValue: "($sliceValue)"
+`,
 				bindings: map[string]any{
 					"intValue":   42,
 					"boolValue":  true,
@@ -260,14 +268,16 @@ data:
 			}),
 			// Edge cases
 			Entry("should handle template with nil bindings", testCase{
-				templateContent: `apiVersion: v1
+				templateContent: `
+apiVersion: v1
 kind: ConfigMap
 metadata:
   name: test-config
   namespace: default
 data:
   key1: value1
-  key2: value2`,
+  key2: value2
+`,
 				bindings: nil,
 				expectedObjs: []unstructured.Unstructured{
 					{
@@ -295,7 +305,8 @@ data:
 			}),
 			// Error cases
 			Entry("should fail on invalid YAML", testCase{
-				templateContent: `apiVersion: v1
+				templateContent: `
+apiVersion: v1
 kind: ConfigMap
 metadata:
   name: test-config
@@ -303,7 +314,8 @@ metadata:
 data:
   key1: value1
   key2: value2
- badindent: fail`,
+ badindent: fail
+`,
 				bindings:     map[string]any{},
 				expectedObjs: nil,
 				expectedErrs: []string{
@@ -312,13 +324,15 @@ data:
 				},
 			}),
 			Entry("should fail on missing binding", testCase{
-				templateContent: `apiVersion: v1
+				templateContent: `
+apiVersion: v1
 kind: ConfigMap
 metadata:
   name: ($missing_binding)
   namespace: default
 data:
-  key1: value1`,
+  key1: value1
+`,
 				bindings:     map[string]any{},
 				expectedObjs: nil,
 				expectedErrs: []string{"variable not defined: $missing_binding"},
@@ -356,14 +370,16 @@ data:
 			},
 			// Valid single resource tests
 			Entry("should render a single ConfigMap with bindings", testCase{
-				templateContent: `apiVersion: v1
+				templateContent: `
+apiVersion: v1
 kind: ConfigMap
 metadata:
   name: ($name)
   namespace: default
 data:
   key1: ($value1)
-  key2: ($value2)`,
+  key2: ($value2)
+`,
 				bindings: map[string]any{
 					"name":   "test-config",
 					"value1": "rendered-value-1",
@@ -386,7 +402,8 @@ data:
 				expectedErrs: nil,
 			}),
 			Entry("should render a single Secret with bindings", testCase{
-				templateContent: `apiVersion: v1
+				templateContent: `
+apiVersion: v1
 kind: Secret
 metadata:
   name: ($name)
@@ -394,7 +411,8 @@ metadata:
 type: Opaque
 data:
   username: ($username)
-  password: ($password)`,
+  password: ($password)
+`,
 				bindings: map[string]any{
 					"name":     "test-secret",
 					"username": "dXNlcm5hbWU=",
@@ -419,7 +437,8 @@ data:
 			}),
 			// Complex binding tests
 			Entry("should render with complex binding types", testCase{
-				templateContent: `apiVersion: v1
+				templateContent: `
+apiVersion: v1
 kind: ConfigMap
 metadata:
   name: complex-bindings
@@ -429,7 +448,8 @@ data:
   boolValue: "($boolValue)"
   floatValue: "($floatValue)"
   mapValue: "($mapValue)"
-  sliceValue: "($sliceValue)"`,
+  sliceValue: "($sliceValue)"
+`,
 				bindings: map[string]any{
 					"intValue":   42,
 					"boolValue":  true,
@@ -458,14 +478,16 @@ data:
 			}),
 			// Edge cases
 			Entry("should handle template with nil bindings", testCase{
-				templateContent: `apiVersion: v1
+				templateContent: `
+apiVersion: v1
 kind: ConfigMap
 metadata:
   name: test-config
   namespace: default
 data:
   key1: value1
-  key2: value2`,
+  key2: value2
+`,
 				bindings: nil,
 				expectedObj: unstructured.Unstructured{
 					Object: map[string]interface{}{
@@ -491,7 +513,8 @@ data:
 				expectedErrs:    []string{"expected template to contain a single resource; found 0"},
 			}),
 			Entry("should fail on multiple resources", testCase{
-				templateContent: `apiVersion: v1
+				templateContent: `
+apiVersion: v1
 kind: ConfigMap
 metadata:
   name: test-config-1
@@ -505,7 +528,8 @@ metadata:
   name: test-config-2
   namespace: default
 data:
-  key2: value2`,
+  key2: value2
+`,
 				bindings:    map[string]any{},
 				expectedObj: unstructured.Unstructured{},
 				expectedErrs: []string{
@@ -513,7 +537,8 @@ data:
 				},
 			}),
 			Entry("should fail on invalid YAML", testCase{
-				templateContent: `apiVersion: v1
+				templateContent: `
+apiVersion: v1
 kind: ConfigMap
 metadata:
   name: test-config
@@ -521,7 +546,8 @@ metadata:
 data:
   key1: value1
   key2: value2
- badindent: fail`,
+ badindent: fail
+`,
 				bindings:    map[string]any{},
 				expectedObj: unstructured.Unstructured{},
 				expectedErrs: []string{
@@ -530,13 +556,15 @@ data:
 				},
 			}),
 			Entry("should fail on missing binding", testCase{
-				templateContent: `apiVersion: v1
+				templateContent: `
+apiVersion: v1
 kind: ConfigMap
 metadata:
   name: ($missing_binding)
   namespace: default
 data:
-  key1: value1`,
+  key1: value1
+`,
 				bindings:     map[string]any{},
 				expectedObj:  unstructured.Unstructured{},
 				expectedErrs: []string{"variable not defined: $missing_binding"},
@@ -1107,22 +1135,26 @@ data:
 			},
 			// Successful match tests
 			Entry("should find exact match for ConfigMap", testCase{
-				resourcesYaml: `apiVersion: v1
+				resourcesYaml: `
+apiVersion: v1
 kind: ConfigMap
 metadata:
   name: test-check-configmap
   namespace: default
 data:
   key1: value1
-  key2: value2`,
-				templateContent: `apiVersion: v1
+  key2: value2
+`,
+				templateContent: `
+apiVersion: v1
 kind: ConfigMap
 metadata:
   name: test-check-configmap
   namespace: default
 data:
   key1: value1
-  key2: value2`,
+  key2: value2
+`,
 				bindings: map[string]any{},
 				expectedMatch: unstructured.Unstructured{
 					Object: map[string]interface{}{
@@ -1141,7 +1173,8 @@ data:
 				expectedErrs: nil,
 			}),
 			Entry("should find match with partial expectation", testCase{
-				resourcesYaml: `apiVersion: v1
+				resourcesYaml: `
+apiVersion: v1
 kind: ConfigMap
 metadata:
   name: test-check-partial
@@ -1152,14 +1185,17 @@ metadata:
 data:
   key1: value1
   key2: value2
-  key3: value3`,
-				templateContent: `apiVersion: v1
+  key3: value3
+`,
+				templateContent: `
+apiVersion: v1
 kind: ConfigMap
 metadata:
   name: test-check-partial
   namespace: default
 data:
-  key1: value1`,
+  key1: value1
+`,
 				bindings: map[string]any{},
 				expectedMatch: unstructured.Unstructured{
 					Object: map[string]interface{}{
@@ -1179,20 +1215,24 @@ data:
 				expectedErrs: nil,
 			}),
 			Entry("should find match with binding substitution", testCase{
-				resourcesYaml: `apiVersion: v1
+				resourcesYaml: `
+apiVersion: v1
 kind: ConfigMap
 metadata:
   name: test-check-bindings
   namespace: default
 data:
-  key1: binding-value`,
-				templateContent: `apiVersion: v1
+  key1: binding-value
+`,
+				templateContent: `
+apiVersion: v1
 kind: ConfigMap
 metadata:
   name: ($name)
   namespace: default
 data:
-  key1: ($value)`,
+  key1: ($value)
+`,
 				bindings: map[string]any{
 					"name":  "test-check-bindings",
 					"value": "binding-value",
@@ -1214,7 +1254,8 @@ data:
 			}),
 			// Multiple resources tests
 			Entry("should find match among multiple resources", testCase{
-				resourcesYaml: `apiVersion: v1
+				resourcesYaml: `
+apiVersion: v1
 kind: ConfigMap
 metadata:
   name: test-check-multi-1
@@ -1236,13 +1277,16 @@ metadata:
   name: test-check-multi-3
   namespace: default
 data:
-  key1: value3`,
-				templateContent: `apiVersion: v1
+  key1: value3
+`,
+				templateContent: `
+apiVersion: v1
 kind: ConfigMap
 metadata:
   namespace: default
 data:
-  key1: value2`,
+  key1: value2
+`,
 				bindings: map[string]any{},
 				expectedMatch: unstructured.Unstructured{
 					Object: map[string]interface{}{
@@ -1262,32 +1306,38 @@ data:
 			// Error cases
 			Entry("should fail when resource not found", testCase{
 				resourcesYaml: ``,
-				templateContent: `apiVersion: v1
+				templateContent: `
+apiVersion: v1
 kind: ConfigMap
 metadata:
   name: nonexistent-configmap
   namespace: default
 data:
-  key1: value1`,
+  key1: value1
+`,
 				bindings:      map[string]any{},
 				expectedMatch: unstructured.Unstructured{},
 				expectedErrs:  []string{"actual resource not found"},
 			}),
 			Entry("should fail when no resource matches", testCase{
-				resourcesYaml: `apiVersion: v1
+				resourcesYaml: `
+apiVersion: v1
 kind: ConfigMap
 metadata:
   name: test-check-nomatch
   namespace: default
 data:
-  key1: actual-value`,
-				templateContent: `apiVersion: v1
+  key1: actual-value
+`,
+				templateContent: `
+apiVersion: v1
 kind: ConfigMap
 metadata:
   name: test-check-nomatch
   namespace: default
 data:
-  key1: expected-value`,
+  key1: expected-value
+`,
 				bindings:      map[string]any{},
 				expectedMatch: unstructured.Unstructured{},
 				expectedErrs: []string{
@@ -1300,40 +1350,48 @@ data:
 				},
 			}),
 			Entry("should fail on missing binding", testCase{
-				resourcesYaml: `apiVersion: v1
+				resourcesYaml: `
+apiVersion: v1
 kind: ConfigMap
 metadata:
   name: test-check-missing-binding
   namespace: default
 data:
-  key1: value1`,
-				templateContent: `apiVersion: v1
+  key1: value1
+`,
+				templateContent: `
+apiVersion: v1
 kind: ConfigMap
 metadata:
   name: ($missing_binding)
   namespace: default
 data:
-  key1: value1`,
+  key1: value1
+`,
 				bindings:      map[string]any{},
 				expectedMatch: unstructured.Unstructured{},
 				expectedErrs:  []string{"variable not defined: $missing_binding"},
 			}),
 			// Advanced check tests
 			Entry("should match when string length is in range", testCase{
-				resourcesYaml: `apiVersion: v1
+				resourcesYaml: `
+apiVersion: v1
 kind: ConfigMap
 metadata:
   name: test-check-length
   namespace: default
 data:
-  value: "hello"`,
-				templateContent: `apiVersion: v1
+  value: "hello"
+`,
+				templateContent: `
+apiVersion: v1
 kind: ConfigMap
 metadata:
   name: test-check-length
   namespace: default
 data:
-  (length(value) > ` + "`1`" + ` && length(value) < ` + "`10`" + `): true`,
+  (length(value) > ` + "`1`" + ` && length(value) < ` + "`10`" + `): true
+`,
 				bindings: map[string]any{},
 				expectedMatch: unstructured.Unstructured{
 					Object: map[string]interface{}{
@@ -1351,20 +1409,24 @@ data:
 				expectedErrs: nil,
 			}),
 			Entry("should fail when string length is outside range", testCase{
-				resourcesYaml: `apiVersion: v1
+				resourcesYaml: `
+apiVersion: v1
 kind: ConfigMap
 metadata:
   name: test-check-length-fail
   namespace: default
 data:
-  value: "this string is too long"`,
-				templateContent: `apiVersion: v1
+  value: "this string is too long"
+`,
+				templateContent: `
+apiVersion: v1
 kind: ConfigMap
 metadata:
   name: test-check-length-fail
   namespace: default
 data:
-  (length(value) > ` + "`1`" + ` && length(value) < ` + "`10`" + `): true`,
+  (length(value) > ` + "`1`" + ` && length(value) < ` + "`10`" + `): true
+`,
 				bindings:      map[string]any{},
 				expectedMatch: unstructured.Unstructured{},
 				expectedErrs: []string{
@@ -1373,7 +1435,8 @@ data:
 				},
 			}),
 			Entry("should match ConfigMap based on data across namespaces", testCase{
-				resourcesYaml: `apiVersion: v1
+				resourcesYaml: `
+apiVersion: v1
 kind: ConfigMap
 metadata:
   name: test-config-ns1
@@ -1387,11 +1450,14 @@ metadata:
   name: test-config-ns2
   namespace: other-namespace
 data:
-  unique-key: target-value`,
-				templateContent: `apiVersion: v1
+  unique-key: target-value
+`,
+				templateContent: `
+apiVersion: v1
 kind: ConfigMap
 data:
-  unique-key: target-value`,
+  unique-key: target-value
+`,
 				bindings: map[string]any{},
 				expectedMatch: unstructured.Unstructured{
 					Object: map[string]interface{}{
@@ -1409,7 +1475,8 @@ data:
 				expectedErrs: nil,
 			}),
 			Entry("should match Secret based on labels across namespaces", testCase{
-				resourcesYaml: `apiVersion: v1
+				resourcesYaml: `
+apiVersion: v1
 kind: Secret
 metadata:
   name: test-secret-ns1
@@ -1432,13 +1499,16 @@ metadata:
     extra: label
 type: Opaque
 data:
-  username: dXNlcm5hbWU=`,
-				templateContent: `apiVersion: v1
+  username: dXNlcm5hbWU=
+`,
+				templateContent: `
+apiVersion: v1
 kind: Secret
 metadata:
   labels:
     app: target-app
-    environment: production`,
+    environment: production
+`,
 				bindings: map[string]any{},
 				expectedMatch: unstructured.Unstructured{
 					Object: map[string]interface{}{
