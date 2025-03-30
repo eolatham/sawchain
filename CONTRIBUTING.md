@@ -8,6 +8,12 @@ To run all tests, use `make test`:
 make test
 ```
 
+To run tests for a specific package, use `make test` with `PACKAGE` set to the package path:
+
+```sh
+PACKAGE=./internal/chainsaw make test
+```
+
 To run tests for a specific package in debug mode, use `make debug` with `PACKAGE` set to the package path:
 
 ```sh
