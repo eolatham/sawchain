@@ -1131,4 +1131,72 @@ var _ = Describe("Util", func() {
 			Expect(err.Error()).To(ContainSubstring("json: cannot unmarshal object into Go value of type string"))
 		})
 	})
+
+	Describe("GetResourceID", func() {
+		type testCase struct {
+			object     client.Object
+			scheme     *runtime.Scheme
+			expectedId string
+		}
+
+		DescribeTable("generating resource identifiers",
+			func(tc testCase) {
+				id := util.GetResourceID(tc.object, tc.scheme)
+				Expect(id).To(Equal(tc.expectedId))
+			},
+			Entry("object with TypeMeta set", testCase{
+				object: &corev1.ConfigMap{
+					TypeMeta: metav1.TypeMeta{
+						APIVersion: "v1",
+						Kind:       "ConfigMap",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-cm",
+						Namespace: "default",
+					},
+				},
+				scheme:     standardScheme,
+				expectedId: "ConfigMap (default/test-cm)",
+			}),
+			Entry("object without TypeMeta set", testCase{
+				object: &corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-cm",
+						Namespace: "default",
+					},
+				},
+				scheme:     standardScheme,
+				expectedId: "ConfigMap (default/test-cm)",
+			}),
+			Entry("object with nil scheme", testCase{
+				object: &corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-cm",
+						Namespace: "default",
+					},
+				},
+				scheme:     nil,
+				expectedId: "Unknown (default/test-cm)",
+			}),
+			Entry("object with empty scheme", testCase{
+				object: &corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-cm",
+						Namespace: "default",
+					},
+				},
+				scheme:     emptyScheme,
+				expectedId: "Unknown (default/test-cm)",
+			}),
+			Entry("object in cluster scope (no namespace)", testCase{
+				object: &corev1.Node{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "worker-node-1",
+					},
+				},
+				scheme:     standardScheme,
+				expectedId: "Node (worker-node-1)",
+			}),
+		)
+	})
 })

@@ -2,7 +2,6 @@ package sawchain
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -79,7 +78,9 @@ type Sawchain struct {
 //	sc := sawchain.New(t, k8sClient, "20s", "2s")
 func New(t testing.TB, c client.Client, args ...interface{}) *Sawchain {
 	// Create Gomega
-	g := gomega.NewGomegaWithT(t)
+	g := gomega.NewWithT(t)
+	// Check client
+	g.Expect(c).NotTo(gomega.BeNil(), "client must not be nil")
 	// Parse options
 	opts, err := options.ParseAndRequireGlobal(&options.Options{
 		Timeout:  time.Second * 10,
@@ -93,11 +94,15 @@ func New(t testing.TB, c client.Client, args ...interface{}) *Sawchain {
 
 // HELPER FUNCTIONS
 
+func (s *Sawchain) id(obj client.Object) string {
+	return util.GetResourceID(obj, s.c.Scheme())
+}
+
 func (s *Sawchain) get(ctx context.Context, obj client.Object) error {
 	return s.c.Get(ctx, client.ObjectKeyFromObject(obj), obj)
 }
 
-func (s *Sawchain) getFunc(ctx context.Context, obj client.Object) func() error {
+func (s *Sawchain) getF(ctx context.Context, obj client.Object) func() error {
 	return func() error { return s.get(ctx, obj) }
 }
 
@@ -107,22 +112,20 @@ func (s *Sawchain) checkResourceVersion(ctx context.Context, obj client.Object, 
 	}
 	actualResourceVersion := obj.GetResourceVersion()
 	if actualResourceVersion < minResourceVersion {
-		// TODO: include object key in error message
-		return fmt.Errorf("insufficient resource version: expected at least %s but got %s",
-			minResourceVersion, actualResourceVersion)
+		return fmt.Errorf("%s: insufficient resource version: expected at least %s but got %s",
+			s.id(obj), minResourceVersion, actualResourceVersion)
 	}
 	return nil
 }
 
-func (s *Sawchain) checkResourceVersionFunc(ctx context.Context, obj client.Object, minResourceVersion string) func() error {
+func (s *Sawchain) checkResourceVersionF(ctx context.Context, obj client.Object, minResourceVersion string) func() error {
 	return func() error { return s.checkResourceVersion(ctx, obj, minResourceVersion) }
 }
 
 func (s *Sawchain) checkNotFound(ctx context.Context, obj client.Object) error {
 	err := s.get(ctx, obj)
 	if err == nil {
-		// TODO: include object key in error message
-		return errors.New("expected resource not to be found")
+		return fmt.Errorf("%s: expected resource not to be found", s.id(obj))
 	}
 	if !apierrors.IsNotFound(err) {
 		return err
@@ -130,7 +133,7 @@ func (s *Sawchain) checkNotFound(ctx context.Context, obj client.Object) error {
 	return nil
 }
 
-func (s *Sawchain) checkNotFoundFunc(ctx context.Context, obj client.Object) func() error {
+func (s *Sawchain) checkNotFoundF(ctx context.Context, obj client.Object) func() error {
 	return func() error { return s.checkNotFound(ctx, obj) }
 }
 
@@ -217,7 +220,7 @@ func (s *Sawchain) CreateResourceAndWait(ctx context.Context, args ...interface{
 		s.g.Expect(s.c.Create(ctx, &unstructuredObj)).To(gomega.Succeed(), errFailedCreateWithTemplate)
 
 		// Wait for cache to sync
-		s.g.Eventually(s.getFunc(ctx, &unstructuredObj), opts.Timeout, opts.Interval).Should(gomega.Succeed(), errCacheNotSynced)
+		s.g.Eventually(s.getF(ctx, &unstructuredObj), opts.Timeout, opts.Interval).Should(gomega.Succeed(), errCacheNotSynced)
 
 		// Save object
 		if opts.Object != nil {
@@ -228,7 +231,7 @@ func (s *Sawchain) CreateResourceAndWait(ctx context.Context, args ...interface{
 		s.g.Expect(s.c.Create(ctx, opts.Object)).To(gomega.Succeed(), errFailedCreateWithObject)
 
 		// Wait for cache to sync
-		s.g.Eventually(s.getFunc(ctx, opts.Object), opts.Timeout, opts.Interval).Should(gomega.Succeed(), errCacheNotSynced)
+		s.g.Eventually(s.getF(ctx, opts.Object), opts.Timeout, opts.Interval).Should(gomega.Succeed(), errCacheNotSynced)
 	}
 
 	return nil
@@ -316,7 +319,7 @@ func (s *Sawchain) UpdateResourceAndWait(ctx context.Context, args ...interface{
 
 		// Wait for cache to sync
 		updatedResourceVersion := unstructuredObj.GetResourceVersion()
-		s.g.Eventually(s.checkResourceVersionFunc(ctx, &unstructuredObj, updatedResourceVersion),
+		s.g.Eventually(s.checkResourceVersionF(ctx, &unstructuredObj, updatedResourceVersion),
 			opts.Timeout, opts.Interval).Should(gomega.Succeed(), errCacheNotSynced)
 
 		// Save object
@@ -329,7 +332,7 @@ func (s *Sawchain) UpdateResourceAndWait(ctx context.Context, args ...interface{
 
 		// Wait for cache to sync
 		updatedResourceVersion := opts.Object.GetResourceVersion()
-		s.g.Eventually(s.checkResourceVersionFunc(ctx, opts.Object, updatedResourceVersion),
+		s.g.Eventually(s.checkResourceVersionF(ctx, opts.Object, updatedResourceVersion),
 			opts.Timeout, opts.Interval).Should(gomega.Succeed(), errCacheNotSynced)
 	}
 
@@ -425,7 +428,7 @@ func (s *Sawchain) DeleteResourceAndWait(ctx context.Context, args ...interface{
 		s.g.Expect(s.c.Delete(ctx, &unstructuredObj)).To(gomega.Succeed(), errFailedDeleteWithTemplate)
 
 		// Wait for cache to sync
-		s.g.Eventually(s.checkNotFoundFunc(ctx, &unstructuredObj), opts.Timeout, opts.Interval).Should(gomega.Succeed(), errCacheNotSynced)
+		s.g.Eventually(s.checkNotFoundF(ctx, &unstructuredObj), opts.Timeout, opts.Interval).Should(gomega.Succeed(), errCacheNotSynced)
 
 		// Save object
 		if opts.Object != nil {
@@ -436,7 +439,7 @@ func (s *Sawchain) DeleteResourceAndWait(ctx context.Context, args ...interface{
 		s.g.Expect(s.c.Delete(ctx, opts.Object)).To(gomega.Succeed(), errFailedDeleteWithObject)
 
 		// Wait for cache to sync
-		s.g.Eventually(s.checkNotFoundFunc(ctx, opts.Object), opts.Timeout, opts.Interval).Should(gomega.Succeed(), errCacheNotSynced)
+		s.g.Eventually(s.checkNotFoundF(ctx, opts.Object), opts.Timeout, opts.Interval).Should(gomega.Succeed(), errCacheNotSynced)
 	}
 
 	return nil

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"strings"
 	"time"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -271,4 +272,17 @@ func CopyUnstructuredToObject(
 	deepCopyMethod.Call(args)
 
 	return nil
+}
+
+// GetResourceID returns a formatted string with Kind, Namespace, and Name.
+func GetResourceID(obj client.Object, scheme *runtime.Scheme) string {
+	kind := "Unknown"
+	if scheme != nil {
+		if gvk, _, _ := scheme.ObjectKinds(obj); len(gvk) > 0 {
+			kind = gvk[0].Kind
+		}
+	}
+	key := client.ObjectKeyFromObject(obj)
+	keyString := strings.TrimLeft(key.String(), "/")
+	return fmt.Sprintf("%s (%s)", kind, keyString)
 }
