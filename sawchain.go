@@ -287,7 +287,7 @@ func (s *Sawchain) CreateResourceAndWait(ctx context.Context, args ...interface{
 //	  apiVersion: v1
 //	  kind: ConfigMap
 //	  metadata:
-//	    name: ($prefix)-cm1
+//	    name: (join('-', [$prefix, 'cm1']))
 //	    namespace: ($namespace)
 //	  data:
 //	    key1: value1
@@ -295,7 +295,7 @@ func (s *Sawchain) CreateResourceAndWait(ctx context.Context, args ...interface{
 //	  apiVersion: v1
 //	  kind: ConfigMap
 //	  metadata:
-//	    name: ($prefix)-cm2
+//	    name: (join('-', [$prefix, 'cm2']))
 //	    namespace: ($namespace)
 //	  data:
 //	    key2: value2
@@ -307,7 +307,7 @@ func (s *Sawchain) CreateResourceAndWait(ctx context.Context, args ...interface{
 //	  apiVersion: v1
 //	  kind: ConfigMap
 //	  metadata:
-//	    name: ($prefix)-cm1
+//	    name: (join('-', [$prefix, 'cm1']))
 //	    namespace: ($namespace)
 //	  data:
 //	    key1: value1
@@ -315,7 +315,7 @@ func (s *Sawchain) CreateResourceAndWait(ctx context.Context, args ...interface{
 //	  apiVersion: v1
 //	  kind: ConfigMap
 //	  metadata:
-//	    name: ($prefix)-cm2
+//	    name: (join('-', [$prefix, 'cm2']))
 //	    namespace: ($namespace)
 //	  data:
 //	    key2: value2
