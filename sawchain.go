@@ -188,8 +188,8 @@ func (s *Sawchain) checkNotFoundF(ctx context.Context, obj client.Object) func()
 //	  apiVersion: v1
 //	  kind: ConfigMap
 //	  metadata:
-//	    name: {{ .name }}
-//	    namespace: {{ .namespace }}
+//	    name: ($name)
+//	    namespace: ($namespace)
 //	  data:
 //	    key: value
 //	`, map[string]any{"name": "test-cm", "namespace": "default"})
@@ -200,8 +200,8 @@ func (s *Sawchain) checkNotFoundF(ctx context.Context, obj client.Object) func()
 //	  apiVersion: v1
 //	  kind: ConfigMap
 //	  metadata:
-//	    name: {{ .name }}
-//	    namespace: {{ .namespace }}
+//	    name: ($name)
+//	    namespace: ($namespace)
 //	  data:
 //	    key: value
 //	`, map[string]any{"name": "test-cm", "namespace": "default"})
@@ -237,8 +237,91 @@ func (s *Sawchain) CreateResourceAndWait(ctx context.Context, args ...interface{
 	return nil
 }
 
-// TODO: document
-// CreateResourcesAndWait creates multiple resources and waits for client cache to sync.
+// CreateResourcesAndWait creates resources with objects, a manifest, or a Chainsaw template containing
+// multiple resources, and ensures client Get operations for all resources succeed within a configurable
+// duration before returning.
+//
+// If testing with a cached client, this ensures the client cache is synced and it is safe to make
+// assertions on the resources immediately after execution.
+//
+// Invalid input, client errors, and timeout errors will result in immediate test failure.
+//
+// # Arguments
+//
+// The following arguments may be provided in any order (unless noted otherwise) after the context:
+//
+//   - Objects ([]client.Object): Required if a template is not provided. Slice of typed or unstructured
+//     objects for reading/writing resource states. If provided without a template, resource states will be
+//     read from the objects for creation. If provided with a template, resource states will be read from the
+//     template and written to the objects. States will be maintained in the original input format, which may
+//     require internal type conversions using the client scheme.
+//
+//   - Template (string): Required if objects are not provided. File path or content of a static
+//     manifest or Chainsaw template containing multiple complete resource definitions. If provided,
+//     resource states will be read from the template for creation.
+//
+//   - Bindings (map[string]any): Optional. Bindings to be applied to a Chainsaw template (if provided)
+//     in addition to (or overriding) Sawchain's global bindings. If multiple maps are provided, they
+//     will be merged in natural order.
+//
+//   - Timeout (string or time.Duration): Optional. Defaults to Sawchain's global timeout value.
+//     Duration within which client Get operations for all resources should succeed after creation.
+//     If provided, must be before interval.
+//
+//   - Interval (string or time.Duration): Optional. Defaults to Sawchain's global interval value.
+//     Polling interval for checking the resources after creation. If provided, must be after timeout.
+//
+// # Examples
+//
+// Create resources with objects:
+//
+//	sc.CreateResourcesAndWait(ctx, []client.Object{obj1, obj2, obj3})
+//
+// Create resources with a manifest file and override duration settings:
+//
+//	sc.CreateResourcesAndWait(ctx, "path/to/manifest.yaml", "20s", "2s")
+//
+// Create resources with a Chainsaw template and bindings:
+//
+//	sc.CreateResourcesAndWait(ctx, `
+//	  ---
+//	  apiVersion: v1
+//	  kind: ConfigMap
+//	  metadata:
+//	    name: ($prefix)-cm1
+//	    namespace: ($namespace)
+//	  data:
+//	    key1: value1
+//	  ---
+//	  apiVersion: v1
+//	  kind: ConfigMap
+//	  metadata:
+//	    name: ($prefix)-cm2
+//	    namespace: ($namespace)
+//	  data:
+//	    key2: value2
+//	`, map[string]any{"prefix": "test", "namespace": "default"})
+//
+// Create resources with a Chainsaw template and save the resources' states to objects:
+//
+//	sc.CreateResourcesAndWait(ctx, []client.Object{obj1, obj2}, `
+//	  ---
+//	  apiVersion: v1
+//	  kind: ConfigMap
+//	  metadata:
+//	    name: ($prefix)-cm1
+//	    namespace: ($namespace)
+//	  data:
+//	    key1: value1
+//	  ---
+//	  apiVersion: v1
+//	  kind: ConfigMap
+//	  metadata:
+//	    name: ($prefix)-cm2
+//	    namespace: ($namespace)
+//	  data:
+//	    key2: value2
+//	`, map[string]any{"prefix": "test", "namespace": "default"})
 func (s *Sawchain) CreateResourcesAndWait(ctx context.Context, args ...interface{}) error {
 	// Parse options
 	opts, err := options.ParseAndRequireEventualMulti(&s.opts, args...)
