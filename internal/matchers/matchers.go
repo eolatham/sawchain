@@ -15,7 +15,7 @@ import (
 )
 
 // chainsawMatcher is a Gomega matcher that checks if
-// a client.Object matches a Chainsaw resource template.
+// a client.Object matches a Chainsaw template.
 type chainsawMatcher struct {
 	// K8s client used for type conversions.
 	c client.Client

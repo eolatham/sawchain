@@ -975,7 +975,7 @@ func (s *Sawchain) CheckResourcesFunc(ctx context.Context, args ...interface{}) 
 // CUSTOM MATCHERS
 
 // TODO: document
-// Match returns a matcher that checks if a client.Object matches a Chainsaw resource template.
+// Match returns a matcher that checks if a client.Object matches a Chainsaw template.
 func (s *Sawchain) MatchYAML(template string, bindings ...map[string]any) types.GomegaMatcher {
 	if util.IsExistingFile(template) {
 		var err error

@@ -169,6 +169,12 @@ var _ = Describe("Options", func() {
 			}),
 
 			// Invalid arguments
+			Entry("interval greater than timeout", testCase{
+				defaults:      nil,
+				args:          []interface{}{"1s", "5s"},
+				expectedError: "provided interval is greater than timeout",
+			}),
+
 			Entry("too many duration arguments", testCase{
 				defaults:      nil,
 				args:          []interface{}{"5s", "1s", "2s"},
@@ -1134,6 +1140,12 @@ var _ = Describe("Options", func() {
 				expectedError: "provided client.Object is nil or has a nil underlying value",
 			}),
 
+			Entry("interval greater than timeout", testCase{
+				defaults:      nil,
+				args:          []interface{}{"1s", "5s", "template content"},
+				expectedError: "provided interval is greater than timeout",
+			}),
+
 			Entry("too many duration arguments", testCase{
 				defaults:      nil,
 				args:          []interface{}{"5s", "1s", "2s", "template content"},
@@ -1522,6 +1534,12 @@ var _ = Describe("Options", func() {
 					},
 				},
 				expectedError: "provided []client.Object contains an element that is nil or has a nil underlying value",
+			}),
+
+			Entry("interval greater than timeout", testCase{
+				defaults:      nil,
+				args:          []interface{}{"1s", "5s", "template content"},
+				expectedError: "provided interval is greater than timeout",
 			}),
 
 			Entry("too many duration arguments", testCase{

@@ -46,10 +46,13 @@ func parse(
 			// Check for Timeout and Interval
 			if d, ok := util.AsDuration(arg); ok {
 				if opts.Timeout != 0 && opts.Interval != 0 {
-					return nil, fmt.Errorf("too many duration arguments provided")
+					return nil, errors.New("too many duration arguments provided")
 				} else if opts.Timeout == 0 {
 					opts.Timeout = d
 				} else {
+					if d > opts.Timeout {
+						return nil, errors.New("provided interval is greater than timeout")
+					}
 					opts.Interval = d
 				}
 				continue
@@ -60,10 +63,10 @@ func parse(
 			// Check for Object
 			if obj, ok := util.AsObject(arg); ok {
 				if opts.Object != nil {
-					return nil, fmt.Errorf("multiple client.Object arguments provided")
+					return nil, errors.New("multiple client.Object arguments provided")
 				} else {
 					if util.IsNil(obj) {
-						return nil, fmt.Errorf(
+						return nil, errors.New(
 							"provided client.Object is nil or has a nil underlying value")
 					}
 					opts.Object = obj
@@ -76,11 +79,11 @@ func parse(
 			// Check for Objects
 			if objs, ok := util.AsSliceOfObjects(arg); ok {
 				if opts.Objects != nil {
-					return nil, fmt.Errorf("multiple []client.Object arguments provided")
+					return nil, errors.New("multiple []client.Object arguments provided")
 				} else {
 					for _, obj := range objs {
 						if util.IsNil(obj) {
-							return nil, fmt.Errorf(
+							return nil, errors.New(
 								"provided []client.Object contains an element that is nil or has a nil underlying value")
 						}
 					}
@@ -94,7 +97,7 @@ func parse(
 			// Check for Template
 			if str, ok := arg.(string); ok {
 				if opts.Template != "" {
-					return nil, fmt.Errorf("multiple template arguments provided")
+					return nil, errors.New("multiple template arguments provided")
 				} else if util.IsExistingFile(str) {
 					content, err := util.ReadFileContent(str)
 					if err != nil {
