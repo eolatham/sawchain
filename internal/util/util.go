@@ -277,10 +277,8 @@ func CopyUnstructuredToObject(
 // GetResourceID returns a formatted string with Kind, Namespace, and Name.
 func GetResourceID(obj client.Object, scheme *runtime.Scheme) string {
 	kind := "Unknown"
-	if scheme != nil {
-		if gvk, _, _ := scheme.ObjectKinds(obj); len(gvk) > 0 {
-			kind = gvk[0].Kind
-		}
+	if gvk, err := GetGroupVersionKind(obj, scheme); err == nil {
+		kind = gvk.Kind
 	}
 	key := client.ObjectKeyFromObject(obj)
 	keyString := strings.TrimLeft(key.String(), "/")
