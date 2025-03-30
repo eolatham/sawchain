@@ -137,14 +137,14 @@ metadata:
   name: ($name)
   namespace: default
 type: Opaque
-data:
+stringData:
   username: ($username)
   password: ($password)
 `,
 				bindings: map[string]any{
 					"name":     "test-secret",
-					"username": "dXNlcm5hbWU=",
-					"password": "cGFzc3dvcmQ=",
+					"username": "username",
+					"password": "password",
 				},
 				expectedObjs: []unstructured.Unstructured{
 					{
@@ -156,9 +156,9 @@ data:
 								"namespace": "default",
 							},
 							"type": "Opaque",
-							"data": map[string]interface{}{
-								"username": "dXNlcm5hbWU=",
-								"password": "cGFzc3dvcmQ=",
+							"stringData": map[string]interface{}{
+								"username": "username",
+								"password": "password",
 							},
 						},
 					},
@@ -182,7 +182,7 @@ metadata:
   name: ($secret_name)
   namespace: ($namespace)
 type: Opaque
-data:
+stringData:
   password: ($password)
 `,
 				bindings: map[string]any{
@@ -190,7 +190,7 @@ data:
 					"secret_name": "test-secret",
 					"namespace":   "test-namespace",
 					"value1":      "rendered-value",
-					"password":    "cGFzc3dvcmQ=",
+					"password":    "password",
 				},
 				expectedObjs: []unstructured.Unstructured{
 					{
@@ -215,8 +215,8 @@ data:
 								"namespace": "test-namespace",
 							},
 							"type": "Opaque",
-							"data": map[string]interface{}{
-								"password": "cGFzc3dvcmQ=",
+							"stringData": map[string]interface{}{
+								"password": "password",
 							},
 						},
 					},
@@ -409,14 +409,14 @@ metadata:
   name: ($name)
   namespace: default
 type: Opaque
-data:
+stringData:
   username: ($username)
   password: ($password)
 `,
 				bindings: map[string]any{
 					"name":     "test-secret",
-					"username": "dXNlcm5hbWU=",
-					"password": "cGFzc3dvcmQ=",
+					"username": "username",
+					"password": "password",
 				},
 				expectedObj: unstructured.Unstructured{
 					Object: map[string]interface{}{
@@ -427,9 +427,9 @@ data:
 							"namespace": "default",
 						},
 						"type": "Opaque",
-						"data": map[string]interface{}{
-							"username": "dXNlcm5hbWU=",
-							"password": "cGFzc3dvcmQ=",
+						"stringData": map[string]interface{}{
+							"username": "username",
+							"password": "password",
 						},
 					},
 				},
@@ -1485,8 +1485,8 @@ metadata:
     app: target-app
     environment: dev
 type: Opaque
-data:
-  username: dXNlcm5hbWU=
+stringData:
+  username: username
 ---
 apiVersion: v1
 kind: Secret
@@ -1498,8 +1498,8 @@ metadata:
     environment: production
     extra: label
 type: Opaque
-data:
-  username: dXNlcm5hbWU=
+stringData:
+  username: username
 `,
 				templateContent: `
 apiVersion: v1
@@ -1524,8 +1524,8 @@ metadata:
 							},
 						},
 						"type": "Opaque",
-						"data": map[string]interface{}{
-							"username": "dXNlcm5hbWU=",
+						"stringData": map[string]interface{}{
+							"username": "username",
 						},
 					},
 				},

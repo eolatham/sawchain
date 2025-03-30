@@ -196,7 +196,7 @@ func (s *Sawchain) checkNotFoundF(ctx context.Context, obj client.Object) func()
 //
 // Create a resource with a Chainsaw template and save the resource's state to an object:
 //
-//	sc.CreateResourceAndWait(ctx, obj, `
+//	sc.CreateResourceAndWait(ctx, configMap, `
 //	  apiVersion: v1
 //	  kind: ConfigMap
 //	  metadata:
@@ -287,38 +287,42 @@ func (s *Sawchain) CreateResourceAndWait(ctx context.Context, args ...interface{
 //	  apiVersion: v1
 //	  kind: ConfigMap
 //	  metadata:
-//	    name: (join('-', [$prefix, 'cm1']))
+//	    name: (join('-', [$prefix, 'cm']))
 //	    namespace: ($namespace)
 //	  data:
-//	    key1: value1
+//	    key: value
 //	  ---
 //	  apiVersion: v1
-//	  kind: ConfigMap
+//	  kind: Secret
 //	  metadata:
-//	    name: (join('-', [$prefix, 'cm2']))
+//	    name: (join('-', [$prefix, 'secret']))
 //	    namespace: ($namespace)
-//	  data:
-//	    key2: value2
+//	  type: Opaque
+//	  stringData:
+//	    username: admin
+//	    password: secret
 //	`, map[string]any{"prefix": "test", "namespace": "default"})
 //
 // Create resources with a Chainsaw template and save the resources' states to objects:
 //
-//	sc.CreateResourcesAndWait(ctx, []client.Object{obj1, obj2}, `
+//	sc.CreateResourcesAndWait(ctx, []client.Object{configMap, secret}, `
 //	  apiVersion: v1
 //	  kind: ConfigMap
 //	  metadata:
-//	    name: (join('-', [$prefix, 'cm1']))
+//	    name: (join('-', [$prefix, 'cm']))
 //	    namespace: ($namespace)
 //	  data:
-//	    key1: value1
+//	    key: value
 //	  ---
 //	  apiVersion: v1
-//	  kind: ConfigMap
+//	  kind: Secret
 //	  metadata:
-//	    name: (join('-', [$prefix, 'cm2']))
+//	    name: (join('-', [$prefix, 'secret']))
 //	    namespace: ($namespace)
-//	  data:
-//	    key2: value2
+//	  type: Opaque
+//	  stringData:
+//	    username: admin
+//	    password: secret
 //	`, map[string]any{"prefix": "test", "namespace": "default"})
 func (s *Sawchain) CreateResourcesAndWait(ctx context.Context, args ...interface{}) error {
 	// Parse options
@@ -382,8 +386,73 @@ func (s *Sawchain) CreateResourcesAndWait(ctx context.Context, args ...interface
 
 // UPDATE OPERATIONS
 
-// TODO: document
-// UpdateResourceAndWait updates a resource and waits for client cache to sync.
+// UpdateResourceAndWait updates a resource with an object, manifest, or Chainsaw template, and ensures
+// client Get operations for the resource reflect the update within a configurable duration before
+// returning.
+//
+// If testing with a cached client, this ensures the client cache is synced and it is safe to make
+// assertions on the updated resource immediately after execution.
+//
+// Invalid input, client errors, and timeout errors will result in immediate test failure.
+//
+// # Arguments
+//
+// The following arguments may be provided in any order (unless noted otherwise) after the context:
+//
+//   - Object (client.Object): Required if a template is not provided. Typed or unstructured object for
+//     reading/writing resource state. If provided without a template, resource state will be read from
+//     the object for update. If provided with a template, resource state will be read from the
+//     template and written to the object. State will be maintained in the original input format,
+//     which may require internal type conversions using the client scheme.
+//
+//   - Template (string): Required if an object is not provided. File path or content of a static
+//     manifest or Chainsaw template containing a single complete resource definition. If provided,
+//     resource state will be read from the template for update.
+//
+//   - Bindings (map[string]any): Optional. Bindings to be applied to a Chainsaw template (if provided)
+//     in addition to (or overriding) Sawchain's global bindings. If multiple maps are provided, they
+//     will be merged in natural order.
+//
+//   - Timeout (string or time.Duration): Optional. Defaults to Sawchain's global timeout value.
+//     Duration within which client Get operations for the resource should reflect the update.
+//     If provided, must be before interval.
+//
+//   - Interval (string or time.Duration): Optional. Defaults to Sawchain's global interval value.
+//     Polling interval for checking the resource after update. If provided, must be after timeout.
+//
+// # Examples
+//
+// Update a resource with an object:
+//
+//	sc.UpdateResourceAndWait(ctx, obj)
+//
+// Update a resource with a manifest file and override duration settings:
+//
+//	sc.UpdateResourceAndWait(ctx, "path/to/manifest.yaml", "20s", "2s")
+//
+// Update a resource with a Chainsaw template and bindings:
+//
+//	sc.UpdateResourceAndWait(ctx, `
+//	  apiVersion: v1
+//	  kind: ConfigMap
+//	  metadata:
+//	    name: ($name)
+//	    namespace: ($namespace)
+//	  data:
+//	    key: updated-value
+//	`, map[string]any{"name": "test-cm", "namespace": "default"})
+//
+// Update a resource with a Chainsaw template and save the resource's updated state to an object:
+//
+//	sc.UpdateResourceAndWait(ctx, configMap, `
+//	  apiVersion: v1
+//	  kind: ConfigMap
+//	  metadata:
+//	    name: ($name)
+//	    namespace: ($namespace)
+//	  data:
+//	    key: updated-value
+//	`, map[string]any{"name": "test-cm", "namespace": "default"})
 func (s *Sawchain) UpdateResourceAndWait(ctx context.Context, args ...interface{}) error {
 	// Parse options
 	opts, err := options.ParseAndRequireEventualSingle(&s.opts, args...)
@@ -420,8 +489,93 @@ func (s *Sawchain) UpdateResourceAndWait(ctx context.Context, args ...interface{
 	return nil
 }
 
-// TODO: document
-// UpdateResourcesAndWait updates multiple resources and waits for client cache to sync.
+// UpdateResourcesAndWait updates resources with objects, a manifest, or a Chainsaw template containing
+// multiple resources, and ensures client Get operations for all resources reflect the updates within a
+// configurable duration before returning.
+//
+// If testing with a cached client, this ensures the client cache is synced and it is safe to make
+// assertions on the updated resources immediately after execution.
+//
+// Invalid input, client errors, and timeout errors will result in immediate test failure.
+//
+// # Arguments
+//
+// The following arguments may be provided in any order (unless noted otherwise) after the context:
+//
+//   - Objects ([]client.Object): Required if a template is not provided. Slice of typed or unstructured
+//     objects for reading/writing resource states. If provided without a template, resource states will be
+//     read from the objects for update. If provided with a template, resource states will be read from the
+//     template and written to the objects. States will be maintained in the original input format, which may
+//     require internal type conversions using the client scheme.
+//
+//   - Template (string): Required if objects are not provided. File path or content of a static
+//     manifest or Chainsaw template containing multiple complete resource definitions. If provided,
+//     resource states will be read from the template for update.
+//
+//   - Bindings (map[string]any): Optional. Bindings to be applied to a Chainsaw template (if provided)
+//     in addition to (or overriding) Sawchain's global bindings. If multiple maps are provided, they
+//     will be merged in natural order.
+//
+//   - Timeout (string or time.Duration): Optional. Defaults to Sawchain's global timeout value.
+//     Duration within which client Get operations for all resources should reflect the updates.
+//     If provided, must be before interval.
+//
+//   - Interval (string or time.Duration): Optional. Defaults to Sawchain's global interval value.
+//     Polling interval for checking the resources after update. If provided, must be after timeout.
+//
+// # Examples
+//
+// Update resources with objects:
+//
+//	sc.UpdateResourcesAndWait(ctx, []client.Object{obj1, obj2, obj3})
+//
+// Update resources with a manifest file and override duration settings:
+//
+//	sc.UpdateResourcesAndWait(ctx, "path/to/manifest.yaml", "20s", "2s")
+//
+// Update resources with a Chainsaw template and bindings:
+//
+//	sc.UpdateResourcesAndWait(ctx, `
+//	  apiVersion: v1
+//	  kind: ConfigMap
+//	  metadata:
+//	    name: (join('-', [$prefix, 'cm']))
+//	    namespace: ($namespace)
+//	  data:
+//	    key: updated-value
+//	  ---
+//	  apiVersion: v1
+//	  kind: Secret
+//	  metadata:
+//	    name: (join('-', [$prefix, 'secret']))
+//	    namespace: ($namespace)
+//	  type: Opaque
+//	  stringData:
+//	    username: admin
+//	    password: updated-secret
+//	`, map[string]any{"prefix": "test", "namespace": "default"})
+//
+// Update resources with a Chainsaw template and save the resources' updated states to objects:
+//
+//	sc.UpdateResourcesAndWait(ctx, []client.Object{configMap, secret}, `
+//	  apiVersion: v1
+//	  kind: ConfigMap
+//	  metadata:
+//	    name: (join('-', [$prefix, 'cm']))
+//	    namespace: ($namespace)
+//	  data:
+//	    key: updated-value
+//	  ---
+//	  apiVersion: v1
+//	  kind: Secret
+//	  metadata:
+//	    name: (join('-', [$prefix, 'secret']))
+//	    namespace: ($namespace)
+//	  type: Opaque
+//	  stringData:
+//	    username: admin
+//	    password: updated-secret
+//	`, map[string]any{"prefix": "test", "namespace": "default"})
 func (s *Sawchain) UpdateResourcesAndWait(ctx context.Context, args ...interface{}) error {
 	// Parse options
 	opts, err := options.ParseAndRequireEventualMulti(&s.opts, args...)
@@ -492,8 +646,57 @@ func (s *Sawchain) UpdateResourcesAndWait(ctx context.Context, args ...interface
 
 // DELETE OPERATIONS
 
-// TODO: document
-// DeleteResourceAndWait deletes a resource and waits for client cache to sync.
+// DeleteResourceAndWait deletes a resource with an object, manifest, or Chainsaw template, and ensures
+// client Get operations for the resource reflect the deletion (resource not found) within a configurable
+// duration before returning.
+//
+// If testing with a cached client, this ensures the client cache is synced and it is safe to make
+// assertions on the resource's absence immediately after execution.
+//
+// Invalid input, client errors, and timeout errors will result in immediate test failure.
+//
+// # Arguments
+//
+// The following arguments may be provided in any order (unless noted otherwise) after the context:
+//
+//   - Object (client.Object): Required if a template is not provided. Typed or unstructured object
+//     representing the resource to be deleted. If provided with a template, the template will take
+//     precedence and the object will be ignored.
+//
+//   - Template (string): Required if an object is not provided. File path or content of a static manifest
+//     or Chainsaw template containing the identifying metadata of the resource to be deleted. Takes
+//     precedence over object.
+//
+//   - Bindings (map[string]any): Optional. Bindings to be applied to a Chainsaw template (if provided)
+//     in addition to (or overriding) Sawchain's global bindings. If multiple maps are provided, they
+//     will be merged in natural order.
+//
+//   - Timeout (string or time.Duration): Optional. Defaults to Sawchain's global timeout value.
+//     Duration within which client Get operations for the resource should reflect deletion.
+//     If provided, must be before interval.
+//
+//   - Interval (string or time.Duration): Optional. Defaults to Sawchain's global interval value.
+//     Polling interval for checking the resource after deletion. If provided, must be after timeout.
+//
+// # Examples
+//
+// Delete a resource with an object:
+//
+//	sc.DeleteResourceAndWait(ctx, obj)
+//
+// Delete a resource with a manifest file and override duration settings:
+//
+//	sc.DeleteResourceAndWait(ctx, "path/to/manifest.yaml", "20s", "2s")
+//
+// Delete a resource with a Chainsaw template and bindings:
+//
+//	sc.DeleteResourceAndWait(ctx, `
+//	  apiVersion: v1
+//	  kind: ConfigMap
+//	  metadata:
+//	    name: ($name)
+//	    namespace: ($namespace)
+//	`, map[string]any{"name": "test-cm", "namespace": "default"})
 func (s *Sawchain) DeleteResourceAndWait(ctx context.Context, args ...interface{}) error {
 	// Parse options
 	opts, err := options.ParseAndRequireEventualSingle(&s.opts, args...)
@@ -510,11 +713,6 @@ func (s *Sawchain) DeleteResourceAndWait(ctx context.Context, args ...interface{
 
 		// Wait for cache to sync
 		s.g.Eventually(s.checkNotFoundF(ctx, &unstructuredObj), opts.Timeout, opts.Interval).Should(gomega.Succeed(), errCacheNotSynced)
-
-		// Save object
-		if opts.Object != nil {
-			s.g.Expect(util.CopyUnstructuredToObject(s.c, unstructuredObj, opts.Object)).To(gomega.Succeed(), errFailedSave)
-		}
 	} else {
 		// Delete resource
 		s.g.Expect(s.c.Delete(ctx, opts.Object)).To(gomega.Succeed(), errFailedDeleteWithObject)
@@ -526,8 +724,63 @@ func (s *Sawchain) DeleteResourceAndWait(ctx context.Context, args ...interface{
 	return nil
 }
 
-// TODO: document
-// DeleteResourcesAndWait deletes multiple resources and waits for client cache to sync.
+// DeleteResourcesAndWait deletes resources with objects, a manifest, or a Chainsaw template containing
+// multiple resources, and ensures client Get operations for all resources reflect the deletion (resources
+// not found) within a configurable duration before returning.
+//
+// If testing with a cached client, this ensures the client cache is synced and it is safe to make
+// assertions on the resources' absence immediately after execution.
+//
+// Invalid input, client errors, and timeout errors will result in immediate test failure.
+//
+// # Arguments
+//
+// The following arguments may be provided in any order (unless noted otherwise) after the context:
+//
+//   - Objects ([]client.Object): Required if a template is not provided. Slice of typed or unstructured
+//     objects representing the resources to be deleted. If provided with a template, the template will take
+//     precedence and the objects will be ignored.
+//
+//   - Template (string): Required if objects are not provided. File path or content of a static manifest
+//     or Chainsaw template containing the identifying metadata of the resources to be deleted. Takes
+//     precedence over objects.
+//
+//   - Bindings (map[string]any): Optional. Bindings to be applied to a Chainsaw template (if provided)
+//     in addition to (or overriding) Sawchain's global bindings. If multiple maps are provided, they
+//     will be merged in natural order.
+//
+//   - Timeout (string or time.Duration): Optional. Defaults to Sawchain's global timeout value.
+//     Duration within which client Get operations for all resources should reflect deletion.
+//     If provided, must be before interval.
+//
+//   - Interval (string or time.Duration): Optional. Defaults to Sawchain's global interval value.
+//     Polling interval for checking the resources after deletion. If provided, must be after timeout.
+//
+// # Examples
+//
+// Delete resources with objects:
+//
+//	sc.DeleteResourcesAndWait(ctx, []client.Object{obj1, obj2, obj3})
+//
+// Delete resources with a manifest file and override duration settings:
+//
+//	sc.DeleteResourcesAndWait(ctx, "path/to/manifest.yaml", "20s", "2s")
+//
+// Delete resources with a Chainsaw template and bindings:
+//
+//	sc.DeleteResourcesAndWait(ctx, `
+//	  apiVersion: v1
+//	  kind: ConfigMap
+//	  metadata:
+//	    name: (join('-', [$prefix, 'cm']))
+//	    namespace: ($namespace)
+//	  ---
+//	  apiVersion: v1
+//	  kind: Secret
+//	  metadata:
+//	    name: (join('-', [$prefix, 'secret']))
+//	    namespace: ($namespace)
+//	`, map[string]any{"prefix": "test", "namespace": "default"})
 func (s *Sawchain) DeleteResourcesAndWait(ctx context.Context, args ...interface{}) error {
 	// Parse options
 	opts, err := options.ParseAndRequireEventualMulti(&s.opts, args...)
@@ -560,13 +813,6 @@ func (s *Sawchain) DeleteResourcesAndWait(ctx context.Context, args ...interface
 			return nil
 		}
 		s.g.Eventually(checkAll, opts.Timeout, opts.Interval).Should(gomega.Succeed(), errCacheNotSynced)
-
-		// Save objects
-		if opts.Objects != nil {
-			for i, unstructuredObj := range unstructuredObjs {
-				s.g.Expect(util.CopyUnstructuredToObject(s.c, unstructuredObj, opts.Objects[i])).To(gomega.Succeed(), errFailedSave)
-			}
-		}
 	} else {
 		// Delete resources
 		for _, obj := range opts.Objects {
