@@ -1,11 +1,11 @@
 .PHONY: init
 init:
-	bash ./scripts/init.sh
+	go mod tidy
 
 .PHONY: test
-test:
-	bash ./scripts/test.sh
+test: init
+	go test $${PACKAGE:-./...} -cover
 
 .PHONY: debug
-debug:
-	bash ./scripts/debug.sh
+debug: init
+	dlv test $${PACKAGE} --listen=:40000 --headless=true --api-version=2

@@ -5,12 +5,13 @@ Go library for K8s YAML-driven testing—backed by [Chainsaw](https://github.com
 ## TODO
 
 * implementation
-* documentation
 * testing
-  * all possible argument combinations
-  * typed and unstructured objects
-* examples
+* documentation
 * branding
+* examples
+  * K8s helper function integration test (using fakeclient)
+  * K8s operator end-to-end test (using envtest)
+  * Helm install smoke test (using envtest)
 
 ## Usage
 
