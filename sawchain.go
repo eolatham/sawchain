@@ -57,7 +57,7 @@ type Sawchain struct {
 //   - Bindings (map[string]any): Optional. Global bindings to be used in all Chainsaw template
 //     operations. If multiple maps are provided, they will be merged in natural order.
 //
-//   - Timeout (string or time.Duration): Optional. Defaults to 10s. Default timeout for eventual
+//   - Timeout (string or time.Duration): Optional. Defaults to 5s. Default timeout for eventual
 //     assertions. If provided, must be before interval.
 //
 //   - Interval (string or time.Duration): Optional. Defaults to 1s. Default polling interval for
@@ -75,7 +75,7 @@ type Sawchain struct {
 //
 // Create a Sawchain instance with custom timeout and interval settings:
 //
-//	sc := sawchain.New(t, k8sClient, "20s", "2s")
+//	sc := sawchain.New(t, k8sClient, "10s", "2s")
 func New(t testing.TB, c client.Client, args ...interface{}) *Sawchain {
 	// Create Gomega
 	g := gomega.NewWithT(t)
@@ -83,7 +83,7 @@ func New(t testing.TB, c client.Client, args ...interface{}) *Sawchain {
 	g.Expect(c).NotTo(gomega.BeNil(), "client must not be nil")
 	// Parse options
 	opts, err := options.ParseAndRequireGlobal(&options.Options{
-		Timeout:  time.Second * 10,
+		Timeout:  time.Second * 5,
 		Interval: time.Second,
 	}, args...)
 	g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidArgs)
@@ -180,7 +180,7 @@ func (s *Sawchain) checkNotFoundF(ctx context.Context, obj client.Object) func()
 //
 // Create a resource with a manifest file and override duration settings:
 //
-//	sc.CreateResourceAndWait(ctx, "path/to/manifest.yaml", "20s", "2s")
+//	sc.CreateResourceAndWait(ctx, "path/to/manifest.yaml", "10s", "2s")
 //
 // Create a resource with a Chainsaw template and bindings:
 //
@@ -279,7 +279,7 @@ func (s *Sawchain) CreateResourceAndWait(ctx context.Context, args ...interface{
 //
 // Create resources with a manifest file and override duration settings:
 //
-//	sc.CreateResourcesAndWait(ctx, "path/to/manifest.yaml", "20s", "2s")
+//	sc.CreateResourcesAndWait(ctx, "path/to/manifest.yaml", "10s", "2s")
 //
 // Create resources with a Chainsaw template and bindings:
 //
@@ -428,7 +428,7 @@ func (s *Sawchain) CreateResourcesAndWait(ctx context.Context, args ...interface
 //
 // Update a resource with a manifest file and override duration settings:
 //
-//	sc.UpdateResourceAndWait(ctx, "path/to/manifest.yaml", "20s", "2s")
+//	sc.UpdateResourceAndWait(ctx, "path/to/manifest.yaml", "10s", "2s")
 //
 // Update a resource with a Chainsaw template and bindings:
 //
@@ -531,7 +531,7 @@ func (s *Sawchain) UpdateResourceAndWait(ctx context.Context, args ...interface{
 //
 // Update resources with a manifest file and override duration settings:
 //
-//	sc.UpdateResourcesAndWait(ctx, "path/to/manifest.yaml", "20s", "2s")
+//	sc.UpdateResourcesAndWait(ctx, "path/to/manifest.yaml", "10s", "2s")
 //
 // Update resources with a Chainsaw template and bindings:
 //
@@ -686,7 +686,7 @@ func (s *Sawchain) UpdateResourcesAndWait(ctx context.Context, args ...interface
 //
 // Delete a resource with a manifest file and override duration settings:
 //
-//	sc.DeleteResourceAndWait(ctx, "path/to/manifest.yaml", "20s", "2s")
+//	sc.DeleteResourceAndWait(ctx, "path/to/manifest.yaml", "10s", "2s")
 //
 // Delete a resource with a Chainsaw template and bindings:
 //
@@ -764,7 +764,7 @@ func (s *Sawchain) DeleteResourceAndWait(ctx context.Context, args ...interface{
 //
 // Delete resources with a manifest file and override duration settings:
 //
-//	sc.DeleteResourcesAndWait(ctx, "path/to/manifest.yaml", "20s", "2s")
+//	sc.DeleteResourcesAndWait(ctx, "path/to/manifest.yaml", "10s", "2s")
 //
 // Delete resources with a Chainsaw template and bindings:
 //
