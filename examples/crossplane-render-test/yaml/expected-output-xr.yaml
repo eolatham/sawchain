@@ -1,0 +1,12 @@
+apiVersion: example.crossplane.io/v1beta1
+kind: XR
+metadata:
+  name: example
+status:
+  conditions:
+    - lastTransitionTime: "2024-01-01T00:00:00Z"
+      message: "Unready resources: bucket-configmap-0"
+      reason: Creating
+      status: "False"
+      type: Ready
+  dummy: cool-status

@@ -4,7 +4,13 @@ init:
 
 .PHONY: test
 test: init
-	go test $${PACKAGE:-./...} -cover
+	go test -cover $$( \
+		if [ -n "$$PACKAGE" ]; then \
+			echo $$PACKAGE; \
+		else \
+			go list ./... | grep -v './examples'; \
+		fi \
+	)
 
 .PHONY: debug
 debug: init
