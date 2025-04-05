@@ -9,6 +9,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 type TestResource struct {
@@ -72,6 +74,23 @@ func NewStandardSchemeWithTestResource() *runtime.Scheme {
 	s := NewStandardScheme()
 	s.AddKnownTypes(schema.GroupVersion{Group: "example.com", Version: "v1"}, &TestResource{})
 	return s
+}
+
+// NewEmptyFakeClient returns a new fake client with an empty runtime.Scheme.
+func NewEmptyFakeClient() client.Client {
+	return fake.NewClientBuilder().WithScheme(NewEmptyScheme()).Build()
+}
+
+// NewStandardFakeClient returns a new fake client with a
+// standard runtime.scheme supporting built-in APIs.
+func NewStandardFakeClient() client.Client {
+	return fake.NewClientBuilder().WithScheme(NewStandardScheme()).Build()
+}
+
+// NewStandardFakeClientWithTestResource returns a new fake client with a
+// standard runtime.scheme supporting built-in APIs and the custom TestResource type.
+func NewStandardFakeClientWithTestResource() client.Client {
+	return fake.NewClientBuilder().WithScheme(NewStandardSchemeWithTestResource()).Build()
 }
 
 // NewConfigMap returns a typed ConfigMap

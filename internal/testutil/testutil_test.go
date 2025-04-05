@@ -53,7 +53,7 @@ var _ = Describe("Testutil", func() {
 		func() {
 			scheme := testutil.NewEmptyScheme()
 			Expect(scheme).NotTo(BeNil())
-			Expect(scheme.AllKnownTypes()).To(HaveLen(0))
+			Expect(scheme.AllKnownTypes()).To(BeEmpty())
 		},
 		Entry("creates empty scheme"),
 	)
@@ -63,6 +63,15 @@ var _ = Describe("Testutil", func() {
 			scheme := testutil.NewStandardScheme()
 			Expect(scheme).NotTo(BeNil())
 			Expect(scheme.AllKnownTypes()).NotTo(BeEmpty())
+
+			// Verify standard APIs are registered
+			pod, err := scheme.New(schema.GroupVersionKind{
+				Group:   "",
+				Version: "v1",
+				Kind:    "Pod",
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(pod).NotTo(BeNil())
 		},
 		Entry("creates standard scheme"),
 	)
@@ -71,7 +80,17 @@ var _ = Describe("Testutil", func() {
 		func() {
 			scheme := testutil.NewStandardSchemeWithTestResource()
 			Expect(scheme).NotTo(BeNil())
-			Expect(len(scheme.AllKnownTypes()) > 1).To(BeTrue(), "scheme should have multiple types")
+			Expect(scheme.AllKnownTypes()).NotTo(BeEmpty())
+
+			// Verify standard APIs are registered
+			pod, err := scheme.New(schema.GroupVersionKind{
+				Group:   "",
+				Version: "v1",
+				Kind:    "Pod",
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(pod).NotTo(BeNil())
+
 			// Verify TestResource is registered
 			obj, err := scheme.New(schema.GroupVersionKind{
 				Group:   "example.com",
@@ -82,6 +101,72 @@ var _ = Describe("Testutil", func() {
 			Expect(obj).To(BeAssignableToTypeOf(&testutil.TestResource{}))
 		},
 		Entry("creates standard scheme with TestResource"),
+	)
+
+	DescribeTable("NewEmptyFakeClient",
+		func() {
+			client := testutil.NewEmptyFakeClient()
+			Expect(client).NotTo(BeNil())
+
+			// Verify scheme is empty
+			scheme := client.Scheme()
+			Expect(scheme).NotTo(BeNil())
+			Expect(scheme.AllKnownTypes()).To(BeEmpty())
+		},
+		Entry("creates empty fake client"),
+	)
+
+	DescribeTable("NewStandardFakeClient",
+		func() {
+			client := testutil.NewStandardFakeClient()
+			Expect(client).NotTo(BeNil())
+
+			// Verify scheme has types
+			scheme := client.Scheme()
+			Expect(scheme).NotTo(BeNil())
+			Expect(scheme.AllKnownTypes()).NotTo(BeEmpty())
+
+			// Verify standard APIs are registered
+			pod, err := scheme.New(schema.GroupVersionKind{
+				Group:   "",
+				Version: "v1",
+				Kind:    "Pod",
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(pod).NotTo(BeNil())
+		},
+		Entry("creates standard fake client"),
+	)
+
+	DescribeTable("NewStandardFakeClientWithTestResource",
+		func() {
+			client := testutil.NewStandardFakeClientWithTestResource()
+			Expect(client).NotTo(BeNil())
+
+			// Verify scheme has types
+			scheme := client.Scheme()
+			Expect(scheme).NotTo(BeNil())
+			Expect(scheme.AllKnownTypes()).NotTo(BeEmpty())
+
+			// Verify standard APIs are registered
+			pod, err := scheme.New(schema.GroupVersionKind{
+				Group:   "",
+				Version: "v1",
+				Kind:    "Pod",
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(pod).NotTo(BeNil())
+
+			// Verify TestResource is registered
+			obj, err := scheme.New(schema.GroupVersionKind{
+				Group:   "example.com",
+				Version: "v1",
+				Kind:    "TestResource",
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(obj).To(BeAssignableToTypeOf(&testutil.TestResource{}))
+		},
+		Entry("creates standard fake client with TestResource"),
 	)
 
 	DescribeTable("NewConfigMap",
@@ -105,6 +190,7 @@ var _ = Describe("Testutil", func() {
 			Expect(unstructuredCm.GetKind()).To(Equal("ConfigMap"))
 			Expect(unstructuredCm.GetName()).To(Equal(name))
 			Expect(unstructuredCm.GetNamespace()).To(Equal(namespace))
+
 			// Check data
 			unstructuredData, found, err := unstructured.NestedMap(unstructuredCm.Object, "data")
 			Expect(err).NotTo(HaveOccurred(), "failed to get data from unstructured ConfigMap")
@@ -151,6 +237,7 @@ var _ = Describe("Testutil", func() {
 			Expect(unstructuredTr.GetKind()).To(Equal("TestResource"))
 			Expect(unstructuredTr.GetName()).To(Equal(name))
 			Expect(unstructuredTr.GetNamespace()).To(Equal(namespace))
+
 			// Check conditions
 			unstructuredConditions, found, err := unstructured.NestedSlice(unstructuredTr.Object, "status", "conditions")
 			Expect(err).NotTo(HaveOccurred(), "failed to get conditions from unstructured TestResource")
