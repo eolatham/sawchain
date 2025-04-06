@@ -1,0 +1,12 @@
+apiVersion: s3.aws.upbound.io/v1beta1
+kind: Bucket
+metadata:
+  labels:
+    testing.upbound.io/example-name: bucket-notification
+  name: my-awesome-prod-bucket
+spec:
+  forProvider:
+    region: us-west-1
+status:
+  atProvider:
+    id: random-bucket-id

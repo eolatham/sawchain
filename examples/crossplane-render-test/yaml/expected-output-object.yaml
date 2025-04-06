@@ -21,6 +21,6 @@ spec:
         bucket: random-bucket-id
       kind: ConfigMap
       metadata:
-        name: my-awesome-dev-bucket-bucket
+        name: ($expectedConfigMapName) # Templatized for reuse between test cases
   providerConfigRef:
     name: kubernetes

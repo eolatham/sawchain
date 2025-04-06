@@ -1,4 +1,4 @@
-package test
+package example
 
 import (
 	"bytes"
@@ -37,8 +37,8 @@ func runCrossplaneRender(xrPath, compositionPath, functionsPath string, extraRes
 	return stdout.String(), nil
 }
 
-// unstructuredObjectsFromYaml parses a YAML string into a slice of unstructured objects.
-func unstructuredObjectsFromYaml(yamlStr string) ([]client.Object, error) {
+// unstructuredFromYaml parses a YAML string into a slice of unstructured objects.
+func unstructuredFromYaml(yamlStr string) ([]client.Object, error) {
 	var result []client.Object
 
 	// Split multi-document YAML by "---" separator
