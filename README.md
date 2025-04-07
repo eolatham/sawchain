@@ -4,7 +4,8 @@ Go library for K8s YAML-driven testing—backed by [Chainsaw](https://github.com
 
 ## TODO
 
-* consider merging single-resource and multi-resource functions
+* unify APIs for Create, Update, Delete, Get, Check
+* revise APIs for Fetch to use generics for strong typing
 * implementation
 * testing
 * documentation
