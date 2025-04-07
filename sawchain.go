@@ -975,6 +975,7 @@ func (s *Sawchain) CheckResourcesFunc(ctx context.Context, args ...interface{}) 
 // CUSTOM MATCHERS
 
 // TODO: document
+// TODO: recommend enabling format.UseStringerRepresentation for better failure output
 // Match returns a matcher that checks if a client.Object matches a Chainsaw template.
 func (s *Sawchain) MatchYAML(template string, bindings ...map[string]any) types.GomegaMatcher {
 	if util.IsExistingFile(template) {
@@ -988,6 +989,7 @@ func (s *Sawchain) MatchYAML(template string, bindings ...map[string]any) types.
 }
 
 // TODO: document
+// TODO: recommend enabling format.UseStringerRepresentation for better failure output
 // HaveStatusCondition returns a matcher that checks if a client.Object has a specific status condition.
 func (s *Sawchain) HaveStatusCondition(conditionType, expectedStatus string) types.GomegaMatcher {
 	matcher := matchers.NewStatusConditionMatcher(s.c, conditionType, expectedStatus)

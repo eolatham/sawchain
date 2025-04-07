@@ -38,14 +38,14 @@ var _ = Describe("Matchers", func() {
 
 				// Test FailureMessage
 				failureMsg := matcher.FailureMessage(tc.actual)
-				Expect(failureMsg).To(ContainSubstring("to match template"))
+				Expect(failureMsg).To(ContainSubstring("Expected actual to match Chainsaw template"))
 				if tc.expectedMatchErr != "" {
 					Expect(failureMsg).To(ContainSubstring(tc.expectedMatchErr))
 				}
 
 				// Test NegatedFailureMessage
 				negatedFailureMsg := matcher.NegatedFailureMessage(tc.actual)
-				Expect(negatedFailureMsg).To(ContainSubstring("not to match template"))
+				Expect(negatedFailureMsg).To(ContainSubstring("Expected actual not to match Chainsaw template"))
 				if tc.expectedMatchErr != "" {
 					Expect(negatedFailureMsg).To(ContainSubstring(tc.expectedMatchErr))
 				}
@@ -271,14 +271,14 @@ metadata:
 
 				// Test FailureMessage
 				failureMsg := matcher.FailureMessage(tc.actual)
-				Expect(failureMsg).To(ContainSubstring("to match template"))
+				Expect(failureMsg).To(ContainSubstring("Expected actual to match Chainsaw template"))
 				if tc.expectedMatchErr != "" {
 					Expect(failureMsg).To(ContainSubstring(tc.expectedMatchErr))
 				}
 
 				// Test NegatedFailureMessage
 				negatedFailureMsg := matcher.NegatedFailureMessage(tc.actual)
-				Expect(negatedFailureMsg).To(ContainSubstring("not to match template"))
+				Expect(negatedFailureMsg).To(ContainSubstring("Expected actual not to match Chainsaw template"))
 				if tc.expectedMatchErr != "" {
 					Expect(negatedFailureMsg).To(ContainSubstring(tc.expectedMatchErr))
 				}

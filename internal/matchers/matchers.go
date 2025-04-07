@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/onsi/gomega/format"
 	"github.com/onsi/gomega/types"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -25,11 +26,12 @@ type chainsawMatcher struct {
 	templateContent string
 	// Template bindings.
 	bindings chainsaw.Bindings
+	// Template bindings map.
+	bindingsMap map[string]any
 	// Current match error.
 	matchError error
 }
 
-// Match implements the Gomega matcher interface.
 func (m *chainsawMatcher) Match(actual interface{}) (bool, error) {
 	if util.IsNil(actual) {
 		return false, errors.New("chainsawMatcher expects a client.Object but got nil")
@@ -54,22 +56,21 @@ func (m *chainsawMatcher) Match(actual interface{}) (bool, error) {
 	return m.matchError == nil, nil
 }
 
-// FailureMessage implements the Gomega matcher interface.
-func (m *chainsawMatcher) FailureMessage(actual interface{}) string {
-	baseMessage := fmt.Sprintf("Expected %+v to match template:\n", actual) + strings.Trim(m.templateContent, "\n") + "\n"
-	if m.matchError != nil {
-		return fmt.Sprintf("%s\n%v", baseMessage, m.matchError)
-	}
-	return baseMessage
+func (m *chainsawMatcher) String() string {
+	return fmt.Sprintf("\nTemplate:\n```\n%s\n```\nBindings:\n%s",
+		strings.Trim(m.templateContent, "\n"), format.Object(m.bindingsMap, 0))
 }
 
-// NegatedFailureMessage implements the Gomega matcher interface.
+func (m *chainsawMatcher) failureMessageFormat(actual interface{}, base string) string {
+	return fmt.Sprintf("%s\nActual:\n%s%s\nError: %v", base, format.Object(actual, 0), m.String(), m.matchError)
+}
+
+func (m *chainsawMatcher) FailureMessage(actual interface{}) string {
+	return m.failureMessageFormat(actual, "Expected actual to match Chainsaw template")
+}
+
 func (m *chainsawMatcher) NegatedFailureMessage(actual interface{}) string {
-	baseMessage := fmt.Sprintf("Expected %+v not to match template:\n", actual) + strings.Trim(m.templateContent, "\n") + "\n"
-	if m.matchError != nil {
-		return fmt.Sprintf("%s\n%v", baseMessage, m.matchError)
-	}
-	return baseMessage
+	return m.failureMessageFormat(actual, "Expected actual not to match Chainsaw template")
 }
 
 // NewChainsawMatcher creates a new chainsawMatcher with static template content.
@@ -83,7 +84,8 @@ func NewChainsawMatcher(
 		createTemplateContent: func(c client.Client, obj client.Object) (string, error) {
 			return templateContent, nil
 		},
-		bindings: chainsaw.BindingsFromMap(bindings),
+		bindings:    chainsaw.BindingsFromMap(bindings),
+		bindingsMap: bindings,
 	}
 }
 
