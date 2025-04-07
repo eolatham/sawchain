@@ -1,37 +1,27 @@
 package example
 
 import (
-	_ "embed"
-	"path/filepath"
-
+	"github.com/eolatham/sawchain"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-
-	"github.com/eolatham/sawchain"
 )
 
-const yamlDir = "yaml"
-
-//go:embed yaml/expected-output-xr.yaml
-var expectedXrYaml string
-
-//go:embed yaml/expected-output-object.yaml
-var expectedObjectYaml string
+const (
+	compositionPath    = "yaml/composition.yaml"
+	functionsPath      = "yaml/functions.yaml"
+	expectedXrPath     = "yaml/expected-xr.yaml"
+	expectedObjectPath = "yaml/expected-object.yaml"
+)
 
 var _ = Describe("Crossplane Render", func() {
 	// Create Sawchain instance with fake client
 	var sc = sawchain.New(GinkgoTB(), fake.NewClientBuilder().Build())
 
 	DescribeTable("rendering resources with function-go-templating",
-		func(xrFileName, extraResourcesFileName, expectedConfigMapName string) {
+		func(xrPath, extraResourcesPath, expectedConfigMapName string) {
 			// Run crossplane render
-			output, err := runCrossplaneRender(
-				filepath.Join(yamlDir, xrFileName),
-				filepath.Join(yamlDir, "composition.yaml"),
-				filepath.Join(yamlDir, "functions.yaml"),
-				filepath.Join(yamlDir, extraResourcesFileName),
-			)
+			output, err := runCrossplaneRender(xrPath, compositionPath, functionsPath, extraResourcesPath)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(output).NotTo(BeEmpty())
 
@@ -43,13 +33,13 @@ var _ = Describe("Crossplane Render", func() {
 			Expect(resources).To(HaveLen(2))
 
 			// Check rendered XR status (using Sawchain's MatchYAML matcher)
-			Expect(resources).To(ContainElement(sc.MatchYAML(expectedXrYaml)))
+			Expect(resources).To(ContainElement(sc.MatchYAML(expectedXrPath)))
 
 			// Check rendered Object (using Sawchain's MatchYAML matcher)
 			bindings := map[string]any{"expectedConfigMapName": expectedConfigMapName}
-			Expect(resources).To(ContainElement(sc.MatchYAML(expectedObjectYaml, bindings)))
+			Expect(resources).To(ContainElement(sc.MatchYAML(expectedObjectPath, bindings)))
 		},
-		Entry("dev environment", "xr-dev.yaml", "extra-resources-dev.yaml", "my-awesome-dev-bucket-bucket"),
-		Entry("prod environment", "xr-prod.yaml", "extra-resources-prod.yaml", "my-awesome-prod-bucket-bucket"),
+		Entry("dev environment", "yaml/xr-dev.yaml", "yaml/extra-resources-dev.yaml", "my-awesome-dev-bucket-bucket"),
+		Entry("prod environment", "yaml/xr-prod.yaml", "yaml/extra-resources-prod.yaml", "my-awesome-prod-bucket-bucket"),
 	)
 })
