@@ -4,6 +4,7 @@ Go library for K8s YAML-driven testing—backed by [Chainsaw](https://github.com
 
 ## TODO
 
+* consider merging single-resource and multi-resource functions
 * implementation
 * testing
 * documentation
@@ -67,6 +68,15 @@ sc.DeleteResourceAndWait(ctx, obj, template)  // Delete resource with single-doc
 sc.DeleteResourcesAndWait(ctx, objs)            // Delete resources with objs
 sc.DeleteResourcesAndWait(ctx, template)        // Delete resources with multi-document template, don't save metadata
 sc.DeleteResourcesAndWait(ctx, objs, template)  // Delete resources with multi-document template, save metadata to objs
+```
+
+#### Render Templates
+
+```go
+sc.Render(ctx, template, bindings, obj)   // Render single-document template into an object
+sc.Render(ctx, template, bindings, objs)  // Render multi-document template into a slice of objects
+sc.Render(ctx, template, bindings, buf)   // Renter template into a slice of bytes
+sc.Render(ctx, template, bindings, path)  // Renter template into a file
 ```
 
 ### Assertion Utilities

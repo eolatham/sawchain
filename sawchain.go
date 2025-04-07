@@ -996,3 +996,10 @@ func (s *Sawchain) HaveStatusCondition(conditionType, expectedStatus string) typ
 	s.g.Expect(matcher).NotTo(gomega.BeNil(), errCreatedMatcherIsNil)
 	return matcher
 }
+
+// TEMPLATING HELPERS
+
+// TODO: document
+func (s *Sawchain) Render(ctx context.Context, args ...interface{}) {
+	// TODO: implement
+}

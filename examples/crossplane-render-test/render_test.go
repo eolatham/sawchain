@@ -14,6 +14,7 @@ const (
 	expectedObjectPath = "yaml/expected-object.yaml"
 )
 
+// TODO: templatize input YAMLs
 var _ = Describe("Crossplane Render", func() {
 	// Create Sawchain instance with fake client
 	var sc = sawchain.New(GinkgoTB(), fake.NewClientBuilder().Build())
