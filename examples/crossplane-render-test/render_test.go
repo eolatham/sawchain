@@ -35,7 +35,7 @@ var _ = Describe("Crossplane Render", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(output).NotTo(BeEmpty())
 
-			// Parse the render output into unstructured objects
+			// Parse render output into unstructured objects
 			resources, err := unstructuredFromYaml(output)
 			Expect(err).NotTo(HaveOccurred())
 
