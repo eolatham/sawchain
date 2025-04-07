@@ -1,7 +1,7 @@
 package example
 
 import (
-	"os"
+	_ "embed"
 	"path/filepath"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -13,23 +13,17 @@ import (
 
 const yamlDir = "yaml"
 
-func readYaml(fileName string) string {
-	bytes, err := os.ReadFile(filepath.Join(yamlDir, fileName))
-	Expect(err).NotTo(HaveOccurred())
-	return string(bytes)
-}
+//go:embed yaml/expected-output-xr.yaml
+var expectedXrYaml string
+
+//go:embed yaml/expected-output-object.yaml
+var expectedObjectYaml string
 
 var _ = Describe("Crossplane Render", func() {
-	var (
-		// Create Sawchain instance with fake client
-		sc = sawchain.New(GinkgoTB(), fake.NewClientBuilder().Build())
+	// Create Sawchain instance with fake client
+	var sc = sawchain.New(GinkgoTB(), fake.NewClientBuilder().Build())
 
-		// Read expectation YAMLs
-		expectedXrYaml     = readYaml("expected-output-xr.yaml")
-		expectedObjectYaml = readYaml("expected-output-object.yaml")
-	)
-
-	var _ = DescribeTable("rendering resources with function-go-templating",
+	DescribeTable("rendering resources with function-go-templating",
 		func(xrFileName, extraResourcesFileName, expectedConfigMapName string) {
 			// Run crossplane render
 			output, err := runCrossplaneRender(
