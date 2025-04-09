@@ -15,6 +15,7 @@ const (
 )
 
 // TODO: templatize input YAMLs
+// TODO: add failure case
 var _ = Describe("Crossplane Render", func() {
 	// Create Sawchain instance with fake client
 	var sc = sawchain.New(GinkgoTB(), fake.NewClientBuilder().Build())

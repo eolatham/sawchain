@@ -5,7 +5,9 @@ Go library for K8s YAML-driven testing—backed by [Chainsaw](https://github.com
 ## TODO
 
 * unify APIs for Create, Update, Delete, Get, Check
-* revise APIs for Fetch to use generics for strong typing
+* revise APIs for Fetch
+  * FetchSingle -> client.Object (using generics)
+  * FetchMultiple -> []client.Object
 * implementation
 * testing
 * documentation
