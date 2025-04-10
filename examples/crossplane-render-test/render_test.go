@@ -15,7 +15,8 @@ const (
 )
 
 // TODO: templatize input YAMLs
-// TODO: add failure case
+// TODO: add failure cases (expect stderr message)
+// TODO: add multi-document expectation YAML cases (split and loop over documents)
 var _ = Describe("Crossplane Render", func() {
 	// Create Sawchain instance with fake client
 	var sc = sawchain.New(GinkgoTB(), fake.NewClientBuilder().Build())
