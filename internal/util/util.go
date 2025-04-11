@@ -106,8 +106,8 @@ func AsSliceOfObjects(v interface{}) ([]client.Object, bool) {
 
 	// Iterate through the slice elements
 	for i := 0; i < rv.Len(); i++ {
-		item := rv.Index(i).Interface()
-		if obj, ok := AsObject(item); ok {
+		elem := rv.Index(i).Interface()
+		if obj, ok := AsObject(elem); ok {
 			objs = append(objs, obj)
 		} else {
 			// If any element is not a client.Object, return false
@@ -130,6 +130,21 @@ func IsNil(v interface{}) bool {
 		kind == reflect.Interface || kind == reflect.Map ||
 		kind == reflect.Ptr || kind == reflect.Slice {
 		return rv.IsNil()
+	}
+	return false
+}
+
+// HasNil checks if the given interface is a slice containing
+// any elements that are nil or have nil underlying values.
+func HasNil(v interface{}) bool {
+	rv := reflect.ValueOf(v)
+	if rv.Kind() == reflect.Slice {
+		for i := 0; i < rv.Len(); i++ {
+			elem := rv.Index(i).Interface()
+			if IsNil(elem) {
+				return true
+			}
+		}
 	}
 	return false
 }

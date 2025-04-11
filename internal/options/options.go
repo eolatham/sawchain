@@ -11,8 +11,9 @@ import (
 )
 
 const (
-	errNil      = "options is nil"
-	errRequired = "required argument(s) not provided"
+	errNil              = "options is nil"
+	errRequired         = "required argument(s) not provided"
+	errObjectAndObjects = "client.Object and []client.Object arguments provided"
 )
 
 // Options is a common struct for options used in Sawchain operations.
@@ -49,10 +50,9 @@ func parse(
 					return nil, errors.New("too many duration arguments provided")
 				} else if opts.Timeout == 0 {
 					opts.Timeout = d
+				} else if d > opts.Timeout {
+					return nil, errors.New("provided interval is greater than timeout")
 				} else {
-					if d > opts.Timeout {
-						return nil, errors.New("provided interval is greater than timeout")
-					}
 					opts.Interval = d
 				}
 				continue
@@ -64,11 +64,12 @@ func parse(
 			if obj, ok := util.AsObject(arg); ok {
 				if opts.Object != nil {
 					return nil, errors.New("multiple client.Object arguments provided")
+				} else if opts.Objects != nil {
+					return nil, errors.New(errObjectAndObjects)
+				} else if util.IsNil(obj) {
+					return nil, errors.New(
+						"provided client.Object is nil or has a nil underlying value")
 				} else {
-					if util.IsNil(obj) {
-						return nil, errors.New(
-							"provided client.Object is nil or has a nil underlying value")
-					}
 					opts.Object = obj
 				}
 				continue
@@ -80,13 +81,12 @@ func parse(
 			if objs, ok := util.AsSliceOfObjects(arg); ok {
 				if opts.Objects != nil {
 					return nil, errors.New("multiple []client.Object arguments provided")
+				} else if opts.Object != nil {
+					return nil, errors.New(errObjectAndObjects)
+				} else if util.HasNil(objs) {
+					return nil, errors.New(
+						"provided []client.Object contains an element that is nil or has a nil underlying value")
 				} else {
-					for _, obj := range objs {
-						if util.IsNil(obj) {
-							return nil, errors.New(
-								"provided []client.Object contains an element that is nil or has a nil underlying value")
-						}
-					}
 					opts.Objects = objs
 				}
 				continue

@@ -434,6 +434,56 @@ var _ = Describe("Util", func() {
 		)
 	})
 
+	Describe("HasNil", func() {
+		type testCase struct {
+			input    interface{}
+			expected bool
+		}
+
+		DescribeTable("checking if a slice contains nil values",
+			func(tc testCase) {
+				result := util.HasNil(tc.input)
+				Expect(result).To(Equal(tc.expected))
+			},
+			Entry("slice with nil interface", testCase{
+				input:    []interface{}{1, nil, "hello"},
+				expected: true,
+			}),
+			Entry("slice with nil pointer", testCase{
+				input:    []*string{new(string), (*string)(nil), new(string)},
+				expected: true,
+			}),
+			Entry("slice with nil map", testCase{
+				input:    []map[string]string{map[string]string{"a": "b"}, nil, map[string]string{}},
+				expected: true,
+			}),
+			Entry("slice with nil slice", testCase{
+				input:    [][]string{[]string{"a"}, nil, []string{}},
+				expected: true,
+			}),
+			Entry("slice with no nil values", testCase{
+				input:    []string{"a", "b", "c"},
+				expected: false,
+			}),
+			Entry("empty slice", testCase{
+				input:    []string{},
+				expected: false,
+			}),
+			Entry("slice of non-nil pointers", testCase{
+				input:    []*corev1.ConfigMap{&corev1.ConfigMap{}, &corev1.ConfigMap{}},
+				expected: false,
+			}),
+			Entry("non-slice input", testCase{
+				input:    "not a slice",
+				expected: false,
+			}),
+			Entry("nil input", testCase{
+				input:    nil,
+				expected: false,
+			}),
+		)
+	})
+
 	Describe("IsUnstructured", func() {
 		type testCase struct {
 			input    client.Object
