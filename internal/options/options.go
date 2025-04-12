@@ -137,8 +137,8 @@ func requireDurations(opts *Options) error {
 	return nil
 }
 
-// requireTemplateOrObject requires options Template or Object to be provided.
-func requireTemplateOrObject(opts *Options) error {
+// requireTemplateObject requires options Template or Object to be provided.
+func requireTemplateObject(opts *Options) error {
 	if opts == nil {
 		return errors.New(errNil)
 	}
@@ -148,13 +148,24 @@ func requireTemplateOrObject(opts *Options) error {
 	return nil
 }
 
-// requireTemplateOrObjects requires options Template or Objects to be provided.
-func requireTemplateOrObjects(opts *Options) error {
+// requireTemplateObjects requires options Template or Objects to be provided.
+func requireTemplateObjects(opts *Options) error {
 	if opts == nil {
 		return errors.New(errNil)
 	}
 	if opts.Template == "" && opts.Objects == nil {
 		return errors.New(errRequired + ": Template (string) or Objects ([]client.Object)")
+	}
+	return nil
+}
+
+// requireTemplateObjectObjects requires options Template, Object, or Objects to be provided.
+func requireTemplateObjectObjects(opts *Options) error {
+	if opts == nil {
+		return errors.New(errNil)
+	}
+	if opts.Template == "" && opts.Object == nil && opts.Objects == nil {
+		return errors.New(errRequired + ": Template (string), Object (client.Object), or Objects ([]client.Object)")
 	}
 	return nil
 }
@@ -199,14 +210,40 @@ func parseAndApplyDefaults(
 	return applyDefaults(defaults, opts), nil
 }
 
-// ParseAndRequireGlobal parses and requires options
-// for the Sawchain constructor.
+// ParseAndRequireGlobal parses and requires options for the Sawchain constructor.
 func ParseAndRequireGlobal(defaults *Options, args ...interface{}) (*Options, error) {
 	opts, err := parseAndApplyDefaults(defaults, true, false, false, false, args...)
 	if err != nil {
 		return nil, err
 	}
 	if err := requireDurations(opts); err != nil {
+		return nil, err
+	}
+	return opts, nil
+}
+
+// ParseAndRequireEventual parses and requires options for Sawchain eventual operations.
+func ParseAndRequireEventual(defaults *Options, args ...interface{}) (*Options, error) {
+	opts, err := parseAndApplyDefaults(defaults, true, true, true, true, args...)
+	if err != nil {
+		return nil, err
+	}
+	if err := requireDurations(opts); err != nil {
+		return nil, err
+	}
+	if err := requireTemplateObjectObjects(opts); err != nil {
+		return nil, err
+	}
+	return opts, nil
+}
+
+// ParseAndRequireImmediate parses and requires options for Sawchain immediate operations.
+func ParseAndRequireImmediate(defaults *Options, args ...interface{}) (*Options, error) {
+	opts, err := parseAndApplyDefaults(defaults, false, true, true, true, args...)
+	if err != nil {
+		return nil, err
+	}
+	if err := requireTemplateObjectObjects(opts); err != nil {
 		return nil, err
 	}
 	return opts, nil
@@ -219,7 +256,7 @@ func ParseAndRequireImmediateSingle(defaults *Options, args ...interface{}) (*Op
 	if err != nil {
 		return nil, err
 	}
-	if err := requireTemplateOrObject(opts); err != nil {
+	if err := requireTemplateObject(opts); err != nil {
 		return nil, err
 	}
 	return opts, nil
@@ -232,39 +269,7 @@ func ParseAndRequireImmediateMulti(defaults *Options, args ...interface{}) (*Opt
 	if err != nil {
 		return nil, err
 	}
-	if err := requireTemplateOrObjects(opts); err != nil {
-		return nil, err
-	}
-	return opts, nil
-}
-
-// ParseAndRequireEventualSingle parses and requires options
-// for Sawchain eventual single-resource operations.
-func ParseAndRequireEventualSingle(defaults *Options, args ...interface{}) (*Options, error) {
-	opts, err := parseAndApplyDefaults(defaults, true, true, false, true, args...)
-	if err != nil {
-		return nil, err
-	}
-	if err := requireDurations(opts); err != nil {
-		return nil, err
-	}
-	if err := requireTemplateOrObject(opts); err != nil {
-		return nil, err
-	}
-	return opts, nil
-}
-
-// ParseAndRequireEventualMulti parses and requires options
-// for Sawchain eventual multi-resource operations.
-func ParseAndRequireEventualMulti(defaults *Options, args ...interface{}) (*Options, error) {
-	opts, err := parseAndApplyDefaults(defaults, true, false, true, true, args...)
-	if err != nil {
-		return nil, err
-	}
-	if err := requireDurations(opts); err != nil {
-		return nil, err
-	}
-	if err := requireTemplateOrObjects(opts); err != nil {
+	if err := requireTemplateObjects(opts); err != nil {
 		return nil, err
 	}
 	return opts, nil

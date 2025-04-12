@@ -207,7 +207,7 @@ func (s *Sawchain) checkNotFoundF(ctx context.Context, obj client.Object) func()
 //	`, map[string]any{"name": "test-cm", "namespace": "default"})
 func (s *Sawchain) CreateResourceAndWait(ctx context.Context, args ...interface{}) error {
 	// Parse options
-	opts, err := options.ParseAndRequireEventualSingle(&s.opts, args...)
+	opts, err := options.ParseAndRequireEventual(&s.opts, args...)
 	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidArgs)
 	s.g.Expect(opts).NotTo(gomega.BeNil(), errNilOpts)
 
@@ -326,7 +326,7 @@ func (s *Sawchain) CreateResourceAndWait(ctx context.Context, args ...interface{
 //	`, map[string]any{"prefix": "test", "namespace": "default"})
 func (s *Sawchain) CreateResourcesAndWait(ctx context.Context, args ...interface{}) error {
 	// Parse options
-	opts, err := options.ParseAndRequireEventualMulti(&s.opts, args...)
+	opts, err := options.ParseAndRequireEventual(&s.opts, args...)
 	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidArgs)
 	s.g.Expect(opts).NotTo(gomega.BeNil(), errNilOpts)
 
@@ -455,7 +455,7 @@ func (s *Sawchain) CreateResourcesAndWait(ctx context.Context, args ...interface
 //	`, map[string]any{"name": "test-cm", "namespace": "default"})
 func (s *Sawchain) UpdateResourceAndWait(ctx context.Context, args ...interface{}) error {
 	// Parse options
-	opts, err := options.ParseAndRequireEventualSingle(&s.opts, args...)
+	opts, err := options.ParseAndRequireEventual(&s.opts, args...)
 	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidArgs)
 	s.g.Expect(opts).NotTo(gomega.BeNil(), errNilOpts)
 
@@ -578,7 +578,7 @@ func (s *Sawchain) UpdateResourceAndWait(ctx context.Context, args ...interface{
 //	`, map[string]any{"prefix": "test", "namespace": "default"})
 func (s *Sawchain) UpdateResourcesAndWait(ctx context.Context, args ...interface{}) error {
 	// Parse options
-	opts, err := options.ParseAndRequireEventualMulti(&s.opts, args...)
+	opts, err := options.ParseAndRequireEventual(&s.opts, args...)
 	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidArgs)
 	s.g.Expect(opts).NotTo(gomega.BeNil(), errNilOpts)
 
@@ -699,7 +699,7 @@ func (s *Sawchain) UpdateResourcesAndWait(ctx context.Context, args ...interface
 //	`, map[string]any{"name": "test-cm", "namespace": "default"})
 func (s *Sawchain) DeleteResourceAndWait(ctx context.Context, args ...interface{}) error {
 	// Parse options
-	opts, err := options.ParseAndRequireEventualSingle(&s.opts, args...)
+	opts, err := options.ParseAndRequireEventual(&s.opts, args...)
 	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidArgs)
 	s.g.Expect(opts).NotTo(gomega.BeNil(), errNilOpts)
 
@@ -783,7 +783,7 @@ func (s *Sawchain) DeleteResourceAndWait(ctx context.Context, args ...interface{
 //	`, map[string]any{"prefix": "test", "namespace": "default"})
 func (s *Sawchain) DeleteResourcesAndWait(ctx context.Context, args ...interface{}) error {
 	// Parse options
-	opts, err := options.ParseAndRequireEventualMulti(&s.opts, args...)
+	opts, err := options.ParseAndRequireEventual(&s.opts, args...)
 	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidArgs)
 	s.g.Expect(opts).NotTo(gomega.BeNil(), errNilOpts)
 
@@ -995,11 +995,4 @@ func (s *Sawchain) HaveStatusCondition(conditionType, expectedStatus string) typ
 	matcher := matchers.NewStatusConditionMatcher(s.c, conditionType, expectedStatus)
 	s.g.Expect(matcher).NotTo(gomega.BeNil(), errCreatedMatcherIsNil)
 	return matcher
-}
-
-// TEMPLATING HELPERS
-
-// TODO: document
-func (s *Sawchain) Render(ctx context.Context, args ...interface{}) {
-	// TODO: implement
 }

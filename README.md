@@ -70,16 +70,6 @@ sc.Delete(ctx, objs)            // Delete resources with objs
 sc.Delete(ctx, objs, template)  // Delete resources with multi-document template, save metadata to objs
 ```
 
-#### Render Templates
-
-```go
-// Render templates into objects, bytes, or files
-sc.Render(ctx, template, bindings, obj)   // Render single-document template into an object
-sc.Render(ctx, template, bindings, objs)  // Render multi-document template into a slice of objects
-sc.Render(ctx, template, bindings, buf)   // Render template into a slice of bytes
-sc.Render(ctx, template, bindings, path)  // Render template into a file
-```
-
 ### Assertion Utilities
 
 [Gomega](https://github.com/onsi/gomega)-friendly APIs to simplify assertions on K8s resources
