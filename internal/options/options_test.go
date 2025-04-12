@@ -580,7 +580,7 @@ var _ = Describe("Options", func() {
 						testutil.NewConfigMap("multi-config", "default", nil),
 					},
 				},
-				expectedError: "client.Object and []client.Object arguments provided",
+				expectedError: "client.Object and []client.Object arguments both provided",
 			}),
 
 			Entry("multiple object arguments", testCase{
@@ -858,7 +858,7 @@ var _ = Describe("Options", func() {
 						testutil.NewConfigMap("multi-config", "default", nil),
 					},
 				},
-				expectedError: "client.Object and []client.Object arguments provided",
+				expectedError: "client.Object and []client.Object arguments both provided",
 			}),
 
 			Entry("multiple object arguments", testCase{

@@ -13,7 +13,7 @@ import (
 const (
 	errNil              = "options is nil"
 	errRequired         = "required argument(s) not provided"
-	errObjectAndObjects = "client.Object and []client.Object arguments provided"
+	errObjectAndObjects = "client.Object and []client.Object arguments both provided"
 )
 
 // Options is a common struct for options used in Sawchain operations.

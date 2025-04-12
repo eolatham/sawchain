@@ -18,9 +18,11 @@ import (
 )
 
 const (
-	errInvalidArgs          = "invalid arguments"
-	errInvalidTemplate      = "invalid template/bindings"
-	errInvalidObjectsLength = "invalid objects slice: length must match template resource count"
+	errInvalidArgs        = "invalid arguments"
+	errInvalidTemplate    = "invalid template/bindings"
+	errTemplateEmpty      = "template must contain at least one resource"
+	errObjectInsufficient = "single object insufficient for multi-resource template"
+	errObjectsWrongLength = "objects slice length must match template resource count"
 
 	errCacheNotSynced = "client cache not synced within timeout"
 	errFailedSave     = "failed to save state to object"
@@ -273,12 +275,13 @@ func (s *Sawchain) Create(ctx context.Context, args ...interface{}) error {
 		// Render template
 		unstructuredObjs, err := chainsaw.RenderTemplate(ctx, opts.Template, chainsaw.BindingsFromMap(opts.Bindings))
 		s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidTemplate)
+		s.g.Expect(unstructuredObjs).NotTo(gomega.BeEmpty(), errTemplateEmpty)
 
 		// Validate objects length
 		if opts.Object != nil {
-			s.g.Expect(unstructuredObjs).To(gomega.HaveLen(1), "TODO")
+			s.g.Expect(unstructuredObjs).To(gomega.HaveLen(1), errObjectInsufficient)
 		} else if opts.Objects != nil {
-			s.g.Expect(opts.Objects).To(gomega.HaveLen(len(unstructuredObjs)), errInvalidObjectsLength)
+			s.g.Expect(opts.Objects).To(gomega.HaveLen(len(unstructuredObjs)), errObjectsWrongLength)
 		}
 
 		// Create resources
@@ -536,7 +539,7 @@ func (s *Sawchain) UpdateResourcesAndWait(ctx context.Context, args ...interface
 
 		// Validate objects length
 		if opts.Objects != nil {
-			s.g.Expect(opts.Objects).To(gomega.HaveLen(len(unstructuredObjs)), errInvalidObjectsLength)
+			s.g.Expect(opts.Objects).To(gomega.HaveLen(len(unstructuredObjs)), errObjectsWrongLength)
 		}
 
 		// Update resources
@@ -739,7 +742,7 @@ func (s *Sawchain) DeleteResourcesAndWait(ctx context.Context, args ...interface
 
 		// Validate objects length
 		if opts.Objects != nil {
-			s.g.Expect(opts.Objects).To(gomega.HaveLen(len(unstructuredObjs)), errInvalidObjectsLength)
+			s.g.Expect(opts.Objects).To(gomega.HaveLen(len(unstructuredObjs)), errObjectsWrongLength)
 		}
 
 		// Delete resources
