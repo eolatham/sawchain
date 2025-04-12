@@ -4,9 +4,6 @@ Go library for K8s YAML-driven testing—backed by [Chainsaw](https://github.com
 
 ## TODO
 
-* unify APIs for Update and Delete
-* document Fetch return types
-* consider adding templating utilities
 * implementation
 * testing
 * documentation
@@ -95,7 +92,7 @@ Eventually(sc.GetFunc(ctx, template)).Should(Succeed())
 
 ```go
 // Get resources from the cluster and return state for matching
-var fetched corev1.ConfigMap
+var fetched client.Object
 fetched = sc.FetchSingle(ctx, obj)            // Fetch resource using obj, save state to obj
 fetched = sc.FetchSingle(ctx, template)       // Fetch resource using single-document template, don't save state
 fetched = sc.FetchSingle(ctx, obj, template)  // Fetch resource using single-document template, save state to obj
@@ -138,5 +135,6 @@ Eventually(sc.CheckFunc(ctx, template)).Should(Succeed())
 ### Notes
 
 * Sawchain accepts [client.Object](https://pkg.go.dev/sigs.k8s.io/controller-runtime/pkg/client#Object) inputs (typed or unstructured) and maintains object state in the original input format, relying on the client [scheme](https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime#Scheme) to perform internal type conversions when needed.
+* Fetch operations attempt to return typed objects when no input objects are provided.
 * Template documents used in create and update operations must contain complete resource definitions.
 * Template documents used in get and delete operations must contain valid resource keys.

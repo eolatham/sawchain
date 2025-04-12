@@ -141,6 +141,9 @@ func (s *Sawchain) checkNotFoundF(ctx context.Context, obj client.Object) func()
 
 // CREATE/UPDATE/DELETE OPERATIONS
 
+// TODO: merge Update APIs
+// TODO: merge Delete APIs
+
 // Create creates resources with objects, a manifest, or a Chainsaw template, and ensures client Get
 // operations for all resources succeed within a configurable duration before returning.
 //
@@ -536,6 +539,7 @@ func (s *Sawchain) UpdateResourcesAndWait(ctx context.Context, args ...interface
 		// Render template
 		unstructuredObjs, err := chainsaw.RenderTemplate(ctx, opts.Template, chainsaw.BindingsFromMap(opts.Bindings))
 		s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidTemplate)
+		s.g.Expect(unstructuredObjs).NotTo(gomega.BeEmpty(), errTemplateEmpty)
 
 		// Validate objects length
 		if opts.Objects != nil {
@@ -739,6 +743,7 @@ func (s *Sawchain) DeleteResourcesAndWait(ctx context.Context, args ...interface
 		// Render template
 		unstructuredObjs, err := chainsaw.RenderTemplate(ctx, opts.Template, chainsaw.BindingsFromMap(opts.Bindings))
 		s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidTemplate)
+		s.g.Expect(unstructuredObjs).NotTo(gomega.BeEmpty(), errTemplateEmpty)
 
 		// Validate objects length
 		if opts.Objects != nil {
