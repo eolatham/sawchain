@@ -137,109 +137,10 @@ func (s *Sawchain) checkNotFoundF(ctx context.Context, obj client.Object) func()
 	return func() error { return s.checkNotFound(ctx, obj) }
 }
 
-// CREATE OPERATIONS
+// CREATE/UPDATE/DELETE OPERATIONS
 
-// CreateResourceAndWait creates a resource with an object, manifest, or Chainsaw template, and ensures
-// client Get operations for the resource succeed within a configurable duration before returning.
-//
-// If testing with a cached client, this ensures the client cache is synced and it is safe to make
-// assertions on the resource immediately after execution.
-//
-// Invalid input, client errors, and timeout errors will result in immediate test failure.
-//
-// # Arguments
-//
-// The following arguments may be provided in any order (unless noted otherwise) after the context:
-//
-//   - Object (client.Object): Required if a template is not provided. Typed or unstructured object for
-//     reading/writing resource state. If provided without a template, resource state will be read from
-//     the object for creation. If provided with a template, resource state will be read from the
-//     template and written to the object. State will be maintained in the original input format,
-//     which may require internal type conversions using the client scheme.
-//
-//   - Template (string): Required if an object is not provided. File path or content of a static
-//     manifest or Chainsaw template containing a single complete resource definition. If provided,
-//     resource state will be read from the template for creation.
-//
-//   - Bindings (map[string]any): Optional. Bindings to be applied to a Chainsaw template (if provided)
-//     in addition to (or overriding) Sawchain's global bindings. If multiple maps are provided, they
-//     will be merged in natural order.
-//
-//   - Timeout (string or time.Duration): Optional. Defaults to Sawchain's global timeout value.
-//     Duration within which client Get operations for the resource should succeed after creation.
-//     If provided, must be before interval.
-//
-//   - Interval (string or time.Duration): Optional. Defaults to Sawchain's global interval value.
-//     Polling interval for checking the resource after creation. If provided, must be after timeout.
-//
-// # Examples
-//
-// Create a resource with an object:
-//
-//	sc.CreateResourceAndWait(ctx, obj)
-//
-// Create a resource with a manifest file and override duration settings:
-//
-//	sc.CreateResourceAndWait(ctx, "path/to/manifest.yaml", "10s", "2s")
-//
-// Create a resource with a Chainsaw template and bindings:
-//
-//	sc.CreateResourceAndWait(ctx, `
-//	  apiVersion: v1
-//	  kind: ConfigMap
-//	  metadata:
-//	    name: ($name)
-//	    namespace: ($namespace)
-//	  data:
-//	    key: value
-//	`, map[string]any{"name": "test-cm", "namespace": "default"})
-//
-// Create a resource with a Chainsaw template and save the resource's state to an object:
-//
-//	sc.CreateResourceAndWait(ctx, configMap, `
-//	  apiVersion: v1
-//	  kind: ConfigMap
-//	  metadata:
-//	    name: ($name)
-//	    namespace: ($namespace)
-//	  data:
-//	    key: value
-//	`, map[string]any{"name": "test-cm", "namespace": "default"})
-func (s *Sawchain) CreateResourceAndWait(ctx context.Context, args ...interface{}) error {
-	// Parse options
-	opts, err := options.ParseAndRequireEventual(&s.opts, args...)
-	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidArgs)
-	s.g.Expect(opts).NotTo(gomega.BeNil(), errNilOpts)
-
-	if opts.Template != "" {
-		// Render template
-		unstructuredObj, err := chainsaw.RenderTemplateSingle(ctx, opts.Template, chainsaw.BindingsFromMap(opts.Bindings))
-		s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidTemplate)
-
-		// Create resource
-		s.g.Expect(s.c.Create(ctx, &unstructuredObj)).To(gomega.Succeed(), errFailedCreateWithTemplate)
-
-		// Wait for cache to sync
-		s.g.Eventually(s.getF(ctx, &unstructuredObj), opts.Timeout, opts.Interval).Should(gomega.Succeed(), errCacheNotSynced)
-
-		// Save object
-		if opts.Object != nil {
-			s.g.Expect(util.CopyUnstructuredToObject(s.c, unstructuredObj, opts.Object)).To(gomega.Succeed(), errFailedSave)
-		}
-	} else {
-		// Create resource
-		s.g.Expect(s.c.Create(ctx, opts.Object)).To(gomega.Succeed(), errFailedCreateWithObject)
-
-		// Wait for cache to sync
-		s.g.Eventually(s.getF(ctx, opts.Object), opts.Timeout, opts.Interval).Should(gomega.Succeed(), errCacheNotSynced)
-	}
-
-	return nil
-}
-
-// CreateResourcesAndWait creates resources with objects, a manifest, or a Chainsaw template containing
-// multiple resources, and ensures client Get operations for all resources succeed within a configurable
-// duration before returning.
+// Create creates resources with objects, a manifest, or a Chainsaw template, and ensures client Get
+// operations for all resources succeed within a configurable duration before returning.
 //
 // If testing with a cached client, this ensures the client cache is synced and it is safe to make
 // assertions on the resources immediately after execution.
@@ -250,40 +151,78 @@ func (s *Sawchain) CreateResourceAndWait(ctx context.Context, args ...interface{
 //
 // The following arguments may be provided in any order (unless noted otherwise) after the context:
 //
-//   - Objects ([]client.Object): Required if a template is not provided. Slice of typed or unstructured
-//     objects for reading/writing resource states. If provided without a template, resource states will be
-//     read from the objects for creation. If provided with a template, resource states will be read from the
-//     template and written to the objects. States will be maintained in the original input format, which may
-//     require internal type conversions using the client scheme.
+//   - Object (client.Object): Typed or unstructured object for reading/writing the state of a single
+//     resource. If provided without a template, resource state will be read from the object for creation.
+//     If provided with a template, resource state will be read from the template and written to the object.
+//     State will be maintained in the original input format, which may require internal type conversions
+//     using the client scheme.
 //
-//   - Template (string): Required if objects are not provided. File path or content of a static
-//     manifest or Chainsaw template containing multiple complete resource definitions. If provided,
-//     resource states will be read from the template for creation.
+//   - Objects ([]client.Object): Slice of typed or unstructured objects for reading/writing the states of
+//     multiple resources. If provided without a template, resource states will be read from the objects for
+//     creation. If provided with a template, resource states will be read from the template and written to
+//     the objects. States will be maintained in the original input format, which may require internal type
+//     conversions using the client scheme.
 //
-//   - Bindings (map[string]any): Optional. Bindings to be applied to a Chainsaw template (if provided)
-//     in addition to (or overriding) Sawchain's global bindings. If multiple maps are provided, they
-//     will be merged in natural order.
+//   - Template (string): File path or content of a static manifest or Chainsaw template containing complete
+//     resource definitions to be read for creation. If provided with an object, must contain exactly one
+//     resource definition matching the type of the object. If provided with a slice of objects, must
+//     contain resource definitions exactly matching the count, order, and types of the objects.
 //
-//   - Timeout (string or time.Duration): Optional. Defaults to Sawchain's global timeout value.
-//     Duration within which client Get operations for all resources should succeed after creation.
-//     If provided, must be before interval.
+//   - Bindings (map[string]any): Bindings to be applied to a Chainsaw template (if provided) in addition to
+//     (or overriding) Sawchain's global bindings. If multiple maps are provided, they will be merged in
+//     natural order.
 //
-//   - Interval (string or time.Duration): Optional. Defaults to Sawchain's global interval value.
-//     Polling interval for checking the resources after creation. If provided, must be after timeout.
+//   - Timeout (string or time.Duration): Duration within which client Get operations for all resources
+//     should succeed after creation. If provided, must be before interval. Defaults to Sawchain's
+//     global timeout value.
+//
+//   - Interval (string or time.Duration): Polling interval for checking the resources after creation.
+//     If provided, must be after timeout. Defaults to Sawchain's global interval value.
+//
+// A template, an object, or a slice of objects must be provided. However, an object and a slice of objects
+// may not be provided together. All other arguments are optional.
 //
 // # Examples
 //
-// Create resources with objects:
+// Create a single resource with an object:
 //
-//	sc.CreateResourcesAndWait(ctx, []client.Object{obj1, obj2, obj3})
+//	sc.Create(ctx, obj)
+//
+// Create multiple resources with objects:
+//
+//	sc.Create(ctx, []client.Object{obj1, obj2, obj3})
 //
 // Create resources with a manifest file and override duration settings:
 //
-//	sc.CreateResourcesAndWait(ctx, "path/to/manifest.yaml", "10s", "2s")
+//	sc.Create(ctx, "path/to/manifest.yaml", "10s", "2s")
 //
-// Create resources with a Chainsaw template and bindings:
+// Create a single resource with a Chainsaw template and bindings:
 //
-//	sc.CreateResourcesAndWait(ctx, `
+//	sc.Create(ctx, `
+//	  apiVersion: v1
+//	  kind: ConfigMap
+//	  metadata:
+//	    name: ($name)
+//	    namespace: ($namespace)
+//	  data:
+//	    key: value
+//	`, map[string]any{"name": "test-cm", "namespace": "default"})
+//
+// Create a single resource with a Chainsaw template and save the resource's state to an object:
+//
+//	sc.Create(ctx, configMap, `
+//	  apiVersion: v1
+//	  kind: ConfigMap
+//	  metadata:
+//	    name: ($name)
+//	    namespace: ($namespace)
+//	  data:
+//	    key: value
+//	`, map[string]any{"name": "test-cm", "namespace": "default"})
+//
+// Create multiple resources with a Chainsaw template and bindings:
+//
+//	sc.Create(ctx, `
 //	  apiVersion: v1
 //	  kind: ConfigMap
 //	  metadata:
@@ -303,9 +242,9 @@ func (s *Sawchain) CreateResourceAndWait(ctx context.Context, args ...interface{
 //	    password: secret
 //	`, map[string]any{"prefix": "test", "namespace": "default"})
 //
-// Create resources with a Chainsaw template and save the resources' states to objects:
+// Create multiple resources with a Chainsaw template and save the resources' states to objects:
 //
-//	sc.CreateResourcesAndWait(ctx, []client.Object{configMap, secret}, `
+//	sc.Create(ctx, []client.Object{configMap, secret}, `
 //	  apiVersion: v1
 //	  kind: ConfigMap
 //	  metadata:
@@ -324,7 +263,7 @@ func (s *Sawchain) CreateResourceAndWait(ctx context.Context, args ...interface{
 //	    username: admin
 //	    password: secret
 //	`, map[string]any{"prefix": "test", "namespace": "default"})
-func (s *Sawchain) CreateResourcesAndWait(ctx context.Context, args ...interface{}) error {
+func (s *Sawchain) Create(ctx context.Context, args ...interface{}) error {
 	// Parse options
 	opts, err := options.ParseAndRequireEventual(&s.opts, args...)
 	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidArgs)
@@ -336,7 +275,9 @@ func (s *Sawchain) CreateResourcesAndWait(ctx context.Context, args ...interface
 		s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidTemplate)
 
 		// Validate objects length
-		if opts.Objects != nil {
+		if opts.Object != nil {
+			s.g.Expect(unstructuredObjs).To(gomega.HaveLen(1), "TODO")
+		} else if opts.Objects != nil {
 			s.g.Expect(opts.Objects).To(gomega.HaveLen(len(unstructuredObjs)), errInvalidObjectsLength)
 		}
 
@@ -358,11 +299,19 @@ func (s *Sawchain) CreateResourcesAndWait(ctx context.Context, args ...interface
 		s.g.Eventually(getAll, opts.Timeout, opts.Interval).Should(gomega.Succeed(), errCacheNotSynced)
 
 		// Save objects
-		if opts.Objects != nil {
+		if opts.Object != nil {
+			s.g.Expect(util.CopyUnstructuredToObject(s.c, unstructuredObjs[0], opts.Object)).To(gomega.Succeed(), errFailedSave)
+		} else if opts.Objects != nil {
 			for i, unstructuredObj := range unstructuredObjs {
 				s.g.Expect(util.CopyUnstructuredToObject(s.c, unstructuredObj, opts.Objects[i])).To(gomega.Succeed(), errFailedSave)
 			}
 		}
+	} else if opts.Object != nil {
+		// Create resource
+		s.g.Expect(s.c.Create(ctx, opts.Object)).To(gomega.Succeed(), errFailedCreateWithObject)
+
+		// Wait for cache to sync
+		s.g.Eventually(s.getF(ctx, opts.Object), opts.Timeout, opts.Interval).Should(gomega.Succeed(), errCacheNotSynced)
 	} else {
 		// Create resources
 		for _, obj := range opts.Objects {
@@ -383,8 +332,6 @@ func (s *Sawchain) CreateResourcesAndWait(ctx context.Context, args ...interface
 
 	return nil
 }
-
-// UPDATE OPERATIONS
 
 // UpdateResourceAndWait updates a resource with an object, manifest, or Chainsaw template, and ensures
 // client Get operations for the resource reflect the update within a configurable duration before
@@ -644,8 +591,6 @@ func (s *Sawchain) UpdateResourcesAndWait(ctx context.Context, args ...interface
 	return nil
 }
 
-// DELETE OPERATIONS
-
 // DeleteResourceAndWait deletes a resource with an object, manifest, or Chainsaw template, and ensures
 // client Get operations for the resource reflect the deletion (resource not found) within a configurable
 // duration before returning.
@@ -837,10 +782,9 @@ func (s *Sawchain) DeleteResourcesAndWait(ctx context.Context, args ...interface
 // GET OPERATIONS
 
 // TODO: document
-// GetResource gets a resource from the cluster.
-func (s *Sawchain) GetResource(ctx context.Context, args ...interface{}) error {
+func (s *Sawchain) Get(ctx context.Context, args ...interface{}) error {
 	// Parse options
-	opts, err := options.ParseAndRequireImmediateSingle(&s.opts, args...)
+	opts, err := options.ParseAndRequireImmediate(&s.opts, args...)
 	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidArgs)
 	s.g.Expect(opts).NotTo(gomega.BeNil(), errNilOpts)
 	// TODO: implement
@@ -848,32 +792,9 @@ func (s *Sawchain) GetResource(ctx context.Context, args ...interface{}) error {
 }
 
 // TODO: document
-// GetResources gets multiple resources from the cluster.
-func (s *Sawchain) GetResources(ctx context.Context, args ...interface{}) error {
+func (s *Sawchain) GetFunc(ctx context.Context, args ...interface{}) func() error {
 	// Parse options
-	opts, err := options.ParseAndRequireImmediateMulti(&s.opts, args...)
-	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidArgs)
-	s.g.Expect(opts).NotTo(gomega.BeNil(), errNilOpts)
-	// TODO: implement
-	return nil
-}
-
-// TODO: document
-// GetResourceFunc returns a function that gets a resource for use with Eventually.
-func (s *Sawchain) GetResourceFunc(ctx context.Context, args ...interface{}) func() error {
-	// Parse options
-	opts, err := options.ParseAndRequireImmediateSingle(&s.opts, args...)
-	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidArgs)
-	s.g.Expect(opts).NotTo(gomega.BeNil(), errNilOpts)
-	// TODO: implement
-	return nil
-}
-
-// TODO: document
-// GetResourcesFunc returns a function that gets multiple resources for use with Eventually.
-func (s *Sawchain) GetResourcesFunc(ctx context.Context, args ...interface{}) func() error {
-	// Parse options
-	opts, err := options.ParseAndRequireImmediateMulti(&s.opts, args...)
+	opts, err := options.ParseAndRequireImmediate(&s.opts, args...)
 	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidArgs)
 	s.g.Expect(opts).NotTo(gomega.BeNil(), errNilOpts)
 	// TODO: implement
@@ -883,8 +804,7 @@ func (s *Sawchain) GetResourcesFunc(ctx context.Context, args ...interface{}) fu
 // FETCH OPERATIONS
 
 // TODO: document
-// FetchResource fetches a resource from the cluster.
-func (s *Sawchain) FetchResource(ctx context.Context, args ...interface{}) client.Object {
+func (s *Sawchain) FetchSingle(ctx context.Context, args ...interface{}) client.Object {
 	// Parse options
 	opts, err := options.ParseAndRequireImmediateSingle(&s.opts, args...)
 	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidArgs)
@@ -894,8 +814,7 @@ func (s *Sawchain) FetchResource(ctx context.Context, args ...interface{}) clien
 }
 
 // TODO: document
-// FetchResources fetches multiple resources from the cluster.
-func (s *Sawchain) FetchResources(ctx context.Context, args ...interface{}) []client.Object {
+func (s *Sawchain) FetchMultiple(ctx context.Context, args ...interface{}) []client.Object {
 	// Parse options
 	opts, err := options.ParseAndRequireImmediateMulti(&s.opts, args...)
 	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidArgs)
@@ -905,8 +824,7 @@ func (s *Sawchain) FetchResources(ctx context.Context, args ...interface{}) []cl
 }
 
 // TODO: document
-// FetchResourceFunc returns a function that fetches a resource for use with Eventually.
-func (s *Sawchain) FetchResourceFunc(ctx context.Context, args ...interface{}) func() client.Object {
+func (s *Sawchain) FetchSingleFunc(ctx context.Context, args ...interface{}) func() client.Object {
 	// Parse options
 	opts, err := options.ParseAndRequireImmediateSingle(&s.opts, args...)
 	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidArgs)
@@ -916,8 +834,7 @@ func (s *Sawchain) FetchResourceFunc(ctx context.Context, args ...interface{}) f
 }
 
 // TODO: document
-// FetchResourcesFunc returns a function that fetches multiple resources for use with Eventually.
-func (s *Sawchain) FetchResourcesFunc(ctx context.Context, args ...interface{}) func() []client.Object {
+func (s *Sawchain) FetchMultipleFunc(ctx context.Context, args ...interface{}) func() []client.Object {
 	// Parse options
 	opts, err := options.ParseAndRequireImmediateMulti(&s.opts, args...)
 	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidArgs)
@@ -929,43 +846,19 @@ func (s *Sawchain) FetchResourcesFunc(ctx context.Context, args ...interface{}) 
 // CHECK OPERATIONS
 
 // TODO: document
-// CheckResource checks if a resource matches the expected state.
-func (s *Sawchain) CheckResource(ctx context.Context, args ...interface{}) error {
+func (s *Sawchain) Check(ctx context.Context, args ...interface{}) error {
+	// Parse options
+	opts, err := options.ParseAndRequireImmediate(&s.opts, args...)
+	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidArgs)
+	s.g.Expect(opts).NotTo(gomega.BeNil(), errNilOpts)
+	// TODO: implement
+	return nil
+}
+
+// TODO: document
+func (s *Sawchain) CheckFunc(ctx context.Context, args ...interface{}) func() error {
 	// Parse options
 	opts, err := options.ParseAndRequireImmediateSingle(&s.opts, args...)
-	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidArgs)
-	s.g.Expect(opts).NotTo(gomega.BeNil(), errNilOpts)
-	// TODO: implement
-	return nil
-}
-
-// TODO: document
-// CheckResources checks if multiple resources match the expected state.
-func (s *Sawchain) CheckResources(ctx context.Context, args ...interface{}) error {
-	// Parse options
-	opts, err := options.ParseAndRequireImmediateMulti(&s.opts, args...)
-	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidArgs)
-	s.g.Expect(opts).NotTo(gomega.BeNil(), errNilOpts)
-	// TODO: implement
-	return nil
-}
-
-// TODO: document
-// CheckResourceFunc returns a function that checks a resource for use with Eventually.
-func (s *Sawchain) CheckResourceFunc(ctx context.Context, args ...interface{}) func() error {
-	// Parse options
-	opts, err := options.ParseAndRequireImmediateSingle(&s.opts, args...)
-	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidArgs)
-	s.g.Expect(opts).NotTo(gomega.BeNil(), errNilOpts)
-	// TODO: implement
-	return nil
-}
-
-// TODO: document
-// CheckResourcesFunc returns a function that checks multiple resources for use with Eventually.
-func (s *Sawchain) CheckResourcesFunc(ctx context.Context, args ...interface{}) func() error {
-	// Parse options
-	opts, err := options.ParseAndRequireImmediateMulti(&s.opts, args...)
 	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidArgs)
 	s.g.Expect(opts).NotTo(gomega.BeNil(), errNilOpts)
 	// TODO: implement

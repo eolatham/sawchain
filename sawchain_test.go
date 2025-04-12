@@ -106,8 +106,9 @@ func (m *MockClient) Delete(ctx context.Context, obj client.Object, opts ...clie
 	return m.Client.Delete(ctx, obj, opts...)
 }
 
+// TODO: merge Create tests
 var _ = Describe("Sawchain", func() {
-	Describe("CreateResourceAndWait", func() {
+	Describe("Create", func() {
 		type testCase struct {
 			client           client.Client
 			globalBindings   map[string]any
@@ -122,29 +123,29 @@ var _ = Describe("Sawchain", func() {
 				t := &MockT{TB: GinkgoTB()}
 				sc := sawchain.New(t, tc.client, fastTimeout, fastInterval, tc.globalBindings)
 
-				// Test CreateResourceAndWait
+				// Test Create
 				done := make(chan struct{})
 				start := time.Now()
 				go func() {
 					defer close(done)
-					sc.CreateResourceAndWait(ctx, tc.methodArgs...)
+					sc.Create(ctx, tc.methodArgs...)
 				}()
 				<-done
 				executionTime := time.Since(start)
 
 				if len(tc.expectedErrs) > 0 {
 					// Verify failure
-					Expect(t.Failed()).To(BeTrue(), "expected CreateResourceAndWait to fail")
+					Expect(t.Failed()).To(BeTrue(), "expected Create to fail")
 					for _, expectedErr := range tc.expectedErrs {
 						Expect(t.ErrorLogs).To(ContainElement(ContainSubstring(expectedErr)))
 					}
 				} else {
 					// Verify successful creation
-					Expect(tc.client.Get(ctx, client.ObjectKeyFromObject(tc.expectedObject), tc.expectedObject)).To(Succeed(), "expected CreateResourceAndWait to create resource")
+					Expect(tc.client.Get(ctx, client.ObjectKeyFromObject(tc.expectedObject), tc.expectedObject)).To(Succeed(), "expected Create to create resource")
 					// Verify resource state
 					for _, arg := range tc.methodArgs {
 						if obj, ok := util.AsObject(arg); ok {
-							Expect(obj).To(Equal(tc.expectedObject), "expected CreateResourceAndWait to save created resource state to provided object")
+							Expect(obj).To(Equal(tc.expectedObject), "expected Create to save created resource state to provided object")
 							break
 						}
 					}
@@ -154,7 +155,7 @@ var _ = Describe("Sawchain", func() {
 				if tc.expectedDuration > 0 {
 					maxAllowedDuration := time.Duration(float64(tc.expectedDuration) * 1.1)
 					Expect(executionTime).To(BeNumerically("<", maxAllowedDuration),
-						"expected CreateResourceAndWait to complete in less than %v, but took %v",
+						"expected Create to complete in less than %v, but took %v",
 						maxAllowedDuration, executionTime)
 				}
 			},
@@ -372,7 +373,7 @@ data:
 					methodArgs:     []interface{}{},
 					expectedErrs: []string{
 						"invalid arguments",
-						"required argument(s) not provided: Template (string) or Object (client.Object)",
+						"required argument(s) not provided: Template (string), Object (client.Object), or Objects ([]client.Object)",
 					},
 					expectedDuration: fastTimeout,
 				},
@@ -464,7 +465,7 @@ metadata:
 		)
 	})
 
-	Describe("CreateResourcesAndWait", func() {
+	Describe("Create", func() {
 		type testCase struct {
 			client           client.Client
 			globalBindings   map[string]any
@@ -479,19 +480,19 @@ metadata:
 				t := &MockT{TB: GinkgoTB()}
 				sc := sawchain.New(t, tc.client, fastTimeout, fastInterval, tc.globalBindings)
 
-				// Test CreateResourcesAndWait
+				// Test Create
 				done := make(chan struct{})
 				start := time.Now()
 				go func() {
 					defer close(done)
-					sc.CreateResourcesAndWait(ctx, tc.methodArgs...)
+					sc.Create(ctx, tc.methodArgs...)
 				}()
 				<-done
 				executionTime := time.Since(start)
 
 				if len(tc.expectedErrs) > 0 {
 					// Verify failure
-					Expect(t.Failed()).To(BeTrue(), "expected CreateResourcesAndWait to fail")
+					Expect(t.Failed()).To(BeTrue(), "expected Create to fail")
 					for _, expectedErr := range tc.expectedErrs {
 						Expect(t.ErrorLogs).To(ContainElement(ContainSubstring(expectedErr)))
 					}
@@ -499,7 +500,7 @@ metadata:
 					// Verify successful creation of all resources
 					for _, expectedObject := range tc.expectedObjects {
 						Expect(tc.client.Get(ctx, client.ObjectKeyFromObject(expectedObject), expectedObject)).To(Succeed(),
-							"expected CreateResourcesAndWait to create resource: %s", client.ObjectKeyFromObject(expectedObject))
+							"expected Create to create resource: %s", client.ObjectKeyFromObject(expectedObject))
 					}
 
 					// Verify resource states in provided objects slice
@@ -507,7 +508,7 @@ metadata:
 						if objects, ok := arg.([]client.Object); ok {
 							Expect(objects).To(HaveLen(len(tc.expectedObjects)), "expected objects slice to have the same length as expected objects")
 							for i, obj := range objects {
-								Expect(obj).To(Equal(tc.expectedObjects[i]), "expected CreateResourcesAndWait to save created resource state to provided object")
+								Expect(obj).To(Equal(tc.expectedObjects[i]), "expected Create to save created resource state to provided object")
 							}
 							break
 						}
@@ -518,7 +519,7 @@ metadata:
 				if tc.expectedDuration > 0 {
 					maxAllowedDuration := time.Duration(float64(tc.expectedDuration) * 1.1)
 					Expect(executionTime).To(BeNumerically("<", maxAllowedDuration),
-						"expected CreateResourcesAndWait to complete in less than %v, but took %v",
+						"expected Create to complete in less than %v, but took %v",
 						maxAllowedDuration, executionTime)
 				}
 			},
@@ -855,7 +856,7 @@ data:
 					methodArgs:     []interface{}{},
 					expectedErrs: []string{
 						"invalid arguments",
-						"required argument(s) not provided: Template (string) or Objects ([]client.Object)",
+						"required argument(s) not provided: Template (string), Object (client.Object), or Objects ([]client.Object)",
 					},
 					expectedDuration: fastTimeout,
 				},
