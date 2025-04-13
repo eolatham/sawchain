@@ -44,8 +44,8 @@ const (
 	errCreatedMatcherIsNil = "internal error: created matcher is nil"
 )
 
-// Sawchain provides utilities for K8s YAML-driven testing—backed by Chainsaw. It includes helpers
-// to reliably create/update/delete test resources and Gomega-friendly APIs to simplify assertions.
+// Sawchain provides utilities for K8s YAML-driven testing—backed by Chainsaw. It includes helpers to
+// reliably create/update/delete test resources, Gomega-friendly APIs to simplify assertions, and more.
 // Use New to create a Sawchain instance.
 type Sawchain struct {
 	t    testing.TB
@@ -147,8 +147,8 @@ func (s *Sawchain) checkNotFoundF(ctx context.Context, obj client.Object) func()
 
 // CREATE/UPDATE/DELETE
 
-// TODO: merge Update APIs
-// TODO: merge Delete APIs
+// TODO: merge and test Update APIs
+// TODO: merge and test Delete APIs
 
 // Create creates resources with objects, a manifest, or a Chainsaw template, and ensures client Get
 // operations for all resources succeed within a configurable duration before returning.
@@ -795,6 +795,7 @@ func (s *Sawchain) DeleteResourcesAndWait(ctx context.Context, args ...interface
 
 // GET
 
+// TODO: test
 // TODO: document
 func (s *Sawchain) Get(ctx context.Context, args ...interface{}) error {
 	// Parse options
@@ -805,6 +806,7 @@ func (s *Sawchain) Get(ctx context.Context, args ...interface{}) error {
 	return nil
 }
 
+// TODO: test
 // TODO: document
 func (s *Sawchain) GetFunc(ctx context.Context, args ...interface{}) func() error {
 	// Parse options
@@ -817,6 +819,7 @@ func (s *Sawchain) GetFunc(ctx context.Context, args ...interface{}) func() erro
 
 // FETCH
 
+// TODO: test
 // TODO: document
 func (s *Sawchain) FetchSingle(ctx context.Context, args ...interface{}) client.Object {
 	// Parse options
@@ -827,6 +830,7 @@ func (s *Sawchain) FetchSingle(ctx context.Context, args ...interface{}) client.
 	return nil
 }
 
+// TODO: test
 // TODO: document
 func (s *Sawchain) FetchMultiple(ctx context.Context, args ...interface{}) []client.Object {
 	// Parse options
@@ -837,6 +841,7 @@ func (s *Sawchain) FetchMultiple(ctx context.Context, args ...interface{}) []cli
 	return nil
 }
 
+// TODO: test
 // TODO: document
 func (s *Sawchain) FetchSingleFunc(ctx context.Context, args ...interface{}) func() client.Object {
 	// Parse options
@@ -847,6 +852,7 @@ func (s *Sawchain) FetchSingleFunc(ctx context.Context, args ...interface{}) fun
 	return nil
 }
 
+// TODO: test
 // TODO: document
 func (s *Sawchain) FetchMultipleFunc(ctx context.Context, args ...interface{}) func() []client.Object {
 	// Parse options
@@ -859,6 +865,7 @@ func (s *Sawchain) FetchMultipleFunc(ctx context.Context, args ...interface{}) f
 
 // CHECK
 
+// TODO: test
 // TODO: document
 func (s *Sawchain) Check(ctx context.Context, args ...interface{}) error {
 	// Parse options
@@ -869,6 +876,7 @@ func (s *Sawchain) Check(ctx context.Context, args ...interface{}) error {
 	return nil
 }
 
+// TODO: test
 // TODO: document
 func (s *Sawchain) CheckFunc(ctx context.Context, args ...interface{}) func() error {
 	// Parse options
@@ -881,6 +889,7 @@ func (s *Sawchain) CheckFunc(ctx context.Context, args ...interface{}) func() er
 
 // MATCH
 
+// TODO: test
 // TODO: document
 // TODO: recommend enabling format.UseStringerRepresentation for better failure output
 // Match returns a matcher that checks if a client.Object matches a Chainsaw template.
@@ -895,6 +904,7 @@ func (s *Sawchain) MatchYAML(template string, bindings ...map[string]any) types.
 	return matcher
 }
 
+// TODO: test
 // TODO: document
 // TODO: recommend enabling format.UseStringerRepresentation for better failure output
 // HaveStatusCondition returns a matcher that checks if a client.Object has a specific status condition.
@@ -906,6 +916,7 @@ func (s *Sawchain) HaveStatusCondition(conditionType, expectedStatus string) typ
 
 // RENDER
 
+// TODO: test
 // TODO: document
 func (s *Sawchain) RenderToObject(ctx context.Context, obj client.Object, template string, bindings ...map[string]any) {
 	if util.IsExistingFile(template) {
@@ -918,6 +929,7 @@ func (s *Sawchain) RenderToObject(ctx context.Context, obj client.Object, templa
 	s.g.Expect(util.CopyUnstructuredToObject(s.c, unstructuredObj, obj)).To(gomega.Succeed(), errFailedSave)
 }
 
+// TODO: test
 // TODO: document
 func (s *Sawchain) RenderToObjects(ctx context.Context, objs []client.Object, template string, bindings ...map[string]any) {
 	if util.IsExistingFile(template) {
@@ -933,6 +945,7 @@ func (s *Sawchain) RenderToObjects(ctx context.Context, objs []client.Object, te
 	}
 }
 
+// TODO: test
 // TODO: document
 func (s *Sawchain) RenderToString(ctx context.Context, template string, bindings ...map[string]any) string {
 	if util.IsExistingFile(template) {
@@ -955,6 +968,7 @@ func (s *Sawchain) RenderToString(ctx context.Context, template string, bindings
 	return buf.String()
 }
 
+// TODO: test
 // TODO: document
 func (s *Sawchain) RenderToFile(ctx context.Context, filepath, template string, bindings ...map[string]any) {
 	rendered := s.RenderToString(ctx, template, bindings...)
