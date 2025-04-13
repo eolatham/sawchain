@@ -340,6 +340,7 @@ func (s *Sawchain) Create(ctx context.Context, args ...interface{}) error {
 	return nil
 }
 
+// TODO: test
 // Update updates resources with objects, a manifest, or a Chainsaw template, and ensures client Get
 // operations for all resources reflect the updates within a configurable duration before returning.
 //
@@ -544,6 +545,7 @@ func (s *Sawchain) Update(ctx context.Context, args ...interface{}) error {
 	return nil
 }
 
+// TODO: test
 // Delete deletes resources with objects, a manifest, or a Chainsaw template, and ensures client Get
 // operations for all resources reflect the deletion (resources not found) within a configurable
 // duration before returning.
@@ -776,9 +778,39 @@ func (s *Sawchain) CheckFunc(ctx context.Context, args ...interface{}) func() er
 // MATCH
 
 // TODO: test
-// TODO: document
-// TODO: recommend enabling format.UseStringerRepresentation for better failure output
-// Match returns a matcher that checks if a client.Object matches a Chainsaw template.
+// MatchYAML returns a Gomega matcher that tests if a client.Object matches a Chainsaw template.
+//
+// The returned matcher may rely on the client scheme for internal type conversions.
+//
+// Invalid input will result in immediate test failure.
+//
+// For better failure output, it's recommended to enable Gomega's format.UseStringerRepresentation.
+//
+// # Arguments
+//
+//   - Template (string): File path or content of a static manifest or Chainsaw template to match against.
+//
+//   - Bindings (map[string]any): Bindings to be applied to a Chainsaw template (if provided) in addition to
+//     (or overriding) Sawchain's global bindings. If multiple maps are provided, they will be merged in
+//     natural order.
+//
+// # Examples
+//
+// Match an object against a static manifest file:
+//
+//	g.Expect(configMap).To(sc.MatchYAML("path/to/manifest.yaml"))
+//
+// Match an object against a template using bindings:
+//
+//	g.Expect(configMap).To(sc.MatchYAML(`
+//	  apiVersion: v1
+//	  kind: ConfigMap
+//	  metadata:
+//	    name: ($name)
+//	    namespace: ($namespace)
+//	  data:
+//	    key: expected-value
+//	`, map[string]any{"name": "test-cm", "namespace": "default"}))
 func (s *Sawchain) MatchYAML(template string, bindings ...map[string]any) types.GomegaMatcher {
 	if util.IsExistingFile(template) {
 		var err error
@@ -791,9 +823,34 @@ func (s *Sawchain) MatchYAML(template string, bindings ...map[string]any) types.
 }
 
 // TODO: test
-// TODO: document
-// TODO: recommend enabling format.UseStringerRepresentation for better failure output
-// HaveStatusCondition returns a matcher that checks if a client.Object has a specific status condition.
+// HaveStatusCondition returns a Gomega matcher that tests if a client.Object has a specific status
+// condition.
+//
+// The returned matcher may rely on the client scheme for internal type conversions.
+//
+// Invalid input will result in immediate test failure.
+//
+// For better failure output, it's recommended to enable Gomega's format.UseStringerRepresentation.
+//
+// # Arguments
+//
+//   - ConditionType (string): The type of the status condition to check for.
+//
+//   - ExpectedStatus (string): The expected status value of the condition.
+//
+// # Examples
+//
+// Check if a Deployment has condition Available=True:
+//
+//	g.Expect(deployment).To(sc.HaveStatusCondition("Available", "True"))
+//
+// Check if a Pod has condition Initialized=False:
+//
+//	g.Expect(pod).To(sc.HaveStatusCondition("Initialized", "False"))
+//
+// Check if a custom resource has condition Ready=True:
+//
+//	g.Expect(myCustomResource).To(sc.HaveStatusCondition("Ready", "True"))
 func (s *Sawchain) HaveStatusCondition(conditionType, expectedStatus string) types.GomegaMatcher {
 	matcher := matchers.NewStatusConditionMatcher(s.c, conditionType, expectedStatus)
 	s.g.Expect(matcher).NotTo(gomega.BeNil(), errCreatedMatcherIsNil)
@@ -803,27 +860,157 @@ func (s *Sawchain) HaveStatusCondition(conditionType, expectedStatus string) typ
 // RENDER
 
 // TODO: test
-// TODO: document
-func (s *Sawchain) RenderToObject(ctx context.Context, obj client.Object, template string, bindings ...map[string]any) {
+// RenderToObject renders a Chainsaw template with optional bindings into an object.
+//
+// This can also be used as a convenience method for unmarshaling static manifests.
+//
+// Invalid input will result in immediate test failure.
+//
+// # Arguments
+//
+//   - Object (client.Object): Typed or unstructured object to render into. If the object is typed, the
+//     client scheme will be used for conversion.
+//
+//   - Template (string): File path or content of a static manifest or Chainsaw template to render. Must
+//     contain exactly one complete resource definition matching the type of the provided object.
+//
+//   - Bindings (map[string]any): Bindings to be applied to a Chainsaw template (if provided) in addition to
+//     (or overriding) Sawchain's global bindings. If multiple maps are provided, they will be merged in
+//     natural order.
+//
+// # Examples
+//
+// Render a resource from a template using bindings:
+//
+//	sc.RenderToObject(configMap, `
+//	  apiVersion: v1
+//	  kind: ConfigMap
+//	  metadata:
+//	    name: ($name)
+//	    namespace: ($namespace)
+//	  data:
+//	    key: value
+//	`, map[string]any{"name": "test-cm", "namespace": "default"})
+//
+// Render a resource from a template file using bindings:
+//
+//	sc.RenderToObject(secret, "path/to/template.yaml",
+//	  map[string]any{"name": "test-secret", "namespace": "default"})
+//
+// Unmarshal a static manifest into an object:
+//
+//	sc.RenderToObject(deployment, `
+//	  apiVersion: apps/v1
+//	  kind: Deployment
+//	  metadata:
+//	    name: nginx
+//	    namespace: default
+//	  spec:
+//	    replicas: 3
+//	    selector:
+//	      matchLabels:
+//	        app: nginx
+//	    template:
+//	      metadata:
+//	        labels:
+//	          app: nginx
+//	      spec:
+//	        containers:
+//	        - name: nginx
+//	          image: nginx:latest
+//	          ports:
+//	          - containerPort: 80
+//	`)
+func (s *Sawchain) RenderToObject(obj client.Object, template string, bindings ...map[string]any) {
 	if util.IsExistingFile(template) {
 		var err error
 		template, err = util.ReadFileContent(template)
 		s.g.Expect(err).NotTo(gomega.HaveOccurred(), errFailedReadTemplate)
 	}
-	unstructuredObj, err := chainsaw.RenderTemplateSingle(ctx, template, chainsaw.BindingsFromMap(util.MergeMaps(bindings...)))
+	unstructuredObj, err := chainsaw.RenderTemplateSingle(context.TODO(), template, chainsaw.BindingsFromMap(util.MergeMaps(bindings...)))
 	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidTemplate)
 	s.g.Expect(util.CopyUnstructuredToObject(s.c, unstructuredObj, obj)).To(gomega.Succeed(), errFailedSave)
 }
 
 // TODO: test
-// TODO: document
-func (s *Sawchain) RenderToObjects(ctx context.Context, objs []client.Object, template string, bindings ...map[string]any) {
+// RenderToObjects renders a Chainsaw template with optional bindings into a slice of objects.
+//
+// This can also be used as a convenience method for unmarshaling static manifests.
+//
+// Invalid input will result in immediate test failure.
+//
+// # Arguments
+//
+//   - Objects ([]client.Object): Slice of typed or unstructured objects to render into. If any objects
+//     are typed, the client scheme will be used for conversions.
+//
+//   - Template (string): File path or content of a static manifest or Chainsaw template to render. Must
+//     contain complete resource definitions exactly matching the count, order, and types of the provided
+//     objects.
+//
+//   - Bindings (map[string]any): Bindings to be applied to a Chainsaw template (if provided) in addition to
+//     (or overriding) Sawchain's global bindings. If multiple maps are provided, they will be merged in
+//     natural order.
+//
+// # Examples
+//
+// Render multiple resources from a template using bindings:
+//
+//	sc.RenderToObjects([]client.Object{configMap, secret}, `
+//	  apiVersion: v1
+//	  kind: ConfigMap
+//	  metadata:
+//	    name: (join('-', [$prefix, 'cm']))
+//	    namespace: ($namespace)
+//	  data:
+//	    key: value
+//	  ---
+//	  apiVersion: v1
+//	  kind: Secret
+//	  metadata:
+//	    name: (join('-', [$prefix, 'secret']))
+//	    namespace: ($namespace)
+//	  type: Opaque
+//	  stringData:
+//	    username: admin
+//	    password: secret
+//	`, map[string]any{"prefix": "test", "namespace": "default"})
+//
+// Render multiple resources from a template file using bindings:
+//
+//	sc.RenderToObjects([]client.Object{deployment, service}, "path/to/template.yaml",
+//	  map[string]any{"prefix": "test", "namespace": "default"})
+//
+// Unmarshal a static multi-resource manifest into objects:
+//
+//	sc.RenderToObjects([]client.Object{configMap, service}, `
+//	  apiVersion: v1
+//	  kind: ConfigMap
+//	  metadata:
+//	    name: app-config
+//	    namespace: default
+//	  data:
+//	    key: value
+//	  ---
+//	  apiVersion: v1
+//	  kind: Service
+//	  metadata:
+//	    name: app-service
+//	    namespace: default
+//	  spec:
+//	    selector:
+//	      app: myapp
+//	    ports:
+//	    - port: 80
+//	      targetPort: 8080
+//	`)
+func (s *Sawchain) RenderToObjects(objs []client.Object, template string, bindings ...map[string]any) {
 	if util.IsExistingFile(template) {
 		var err error
 		template, err = util.ReadFileContent(template)
 		s.g.Expect(err).NotTo(gomega.HaveOccurred(), errFailedReadTemplate)
 	}
-	unstructuredObjs, err := chainsaw.RenderTemplate(ctx, template, chainsaw.BindingsFromMap(util.MergeMaps(bindings...)))
+	unstructuredObjs, err := chainsaw.RenderTemplate(context.TODO(), template, chainsaw.BindingsFromMap(util.MergeMaps(bindings...)))
 	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidTemplate)
 	s.g.Expect(objs).To(gomega.HaveLen(len(unstructuredObjs)), errObjectsWrongLength)
 	for i, unstructuredObj := range unstructuredObjs {
@@ -832,14 +1019,52 @@ func (s *Sawchain) RenderToObjects(ctx context.Context, objs []client.Object, te
 }
 
 // TODO: test
-// TODO: document
-func (s *Sawchain) RenderToString(ctx context.Context, template string, bindings ...map[string]any) string {
+// RenderToString renders a Chainsaw template with optional bindings into a YAML string.
+//
+// Invalid input and marshaling errors will result in immediate test failure.
+//
+// # Arguments
+//
+//   - Template (string): File path or content of a Chainsaw template to render.
+//
+//   - Bindings (map[string]any): Bindings to be applied to the template in addition to (or overriding)
+//     Sawchain's global bindings. If multiple maps are provided, they will be merged in natural order.
+//
+// # Examples
+//
+// Render resources from a template using bindings:
+//
+//	yaml := sc.RenderToString(`
+//	  apiVersion: v1
+//	  kind: ConfigMap
+//	  metadata:
+//	    name: (join('-', [$prefix, 'cm']))
+//	    namespace: ($namespace)
+//	  data:
+//	    key: value
+//	  ---
+//	  apiVersion: v1
+//	  kind: Secret
+//	  metadata:
+//	    name: (join('-', [$prefix, 'secret']))
+//	    namespace: ($namespace)
+//	  type: Opaque
+//	  stringData:
+//	    username: admin
+//	    password: secret
+//	`, map[string]any{"prefix": "test", "namespace": "default"})
+//
+// Render resources from a template file using bindings:
+//
+//	yaml := sc.RenderToString("path/to/template.yaml",
+//	  map[string]any{"prefix": "test", "namespace": "default"})
+func (s *Sawchain) RenderToString(template string, bindings ...map[string]any) string {
 	if util.IsExistingFile(template) {
 		var err error
 		template, err = util.ReadFileContent(template)
 		s.g.Expect(err).NotTo(gomega.HaveOccurred(), errFailedReadTemplate)
 	}
-	objs, err := chainsaw.RenderTemplate(ctx, template, chainsaw.BindingsFromMap(util.MergeMaps(bindings...)))
+	objs, err := chainsaw.RenderTemplate(context.TODO(), template, chainsaw.BindingsFromMap(util.MergeMaps(bindings...)))
 	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidTemplate)
 	var buf bytes.Buffer
 	for i, obj := range objs {
@@ -855,8 +1080,48 @@ func (s *Sawchain) RenderToString(ctx context.Context, template string, bindings
 }
 
 // TODO: test
-// TODO: document
-func (s *Sawchain) RenderToFile(ctx context.Context, filepath, template string, bindings ...map[string]any) {
-	rendered := s.RenderToString(ctx, template, bindings...)
+// RenderToFile renders a Chainsaw template with optional bindings and writes it to a file.
+//
+// Invalid input, marshaling errors, and I/O errors will result in immediate test failure.
+//
+// # Arguments
+//
+//   - Filepath (string): The file path where the rendered YAML will be written.
+//
+//   - Template (string): File path or content of a Chainsaw template to render.
+//
+//   - Bindings (map[string]any): Bindings to be applied to the template in addition to (or overriding)
+//     Sawchain's global bindings. If multiple maps are provided, they will be merged in natural order.
+//
+// # Examples
+//
+// Render resources from a template to a file:
+//
+//	sc.RenderToFile("output.yaml", `
+//	  apiVersion: v1
+//	  kind: ConfigMap
+//	  metadata:
+//	    name: (join('-', [$prefix, 'cm']))
+//	    namespace: ($namespace)
+//	  data:
+//	    key: value
+//	  ---
+//	  apiVersion: v1
+//	  kind: Secret
+//	  metadata:
+//	    name: (join('-', [$prefix, 'secret']))
+//	    namespace: ($namespace)
+//	  type: Opaque
+//	  stringData:
+//	    username: admin
+//	    password: secret
+//	`, map[string]any{"prefix": "test", "namespace": "default"})
+//
+// Render resources from a template file to another file:
+//
+//	sc.RenderToFile("output.yaml", "path/to/template.yaml",
+//	  map[string]any{"prefix": "test", "namespace": "default"})
+func (s *Sawchain) RenderToFile(filepath, template string, bindings ...map[string]any) {
+	rendered := s.RenderToString(template, bindings...)
 	s.g.Expect(os.WriteFile(filepath, []byte(rendered), 0644)).To(gomega.Succeed(), errFailedWrite)
 }
