@@ -134,9 +134,9 @@ func IsNil(v interface{}) bool {
 	return false
 }
 
-// HasNil checks if the given interface is a slice containing
+// ContainsNil checks if the given interface is a slice containing
 // any elements that are nil or have nil underlying values.
-func HasNil(v interface{}) bool {
+func ContainsNil(v interface{}) bool {
 	rv := reflect.ValueOf(v)
 	if rv.Kind() == reflect.Slice {
 		for i := 0; i < rv.Len(); i++ {

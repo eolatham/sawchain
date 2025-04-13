@@ -83,7 +83,7 @@ func parse(
 					return nil, errors.New("multiple []client.Object arguments provided")
 				} else if opts.Object != nil {
 					return nil, errors.New(errObjectAndObjects)
-				} else if util.HasNil(objs) {
+				} else if util.ContainsNil(objs) {
 					return nil, errors.New(
 						"provided []client.Object contains an element that is nil or has a nil underlying value")
 				} else {

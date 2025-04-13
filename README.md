@@ -132,9 +132,22 @@ Expect(sc.Check(ctx, template)).To(Succeed())
 Eventually(sc.CheckFunc(ctx, template)).Should(Succeed())
 ```
 
+### Templating Utilities
+
+Helpers to easily render Chainsaw templates into objects, strings, or files
+
+```go
+sc.RenderToObject(ctx, obj, template, bindings)
+sc.RenderToObjects(ctx, objs, template, bindings)
+
+s := sc.RenderToString(ctx, template, bindings)
+f := sc.RenderToFile(ctx, filepath, template, bindings)
+```
+
 ### Notes
 
 * Sawchain accepts [client.Object](https://pkg.go.dev/sigs.k8s.io/controller-runtime/pkg/client#Object) inputs (typed or unstructured) and maintains object state in the original input format, relying on the client [scheme](https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime#Scheme) to perform internal type conversions when needed.
 * Fetch operations attempt to return typed objects when no input objects are provided.
 * Template documents used in create and update operations must contain complete resource definitions.
 * Template documents used in get and delete operations must contain valid resource keys.
+* Template documents used in render operations must contain complete resource definitions when rendering into typed objects.

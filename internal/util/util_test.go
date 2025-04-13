@@ -434,7 +434,7 @@ var _ = Describe("Util", func() {
 		)
 	})
 
-	Describe("HasNil", func() {
+	Describe("ContainsNil", func() {
 		type testCase struct {
 			input    interface{}
 			expected bool
@@ -442,7 +442,7 @@ var _ = Describe("Util", func() {
 
 		DescribeTable("checking if a slice contains nil values",
 			func(tc testCase) {
-				result := util.HasNil(tc.input)
+				result := util.ContainsNil(tc.input)
 				Expect(result).To(Equal(tc.expected))
 			},
 			Entry("slice with nil interface", testCase{
