@@ -137,10 +137,10 @@ Eventually(sc.CheckFunc(ctx, template)).Should(Succeed())
 Helpers to easily render Chainsaw templates into objects, strings, or files
 
 ```go
-sc.RenderToObject(ctx, obj, template, bindings)
-sc.RenderToObjects(ctx, objs, template, bindings)
-s := sc.RenderToString(ctx, template, bindings)
-sc.RenderToFile(ctx, filepath, template, bindings)
+sc.RenderToObject(obj, template, bindings)
+sc.RenderToObjects(objs, template, bindings)
+s := sc.RenderToString(template, bindings)
+sc.RenderToFile(filepath, template, bindings)
 ```
 
 ### Notes
