@@ -1,8 +1,10 @@
 package sawchain
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
@@ -10,6 +12,7 @@ import (
 	"github.com/onsi/gomega/types"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
 
 	"github.com/eolatham/sawchain/internal/chainsaw"
 	"github.com/eolatham/sawchain/internal/matchers"
@@ -26,6 +29,7 @@ const (
 
 	errCacheNotSynced = "client cache not synced within timeout"
 	errFailedSave     = "failed to save state to object"
+	errFailedWrite    = "failed to write file"
 
 	errFailedCreateWithTemplate = "failed to create with template"
 	errFailedCreateWithObject   = "failed to create with object"
@@ -35,6 +39,8 @@ const (
 	errFailedDeleteWithObject   = "failed to delete with object"
 
 	errNilOpts             = "internal error: parsed options is nil"
+	errFailedReadTemplate  = "internal error: failed to read template file"
+	errFailedMarshalObject = "internal error: failed to marshal object"
 	errCreatedMatcherIsNil = "internal error: created matcher is nil"
 )
 
@@ -139,7 +145,7 @@ func (s *Sawchain) checkNotFoundF(ctx context.Context, obj client.Object) func()
 	return func() error { return s.checkNotFound(ctx, obj) }
 }
 
-// CREATE/UPDATE/DELETE OPERATIONS
+// CREATE/UPDATE/DELETE
 
 // TODO: merge Update APIs
 // TODO: merge Delete APIs
@@ -787,7 +793,7 @@ func (s *Sawchain) DeleteResourcesAndWait(ctx context.Context, args ...interface
 	return nil
 }
 
-// GET OPERATIONS
+// GET
 
 // TODO: document
 func (s *Sawchain) Get(ctx context.Context, args ...interface{}) error {
@@ -809,7 +815,7 @@ func (s *Sawchain) GetFunc(ctx context.Context, args ...interface{}) func() erro
 	return nil
 }
 
-// FETCH OPERATIONS
+// FETCH
 
 // TODO: document
 func (s *Sawchain) FetchSingle(ctx context.Context, args ...interface{}) client.Object {
@@ -851,7 +857,7 @@ func (s *Sawchain) FetchMultipleFunc(ctx context.Context, args ...interface{}) f
 	return nil
 }
 
-// CHECK OPERATIONS
+// CHECK
 
 // TODO: document
 func (s *Sawchain) Check(ctx context.Context, args ...interface{}) error {
@@ -873,7 +879,7 @@ func (s *Sawchain) CheckFunc(ctx context.Context, args ...interface{}) func() er
 	return nil
 }
 
-// CUSTOM MATCHERS
+// MATCH
 
 // TODO: document
 // TODO: recommend enabling format.UseStringerRepresentation for better failure output
@@ -882,7 +888,7 @@ func (s *Sawchain) MatchYAML(template string, bindings ...map[string]any) types.
 	if util.IsExistingFile(template) {
 		var err error
 		template, err = util.ReadFileContent(template)
-		s.g.Expect(err).NotTo(gomega.HaveOccurred(), "internal error: failed to read template file")
+		s.g.Expect(err).NotTo(gomega.HaveOccurred(), errFailedReadTemplate)
 	}
 	matcher := matchers.NewChainsawMatcher(s.c, template, util.MergeMaps(bindings...))
 	s.g.Expect(matcher).NotTo(gomega.BeNil(), errCreatedMatcherIsNil)
@@ -896,4 +902,61 @@ func (s *Sawchain) HaveStatusCondition(conditionType, expectedStatus string) typ
 	matcher := matchers.NewStatusConditionMatcher(s.c, conditionType, expectedStatus)
 	s.g.Expect(matcher).NotTo(gomega.BeNil(), errCreatedMatcherIsNil)
 	return matcher
+}
+
+// RENDER
+
+// TODO: document
+func (s *Sawchain) RenderToObject(ctx context.Context, obj client.Object, template string, bindings ...map[string]any) {
+	if util.IsExistingFile(template) {
+		var err error
+		template, err = util.ReadFileContent(template)
+		s.g.Expect(err).NotTo(gomega.HaveOccurred(), errFailedReadTemplate)
+	}
+	unstructuredObj, err := chainsaw.RenderTemplateSingle(ctx, template, chainsaw.BindingsFromMap(util.MergeMaps(bindings...)))
+	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidTemplate)
+	s.g.Expect(util.CopyUnstructuredToObject(s.c, unstructuredObj, obj)).To(gomega.Succeed(), errFailedSave)
+}
+
+// TODO: document
+func (s *Sawchain) RenderToObjects(ctx context.Context, objs []client.Object, template string, bindings ...map[string]any) {
+	if util.IsExistingFile(template) {
+		var err error
+		template, err = util.ReadFileContent(template)
+		s.g.Expect(err).NotTo(gomega.HaveOccurred(), errFailedReadTemplate)
+	}
+	unstructuredObjs, err := chainsaw.RenderTemplate(ctx, template, chainsaw.BindingsFromMap(util.MergeMaps(bindings...)))
+	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidTemplate)
+	s.g.Expect(objs).To(gomega.HaveLen(len(unstructuredObjs)), errObjectsWrongLength)
+	for i, unstructuredObj := range unstructuredObjs {
+		s.g.Expect(util.CopyUnstructuredToObject(s.c, unstructuredObj, objs[i])).To(gomega.Succeed(), errFailedSave)
+	}
+}
+
+// TODO: document
+func (s *Sawchain) RenderToString(ctx context.Context, template string, bindings ...map[string]any) string {
+	if util.IsExistingFile(template) {
+		var err error
+		template, err = util.ReadFileContent(template)
+		s.g.Expect(err).NotTo(gomega.HaveOccurred(), errFailedReadTemplate)
+	}
+	objs, err := chainsaw.RenderTemplate(ctx, template, chainsaw.BindingsFromMap(util.MergeMaps(bindings...)))
+	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidTemplate)
+	var buf bytes.Buffer
+	for i, obj := range objs {
+		y, err := yaml.Marshal(obj.Object)
+		s.g.Expect(err).NotTo(gomega.HaveOccurred(), errFailedMarshalObject)
+		if i > 0 {
+			buf.WriteString("---\n")
+		}
+		buf.Write(y)
+		buf.WriteString("\n")
+	}
+	return buf.String()
+}
+
+// TODO: document
+func (s *Sawchain) RenderToFile(ctx context.Context, filepath, template string, bindings ...map[string]any) {
+	rendered := s.RenderToString(ctx, template, bindings...)
+	s.g.Expect(os.WriteFile(filepath, []byte(rendered), 0644)).To(gomega.Succeed(), errFailedWrite)
 }
