@@ -23,7 +23,6 @@ import (
 const (
 	errInvalidArgs        = "invalid arguments"
 	errInvalidTemplate    = "invalid template/bindings"
-	errTemplateEmpty      = "template must contain at least one resource"
 	errObjectInsufficient = "single object insufficient for multi-resource template"
 	errObjectsWrongLength = "objects slice length must match template resource count"
 
@@ -284,7 +283,6 @@ func (s *Sawchain) Create(ctx context.Context, args ...interface{}) error {
 		// Render template
 		unstructuredObjs, err := chainsaw.RenderTemplate(ctx, opts.Template, chainsaw.BindingsFromMap(opts.Bindings))
 		s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidTemplate)
-		s.g.Expect(unstructuredObjs).NotTo(gomega.BeEmpty(), errTemplateEmpty)
 
 		// Validate objects length
 		if opts.Object != nil {
@@ -545,7 +543,6 @@ func (s *Sawchain) UpdateResourcesAndWait(ctx context.Context, args ...interface
 		// Render template
 		unstructuredObjs, err := chainsaw.RenderTemplate(ctx, opts.Template, chainsaw.BindingsFromMap(opts.Bindings))
 		s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidTemplate)
-		s.g.Expect(unstructuredObjs).NotTo(gomega.BeEmpty(), errTemplateEmpty)
 
 		// Validate objects length
 		if opts.Objects != nil {
@@ -749,7 +746,6 @@ func (s *Sawchain) DeleteResourcesAndWait(ctx context.Context, args ...interface
 		// Render template
 		unstructuredObjs, err := chainsaw.RenderTemplate(ctx, opts.Template, chainsaw.BindingsFromMap(opts.Bindings))
 		s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidTemplate)
-		s.g.Expect(unstructuredObjs).NotTo(gomega.BeEmpty(), errTemplateEmpty)
 
 		// Validate objects length
 		if opts.Objects != nil {
