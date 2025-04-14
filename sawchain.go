@@ -778,7 +778,8 @@ func (s *Sawchain) CheckFunc(ctx context.Context, args ...interface{}) func() er
 // MATCH
 
 // TODO: test
-// MatchYAML returns a Gomega matcher that tests if a client.Object matches a Chainsaw template.
+// MatchYAML returns a Gomega matcher that tests if a client.Object matches a static manifest or Chainsaw
+// template, including full support for Chainsaw JMESPath assertions.
 //
 // The returned matcher may rely on the client scheme for internal type conversions.
 //
@@ -805,12 +806,21 @@ func (s *Sawchain) CheckFunc(ctx context.Context, args ...interface{}) func() er
 //	g.Expect(configMap).To(sc.MatchYAML(`
 //	  apiVersion: v1
 //	  kind: ConfigMap
-//	  metadata:
-//	    name: ($name)
-//	    namespace: ($namespace)
 //	  data:
-//	    key: expected-value
-//	`, map[string]any{"name": "test-cm", "namespace": "default"}))
+//	    key1: ($value1)
+//	    key2: ($value2)
+//	`, map[string]any{"value1": "foo", "value2": "bar"}))
+//
+// Match a Deployment's replica count using a JMESPath assertion:
+//
+//	g.Expect(deployment).To(sc.MatchYAML(`
+//	  apiVersion: apps/v1
+//	  kind: Deployment
+//	  spec:
+//	    (replicas > `1` && replicas < `4`): true
+//	`))
+//
+// For more assertion examples, go to https://kyverno.github.io/chainsaw/.
 func (s *Sawchain) MatchYAML(template string, bindings ...map[string]any) types.GomegaMatcher {
 	if util.IsExistingFile(template) {
 		var err error
@@ -823,8 +833,8 @@ func (s *Sawchain) MatchYAML(template string, bindings ...map[string]any) types.
 }
 
 // TODO: test
-// HaveStatusCondition returns a Gomega matcher that tests if a client.Object has a specific status
-// condition.
+// HaveStatusCondition returns a Gomega matcher that uses an internal Chainsaw assertion to test if a
+// client.Object has a specific status condition.
 //
 // The returned matcher may rely on the client scheme for internal type conversions.
 //
