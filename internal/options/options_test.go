@@ -1384,5 +1384,192 @@ var _ = Describe("Options", func() {
 		)
 	})
 
-	// TODO: test ParseAndRequireImmediateTemplate
+	Describe("ParseAndRequireImmediateTemplate", func() {
+		type testCase struct {
+			defaults      *options.Options
+			args          []interface{}
+			expected      *options.Options
+			expectedError string
+		}
+
+		DescribeTable("parsing and requiring immediate template operation options",
+			func(tc testCase) {
+				result, err := options.ParseAndRequireImmediateTemplate(tc.defaults, tc.args...)
+				if tc.expectedError != "" {
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring(tc.expectedError))
+				} else {
+					Expect(err).NotTo(HaveOccurred())
+					Expect(result).To(Equal(tc.expected))
+				}
+			},
+
+			// Valid arguments
+			Entry("valid template content", testCase{
+				defaults: nil,
+				args:     []interface{}{"template content"},
+				expected: &options.Options{
+					Template: "template content",
+					Bindings: map[string]any{},
+				},
+			}),
+
+			Entry("valid template file", testCase{
+				defaults: nil,
+				args:     []interface{}{templateFilePath},
+				expected: &options.Options{
+					Template: templateFileContent,
+					Bindings: map[string]any{},
+				},
+			}),
+
+			Entry("valid template with bindings", testCase{
+				defaults: nil,
+				args:     []interface{}{"template content", map[string]any{"key": "value"}},
+				expected: &options.Options{
+					Template: "template content",
+					Bindings: map[string]any{"key": "value"},
+				},
+			}),
+
+			Entry("valid template, bindings, and object", testCase{
+				defaults: nil,
+				args: []interface{}{
+					"template content",
+					map[string]any{"key": "value"},
+					testutil.NewConfigMap("test-config", "default", nil),
+				},
+				expected: &options.Options{
+					Template: "template content",
+					Bindings: map[string]any{"key": "value"},
+					Object:   testutil.NewConfigMap("test-config", "default", nil),
+				},
+			}),
+
+			Entry("valid template, bindings, and objects", testCase{
+				defaults: nil,
+				args: []interface{}{
+					"template content",
+					map[string]any{"key": "value"},
+					[]client.Object{
+						testutil.NewConfigMap("test-config-1", "default", nil),
+						testutil.NewConfigMap("test-config-2", "default", nil),
+					},
+				},
+				expected: &options.Options{
+					Template: "template content",
+					Bindings: map[string]any{"key": "value"},
+					Objects: []client.Object{
+						testutil.NewConfigMap("test-config-1", "default", nil),
+						testutil.NewConfigMap("test-config-2", "default", nil),
+					},
+				},
+			}),
+
+			// Using defaults
+			Entry("use default bindings", testCase{
+				defaults: &options.Options{
+					Bindings: map[string]any{"default": "value"},
+				},
+				args: []interface{}{"template content"},
+				expected: &options.Options{
+					Template: "template content",
+					Bindings: map[string]any{"default": "value"},
+				},
+			}),
+
+			// Merging bindings
+			Entry("merge bindings with defaults", testCase{
+				defaults: &options.Options{
+					Bindings: map[string]any{"default": "value", "shared": "default"},
+				},
+				args: []interface{}{
+					"template content",
+					map[string]any{"new": "value", "shared": "override"},
+				},
+				expected: &options.Options{
+					Template: "template content",
+					Bindings: map[string]any{"default": "value", "new": "value", "shared": "override"},
+				},
+			}),
+
+			Entry("merge multiple bindings maps", testCase{
+				defaults: nil,
+				args: []interface{}{
+					"template content",
+					map[string]any{"first": "value", "shared": "first"},
+					map[string]any{"second": "value", "shared": "second"},
+				},
+				expected: &options.Options{
+					Template: "template content",
+					Bindings: map[string]any{"first": "value", "second": "value", "shared": "second"},
+				},
+			}),
+
+			// Missing required arguments
+			Entry("missing template", testCase{
+				defaults:      nil,
+				args:          []interface{}{},
+				expectedError: "required argument(s) not provided: Template (string)",
+			}),
+
+			// Invalid arguments
+			Entry("nil object", testCase{
+				defaults: nil,
+				args: []interface{}{
+					"template content",
+					(*corev1.ConfigMap)(nil),
+				},
+				expectedError: "provided client.Object is nil or has a nil underlying value",
+			}),
+
+			Entry("objects containing nil object", testCase{
+				defaults: nil,
+				args: []interface{}{
+					"template content",
+					[]client.Object{
+						&corev1.ConfigMap{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      "valid-config",
+								Namespace: "default",
+							},
+						},
+						(*corev1.ConfigMap)(nil),
+					},
+				},
+				expectedError: "provided []client.Object contains an element that is nil or has a nil underlying value",
+			}),
+
+			Entry("multiple template arguments", testCase{
+				defaults:      nil,
+				args:          []interface{}{"template1", "template2"},
+				expectedError: "multiple template arguments provided",
+			}),
+
+			Entry("object and objects together", testCase{
+				defaults: nil,
+				args: []interface{}{
+					"template content",
+					testutil.NewConfigMap("single-config", "default", nil),
+					[]client.Object{
+						testutil.NewConfigMap("multi-config", "default", nil),
+					},
+				},
+				expectedError: "client.Object and []client.Object arguments both provided",
+			}),
+
+			Entry("unexpected argument type", testCase{
+				defaults:      nil,
+				args:          []interface{}{"template content", 5},
+				expectedError: "unexpected argument type: int",
+			}),
+
+			// Disallowed arguments
+			Entry("disallowed timeout argument", testCase{
+				defaults:      nil,
+				args:          []interface{}{5 * time.Second},
+				expectedError: "unexpected argument type: time.Duration",
+			}),
+		)
+	})
 })
