@@ -4,10 +4,10 @@ Go library for K8s YAML-driven testing—backed by [Chainsaw](https://github.com
 
 ## TODO
 
-* implementation
 * testing
 * documentation
 * branding
+* license
 * examples
   * Crossplane render test
   * KubeVela dry-run test
@@ -119,10 +119,8 @@ Expect(obj).To(sc.HaveStatusCondition("Type", "Status"))  // Assert client.Objec
 ```go
 // Check cluster for a matching resource
 var err error
-err = sc.Check(ctx, obj)             // Check for exact match with obj
 err = sc.Check(ctx, template)        // Execute Chainsaw check with template
 err = sc.Check(ctx, obj, template)   // Execute Chainsaw check with single-document template, save first match to obj
-err = sc.Check(ctx, objs)            // Check for exact match with each object in objs
 err = sc.Check(ctx, objs, template)  // Execute Chainsaw check with each document in template, save first matches to objs
 
 // Assert match found immediately

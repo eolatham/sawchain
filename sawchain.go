@@ -5,12 +5,14 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 
@@ -277,7 +279,7 @@ func (s *Sawchain) checkNotFoundF(ctx context.Context, obj client.Object) func()
 //	    username: admin
 //	    password: secret
 //	`, map[string]any{"prefix": "test", "namespace": "default"})
-func (s *Sawchain) Create(ctx context.Context, args ...interface{}) error {
+func (s *Sawchain) Create(ctx context.Context, args ...interface{}) {
 	// Parse options
 	opts, err := options.ParseAndRequireEventual(&s.opts, args...)
 	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidArgs)
@@ -343,8 +345,6 @@ func (s *Sawchain) Create(ctx context.Context, args ...interface{}) error {
 		}
 		s.g.Eventually(getAll, opts.Timeout, opts.Interval).Should(gomega.Succeed(), errCacheNotSynced)
 	}
-
-	return nil
 }
 
 // TODO: test
@@ -472,7 +472,7 @@ func (s *Sawchain) Create(ctx context.Context, args ...interface{}) error {
 //	    username: admin
 //	    password: updated-secret
 //	`, map[string]any{"prefix": "test", "namespace": "default"})
-func (s *Sawchain) Update(ctx context.Context, args ...interface{}) error {
+func (s *Sawchain) Update(ctx context.Context, args ...interface{}) {
 	// Parse options
 	opts, err := options.ParseAndRequireEventual(&s.opts, args...)
 	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidArgs)
@@ -548,8 +548,6 @@ func (s *Sawchain) Update(ctx context.Context, args ...interface{}) error {
 		}
 		s.g.Eventually(checkAll, opts.Timeout, opts.Interval).Should(gomega.Succeed(), errCacheNotSynced)
 	}
-
-	return nil
 }
 
 // TODO: test
@@ -629,7 +627,7 @@ func (s *Sawchain) Update(ctx context.Context, args ...interface{}) error {
 //	    name: (join('-', [$prefix, 'secret']))
 //	    namespace: ($namespace)
 //	`, map[string]any{"prefix": "test", "namespace": "default"})
-func (s *Sawchain) Delete(ctx context.Context, args ...interface{}) error {
+func (s *Sawchain) Delete(ctx context.Context, args ...interface{}) {
 	// Parse options
 	opts, err := options.ParseAndRequireEventual(&s.opts, args...)
 	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidArgs)
@@ -679,8 +677,6 @@ func (s *Sawchain) Delete(ctx context.Context, args ...interface{}) error {
 		}
 		s.g.Eventually(checkAll, opts.Timeout, opts.Interval).Should(gomega.Succeed(), errCacheNotSynced)
 	}
-
-	return nil
 }
 
 // GET
@@ -745,7 +741,6 @@ func (s *Sawchain) GetFunc(ctx context.Context, args ...interface{}) func() erro
 	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidArgs)
 	s.g.Expect(opts).NotTo(gomega.BeNil(), errNilOpts)
 
-	var f func() error
 	if len(opts.Template) > 0 {
 		// Render template
 		unstructuredObjs, err := chainsaw.RenderTemplate(ctx, opts.Template, chainsaw.BindingsFromMap(opts.Bindings))
@@ -758,7 +753,7 @@ func (s *Sawchain) GetFunc(ctx context.Context, args ...interface{}) func() erro
 			s.g.Expect(opts.Objects).To(gomega.HaveLen(len(unstructuredObjs)), errObjectsWrongLength)
 		}
 
-		f = func() error {
+		return func() error {
 			// Get resources
 			for _, unstructuredObj := range unstructuredObjs {
 				if err := s.c.Get(ctx, client.ObjectKeyFromObject(&unstructuredObj), &unstructuredObj); err != nil {
@@ -776,7 +771,7 @@ func (s *Sawchain) GetFunc(ctx context.Context, args ...interface{}) func() erro
 			return nil
 		}
 	} else if opts.Object != nil {
-		f = func() error {
+		return func() error {
 			// Get resource
 			if err := s.c.Get(ctx, client.ObjectKeyFromObject(opts.Object), opts.Object); err != nil {
 				return err
@@ -784,7 +779,7 @@ func (s *Sawchain) GetFunc(ctx context.Context, args ...interface{}) func() erro
 			return nil
 		}
 	} else {
-		f = func() error {
+		return func() error {
 			// Get resources
 			for _, obj := range opts.Objects {
 				if err := s.c.Get(ctx, client.ObjectKeyFromObject(obj), obj); err != nil {
@@ -794,8 +789,6 @@ func (s *Sawchain) GetFunc(ctx context.Context, args ...interface{}) func() erro
 			return nil
 		}
 	}
-
-	return f
 }
 
 // FETCH
@@ -808,7 +801,6 @@ func (s *Sawchain) FetchSingle(ctx context.Context, args ...interface{}) client.
 	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidArgs)
 	s.g.Expect(opts).NotTo(gomega.BeNil(), errNilOpts)
 
-	var obj client.Object
 	if len(opts.Template) > 0 {
 		// Render template
 		unstructuredObj, err := chainsaw.RenderTemplateSingle(ctx, opts.Template, chainsaw.BindingsFromMap(opts.Bindings))
@@ -817,22 +809,24 @@ func (s *Sawchain) FetchSingle(ctx context.Context, args ...interface{}) client.
 		// Get resource
 		s.g.Expect(s.c.Get(ctx, client.ObjectKeyFromObject(&unstructuredObj), &unstructuredObj)).To(gomega.Succeed(), errFailedGetWithTemplate)
 
-		// Save object
 		if opts.Object != nil {
+			// Save object
 			s.g.Expect(util.CopyUnstructuredToObject(s.c, unstructuredObj, opts.Object)).To(gomega.Succeed(), errFailedSave)
-			obj = opts.Object
+			// Return object
+			return opts.Object
 		} else {
 			// Convert to typed
-			obj, err = util.TypedFromUnstructured(s.c, unstructuredObj)
+			obj, err := util.TypedFromUnstructured(s.c, unstructuredObj)
 			s.g.Expect(err).NotTo(gomega.HaveOccurred(), errFailedConvert)
+			// Return object
+			return obj
 		}
 	} else {
 		// Get resource
 		s.g.Expect(s.c.Get(ctx, client.ObjectKeyFromObject(opts.Object), opts.Object)).To(gomega.Succeed(), errFailedGetWithObject)
-		obj = opts.Object
+		// Return object
+		return opts.Object
 	}
-
-	return obj
 }
 
 // TODO: test
@@ -842,8 +836,48 @@ func (s *Sawchain) FetchMultiple(ctx context.Context, args ...interface{}) []cli
 	opts, err := options.ParseAndRequireImmediateMulti(&s.opts, args...)
 	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidArgs)
 	s.g.Expect(opts).NotTo(gomega.BeNil(), errNilOpts)
-	// TODO: implement
-	return nil
+
+	if len(opts.Template) > 0 {
+		// Render template
+		unstructuredObjs, err := chainsaw.RenderTemplate(ctx, opts.Template, chainsaw.BindingsFromMap(opts.Bindings))
+		s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidTemplate)
+
+		// Validate objects length
+		if opts.Objects != nil {
+			s.g.Expect(opts.Objects).To(gomega.HaveLen(len(unstructuredObjs)), errObjectsWrongLength)
+		}
+
+		// Get resources
+		for _, unstructuredObj := range unstructuredObjs {
+			s.g.Expect(s.c.Get(ctx, client.ObjectKeyFromObject(&unstructuredObj), &unstructuredObj)).To(gomega.Succeed(), errFailedGetWithTemplate)
+		}
+
+		if opts.Objects != nil {
+			// Save objects
+			for i, unstructuredObj := range unstructuredObjs {
+				s.g.Expect(util.CopyUnstructuredToObject(s.c, unstructuredObj, opts.Objects[i])).To(gomega.Succeed(), errFailedSave)
+			}
+			// Return objects
+			return opts.Objects
+		} else {
+			// Convert to typed
+			objs := make([]client.Object, len(unstructuredObjs))
+			for i, unstructuredObj := range unstructuredObjs {
+				obj, err := util.TypedFromUnstructured(s.c, unstructuredObj)
+				s.g.Expect(err).NotTo(gomega.HaveOccurred(), errFailedConvert)
+				objs[i] = obj
+			}
+			// Return objects
+			return objs
+		}
+	} else {
+		// Get resources
+		for _, obj := range opts.Objects {
+			s.g.Expect(s.c.Get(ctx, client.ObjectKeyFromObject(obj), obj)).To(gomega.Succeed(), errFailedGetWithObject)
+		}
+		// Return objects
+		return opts.Objects
+	}
 }
 
 // TODO: test
@@ -853,8 +887,36 @@ func (s *Sawchain) FetchSingleFunc(ctx context.Context, args ...interface{}) fun
 	opts, err := options.ParseAndRequireImmediateSingle(&s.opts, args...)
 	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidArgs)
 	s.g.Expect(opts).NotTo(gomega.BeNil(), errNilOpts)
-	// TODO: implement
-	return nil
+
+	if len(opts.Template) > 0 {
+		// Render template
+		unstructuredObj, err := chainsaw.RenderTemplateSingle(ctx, opts.Template, chainsaw.BindingsFromMap(opts.Bindings))
+		s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidTemplate)
+
+		return func() client.Object {
+			// Get resource
+			s.g.Expect(s.c.Get(ctx, client.ObjectKeyFromObject(&unstructuredObj), &unstructuredObj)).To(gomega.Succeed(), errFailedGetWithTemplate)
+			if opts.Object != nil {
+				// Save object
+				s.g.Expect(util.CopyUnstructuredToObject(s.c, unstructuredObj, opts.Object)).To(gomega.Succeed(), errFailedSave)
+				// Return object
+				return opts.Object
+			} else {
+				// Convert to typed
+				obj, err := util.TypedFromUnstructured(s.c, unstructuredObj)
+				s.g.Expect(err).NotTo(gomega.HaveOccurred(), errFailedConvert)
+				// Return object
+				return obj
+			}
+		}
+	} else {
+		return func() client.Object {
+			// Get resource
+			s.g.Expect(s.c.Get(ctx, client.ObjectKeyFromObject(opts.Object), opts.Object)).To(gomega.Succeed(), errFailedGetWithObject)
+			// Return object
+			return opts.Object
+		}
+	}
 }
 
 // TODO: test
@@ -864,32 +926,144 @@ func (s *Sawchain) FetchMultipleFunc(ctx context.Context, args ...interface{}) f
 	opts, err := options.ParseAndRequireImmediateMulti(&s.opts, args...)
 	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidArgs)
 	s.g.Expect(opts).NotTo(gomega.BeNil(), errNilOpts)
-	// TODO: implement
-	return nil
+
+	if len(opts.Template) > 0 {
+		// Render template
+		unstructuredObjs, err := chainsaw.RenderTemplate(ctx, opts.Template, chainsaw.BindingsFromMap(opts.Bindings))
+		s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidTemplate)
+
+		// Validate objects length
+		if opts.Objects != nil {
+			s.g.Expect(opts.Objects).To(gomega.HaveLen(len(unstructuredObjs)), errObjectsWrongLength)
+		}
+
+		return func() []client.Object {
+			// Get resources
+			for _, unstructuredObj := range unstructuredObjs {
+				s.g.Expect(s.c.Get(ctx, client.ObjectKeyFromObject(&unstructuredObj), &unstructuredObj)).To(gomega.Succeed(), errFailedGetWithTemplate)
+			}
+
+			if opts.Objects != nil {
+				// Save objects
+				for i, unstructuredObj := range unstructuredObjs {
+					s.g.Expect(util.CopyUnstructuredToObject(s.c, unstructuredObj, opts.Objects[i])).To(gomega.Succeed(), errFailedSave)
+				}
+				// Return objects
+				return opts.Objects
+			} else {
+				// Convert to typed
+				objs := make([]client.Object, len(unstructuredObjs))
+				for i, unstructuredObj := range unstructuredObjs {
+					obj, err := util.TypedFromUnstructured(s.c, unstructuredObj)
+					s.g.Expect(err).NotTo(gomega.HaveOccurred(), errFailedConvert)
+					objs[i] = obj
+				}
+				// Return objects
+				return objs
+			}
+		}
+	} else {
+		return func() []client.Object {
+			// Get resources
+			for _, obj := range opts.Objects {
+				s.g.Expect(s.c.Get(ctx, client.ObjectKeyFromObject(obj), obj)).To(gomega.Succeed(), errFailedGetWithObject)
+			}
+			// Return objects
+			return opts.Objects
+		}
+	}
 }
 
 // CHECK
 
 // TODO: test
 // TODO: document
+// TODO: require template
 func (s *Sawchain) Check(ctx context.Context, args ...interface{}) error {
 	// Parse options
 	opts, err := options.ParseAndRequireImmediate(&s.opts, args...)
 	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidArgs)
 	s.g.Expect(opts).NotTo(gomega.BeNil(), errNilOpts)
-	// TODO: implement
+
+	// Construct bindings
+	bindings := chainsaw.BindingsFromMap(opts.Bindings)
+
+	// Split documents
+	documents := strings.Split(opts.Template, "---")
+
+	// Validate objects length
+	if opts.Object != nil {
+		s.g.Expect(documents).To(gomega.HaveLen(1), errObjectInsufficient)
+	} else if opts.Objects != nil {
+		s.g.Expect(opts.Objects).To(gomega.HaveLen(len(documents)), errObjectsWrongLength)
+	}
+
+	// Execute checks
+	matches := make([]unstructured.Unstructured, len(documents))
+	for i, document := range documents {
+		match, err := chainsaw.Check(s.c, ctx, document, bindings)
+		if err != nil {
+			return err
+		}
+		matches[i] = match
+	}
+
+	// Save matches
+	if opts.Object != nil {
+		s.g.Expect(util.CopyUnstructuredToObject(s.c, matches[0], opts.Object)).To(gomega.Succeed(), errFailedSave)
+	} else if opts.Objects != nil {
+		for i, match := range matches {
+			s.g.Expect(util.CopyUnstructuredToObject(s.c, match, opts.Objects[i])).To(gomega.Succeed(), errFailedSave)
+		}
+	}
+
 	return nil
 }
 
 // TODO: test
 // TODO: document
+// TODO: require template
 func (s *Sawchain) CheckFunc(ctx context.Context, args ...interface{}) func() error {
 	// Parse options
-	opts, err := options.ParseAndRequireImmediateSingle(&s.opts, args...)
+	opts, err := options.ParseAndRequireImmediate(&s.opts, args...)
 	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidArgs)
 	s.g.Expect(opts).NotTo(gomega.BeNil(), errNilOpts)
-	// TODO: implement
-	return nil
+
+	// Construct bindings
+	bindings := chainsaw.BindingsFromMap(opts.Bindings)
+
+	// Split documents
+	documents := strings.Split(opts.Template, "---")
+
+	// Validate objects length
+	if opts.Object != nil {
+		s.g.Expect(documents).To(gomega.HaveLen(1), errObjectInsufficient)
+	} else if opts.Objects != nil {
+		s.g.Expect(opts.Objects).To(gomega.HaveLen(len(documents)), errObjectsWrongLength)
+	}
+
+	return func() error {
+		// Execute checks
+		matches := make([]unstructured.Unstructured, len(documents))
+		for i, document := range documents {
+			match, err := chainsaw.Check(s.c, ctx, document, bindings)
+			if err != nil {
+				return err
+			}
+			matches[i] = match
+		}
+
+		// Save matches
+		if opts.Object != nil {
+			s.g.Expect(util.CopyUnstructuredToObject(s.c, matches[0], opts.Object)).To(gomega.Succeed(), errFailedSave)
+		} else if opts.Objects != nil {
+			for i, match := range matches {
+				s.g.Expect(util.CopyUnstructuredToObject(s.c, match, opts.Objects[i])).To(gomega.Succeed(), errFailedSave)
+			}
+		}
+
+		return nil
+	}
 }
 
 // MATCH

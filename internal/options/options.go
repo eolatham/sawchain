@@ -142,7 +142,7 @@ func requireTemplateObject(opts *Options) error {
 	if opts == nil {
 		return errors.New(errNil)
 	}
-	if opts.Template == "" && opts.Object == nil {
+	if len(opts.Template) == 0 && opts.Object == nil {
 		return errors.New(errRequired + ": Template (string) or Object (client.Object)")
 	}
 	return nil
@@ -153,7 +153,7 @@ func requireTemplateObjects(opts *Options) error {
 	if opts == nil {
 		return errors.New(errNil)
 	}
-	if opts.Template == "" && opts.Objects == nil {
+	if len(opts.Template) == 0 && opts.Objects == nil {
 		return errors.New(errRequired + ": Template (string) or Objects ([]client.Object)")
 	}
 	return nil
@@ -164,7 +164,7 @@ func requireTemplateObjectObjects(opts *Options) error {
 	if opts == nil {
 		return errors.New(errNil)
 	}
-	if opts.Template == "" && opts.Object == nil && opts.Objects == nil {
+	if len(opts.Template) == 0 && opts.Object == nil && opts.Objects == nil {
 		return errors.New(errRequired + ": Template (string), Object (client.Object), or Objects ([]client.Object)")
 	}
 	return nil
