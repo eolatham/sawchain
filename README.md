@@ -145,6 +145,5 @@ sc.RenderToFile(filepath, template, bindings)
 
 * Sawchain accepts [client.Object](https://pkg.go.dev/sigs.k8s.io/controller-runtime/pkg/client#Object) inputs (typed or unstructured) and maintains object state in the original input format, relying on the client [scheme](https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime#Scheme) to perform internal type conversions when needed.
 * Fetch operations attempt to return typed objects when no input objects are provided.
-* Template documents used in create and update operations must contain complete resource definitions.
-* Template documents used in get and delete operations must contain valid resource keys.
-* Template documents used in render operations must contain complete resource definitions when rendering into typed objects.
+* Template documents used in create, update, and render operations must contain complete resource definitions.
+* Template documents used in delete, get, and fetch operations must contain complete resource identifying metadata.
