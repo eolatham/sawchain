@@ -137,6 +137,17 @@ func requireDurations(opts *Options) error {
 	return nil
 }
 
+// requireTemplate requires option Template to be provided.
+func requireTemplate(opts *Options) error {
+	if opts == nil {
+		return errors.New(errNil)
+	}
+	if len(opts.Template) == 0 {
+		return errors.New(errRequired + ": Template (string)")
+	}
+	return nil
+}
+
 // requireTemplateObject requires options Template or Object to be provided.
 func requireTemplateObject(opts *Options) error {
 	if opts == nil {
@@ -270,6 +281,19 @@ func ParseAndRequireImmediateMulti(defaults *Options, args ...interface{}) (*Opt
 		return nil, err
 	}
 	if err := requireTemplateObjects(opts); err != nil {
+		return nil, err
+	}
+	return opts, nil
+}
+
+// ParseAndRequireImmediateTemplate parses and requires options
+// for Sawchain immediate template operations.
+func ParseAndRequireImmediateTemplate(defaults *Options, args ...interface{}) (*Options, error) {
+	opts, err := parseAndApplyDefaults(defaults, false, true, true, true, args...)
+	if err != nil {
+		return nil, err
+	}
+	if err := requireTemplate(opts); err != nil {
 		return nil, err
 	}
 	return opts, nil

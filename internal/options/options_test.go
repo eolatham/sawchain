@@ -1383,4 +1383,6 @@ var _ = Describe("Options", func() {
 			}),
 		)
 	})
+
+	// TODO: test ParseAndRequireImmediateTemplate
 })

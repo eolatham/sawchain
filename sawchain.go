@@ -978,10 +978,9 @@ func (s *Sawchain) FetchMultipleFunc(ctx context.Context, args ...interface{}) f
 
 // TODO: test
 // TODO: document
-// TODO: require template
 func (s *Sawchain) Check(ctx context.Context, args ...interface{}) error {
 	// Parse options
-	opts, err := options.ParseAndRequireImmediate(&s.opts, args...)
+	opts, err := options.ParseAndRequireImmediateTemplate(&s.opts, args...)
 	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidArgs)
 	s.g.Expect(opts).NotTo(gomega.BeNil(), errNilOpts)
 
@@ -1022,10 +1021,9 @@ func (s *Sawchain) Check(ctx context.Context, args ...interface{}) error {
 
 // TODO: test
 // TODO: document
-// TODO: require template
 func (s *Sawchain) CheckFunc(ctx context.Context, args ...interface{}) func() error {
 	// Parse options
-	opts, err := options.ParseAndRequireImmediate(&s.opts, args...)
+	opts, err := options.ParseAndRequireImmediateTemplate(&s.opts, args...)
 	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidArgs)
 	s.g.Expect(opts).NotTo(gomega.BeNil(), errNilOpts)
 
