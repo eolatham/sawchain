@@ -101,6 +101,10 @@ func New(t testing.TB, c client.Client, args ...interface{}) *Sawchain {
 
 // HELPER FUNCTIONS
 
+func (s *Sawchain) mergeBindings(bindings ...map[string]any) map[string]any {
+	return util.MergeMaps(append([]map[string]any{s.opts.Bindings}, bindings...)...)
+}
+
 func (s *Sawchain) id(obj client.Object) string {
 	return util.GetResourceID(obj, s.c.Scheme())
 }
@@ -827,7 +831,7 @@ func (s *Sawchain) MatchYAML(template string, bindings ...map[string]any) types.
 		template, err = util.ReadFileContent(template)
 		s.g.Expect(err).NotTo(gomega.HaveOccurred(), errFailedReadTemplate)
 	}
-	matcher := matchers.NewChainsawMatcher(s.c, template, util.MergeMaps(bindings...))
+	matcher := matchers.NewChainsawMatcher(s.c, template, s.mergeBindings(bindings...))
 	s.g.Expect(matcher).NotTo(gomega.BeNil(), errCreatedMatcherIsNil)
 	return matcher
 }
@@ -937,7 +941,7 @@ func (s *Sawchain) RenderToObject(obj client.Object, template string, bindings .
 		template, err = util.ReadFileContent(template)
 		s.g.Expect(err).NotTo(gomega.HaveOccurred(), errFailedReadTemplate)
 	}
-	unstructuredObj, err := chainsaw.RenderTemplateSingle(context.TODO(), template, chainsaw.BindingsFromMap(util.MergeMaps(bindings...)))
+	unstructuredObj, err := chainsaw.RenderTemplateSingle(context.TODO(), template, chainsaw.BindingsFromMap(s.mergeBindings(bindings...)))
 	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidTemplate)
 	s.g.Expect(util.CopyUnstructuredToObject(s.c, unstructuredObj, obj)).To(gomega.Succeed(), errFailedSave)
 }
@@ -1020,7 +1024,7 @@ func (s *Sawchain) RenderToObjects(objs []client.Object, template string, bindin
 		template, err = util.ReadFileContent(template)
 		s.g.Expect(err).NotTo(gomega.HaveOccurred(), errFailedReadTemplate)
 	}
-	unstructuredObjs, err := chainsaw.RenderTemplate(context.TODO(), template, chainsaw.BindingsFromMap(util.MergeMaps(bindings...)))
+	unstructuredObjs, err := chainsaw.RenderTemplate(context.TODO(), template, chainsaw.BindingsFromMap(s.mergeBindings(bindings...)))
 	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidTemplate)
 	s.g.Expect(objs).To(gomega.HaveLen(len(unstructuredObjs)), errObjectsWrongLength)
 	for i, unstructuredObj := range unstructuredObjs {
@@ -1074,7 +1078,7 @@ func (s *Sawchain) RenderToString(template string, bindings ...map[string]any) s
 		template, err = util.ReadFileContent(template)
 		s.g.Expect(err).NotTo(gomega.HaveOccurred(), errFailedReadTemplate)
 	}
-	objs, err := chainsaw.RenderTemplate(context.TODO(), template, chainsaw.BindingsFromMap(util.MergeMaps(bindings...)))
+	objs, err := chainsaw.RenderTemplate(context.TODO(), template, chainsaw.BindingsFromMap(s.mergeBindings(bindings...)))
 	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidTemplate)
 	var buf bytes.Buffer
 	for i, obj := range objs {
