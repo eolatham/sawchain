@@ -32,7 +32,7 @@ var _ = Describe("Crossplane Render", func() {
 			extraResourcesPath := filepath.Join(GinkgoT().TempDir(), "extra-resources.yaml")
 			sc.RenderToFile(extraResourcesPath, extraResourcesTemplatePath)
 
-			// Render expected output
+			// Render expected output template
 			expectedOutput := sc.RenderToString(expectedOutputTemplatePath)
 
 			// Run crossplane render
