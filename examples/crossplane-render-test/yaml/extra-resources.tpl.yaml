@@ -3,7 +3,7 @@ kind: Bucket
 metadata:
   labels:
     testing.upbound.io/example-name: bucket-notification
-  name: my-awesome-dev-bucket
+  name: (join('-', ['my-awesome', $environment, 'bucket'])) # Templated for reuse between test cases
 spec:
   forProvider:
     region: us-west-1

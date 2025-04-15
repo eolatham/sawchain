@@ -1,3 +1,16 @@
+apiVersion: example.crossplane.io/v1beta1
+kind: XR
+metadata:
+  name: example
+status:
+  conditions:
+    - lastTransitionTime: "2024-01-01T00:00:00Z"
+      message: "Unready resources: bucket-configmap-0"
+      reason: Creating
+      status: "False"
+      type: Ready
+  dummy: cool-status
+---
 apiVersion: kubernetes.crossplane.io/v1alpha1
 kind: Object
 metadata:
@@ -21,6 +34,6 @@ spec:
         bucket: random-bucket-id
       kind: ConfigMap
       metadata:
-        name: ($expectedConfigMapName) # Templatized for reuse between test cases
+        name: (join('-', ['my-awesome', $environment, 'bucket-bucket'])) # Templated for reuse between test cases
   providerConfigRef:
     name: kubernetes

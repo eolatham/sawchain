@@ -9,7 +9,6 @@ Go library for K8s YAML-driven testing—backed by [Chainsaw](https://github.com
 * add branding
 * add license
 * add examples
-  * Crossplane render test
   * KubeVela dry-run test
   * K8s helper function integration test (using fakeclient)
   * K8s operator end-to-end test (using envtest)

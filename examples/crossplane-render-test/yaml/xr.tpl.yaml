@@ -3,4 +3,4 @@ kind: XR
 metadata:
   name: example
 spec:
-  environment: dev
+  environment: ($environment) # Templated for reuse between test cases
