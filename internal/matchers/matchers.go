@@ -62,7 +62,7 @@ func (m *chainsawMatcher) String() string {
 }
 
 func (m *chainsawMatcher) failureMessageFormat(actual interface{}, base string) string {
-	return fmt.Sprintf("%s\nActual:\n%s%s\nError: %v", base, format.Object(actual, 0), m.String(), m.matchError)
+	return fmt.Sprintf("%s\nActual:\n%s%s\nError:\n%v", base, format.Object(actual, 0), m.String(), m.matchError)
 }
 
 func (m *chainsawMatcher) FailureMessage(actual interface{}) string {
