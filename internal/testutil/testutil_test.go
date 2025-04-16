@@ -267,4 +267,47 @@ var _ = Describe("Testutil", func() {
 		Entry("with empty conditions", "test-resource", "default", []metav1.Condition{}),
 		Entry("with nil conditions", "test-resource", "default", nil),
 	)
+
+	Describe("TestResource.DeepCopyObject", func() {
+		It("creates a deep copy of a TestResource", func() {
+			original := testutil.NewTestResource("test-name", "test-namespace", []metav1.Condition{
+				{
+					Type:    "Ready",
+					Status:  metav1.ConditionTrue,
+					Reason:  "TestReason",
+					Message: "Test message",
+				},
+			})
+
+			// Call DeepCopyObject and verify it's a proper copy
+			copyObj := original.DeepCopyObject()
+			copy, ok := copyObj.(*testutil.TestResource)
+
+			// Verify it's the right type
+			Expect(ok).To(BeTrue(), "Expected a *testutil.TestResource")
+
+			// Verify the contents match
+			Expect(copy.Name).To(Equal(original.Name))
+			Expect(copy.Namespace).To(Equal(original.Namespace))
+			Expect(copy.Status.Conditions).To(Equal(original.Status.Conditions))
+
+			// Verify it's a deep copy by modifying the copy and checking the original
+			copy.Name = "modified-name"
+			copy.Status.Conditions[0].Message = "Modified message"
+
+			Expect(original.Name).To(Equal("test-name"), "Original should not be modified")
+			Expect(original.Status.Conditions[0].Message).To(Equal("Test message"), "Original should not be modified")
+		})
+
+		It("handles nil TestResource", func() {
+			// Create a nil TestResource pointer
+			var nilResource *testutil.TestResource = nil
+
+			// Call DeepCopyObject on nil pointer
+			result := nilResource.DeepCopyObject()
+
+			// Verify result is nil
+			Expect(result).To(BeNil(), "DeepCopyObject on nil should return nil")
+		})
+	})
 })

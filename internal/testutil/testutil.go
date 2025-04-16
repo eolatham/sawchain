@@ -1,6 +1,7 @@
 package testutil
 
 import (
+	"encoding/json"
 	"os"
 
 	corev1 "k8s.io/api/core/v1"
@@ -24,11 +25,13 @@ type TestResourceStatus struct {
 }
 
 func (t *TestResource) DeepCopyObject() runtime.Object {
-	return &TestResource{
-		TypeMeta:   t.TypeMeta,
-		ObjectMeta: t.ObjectMeta,
-		Status:     t.Status,
+	if t == nil {
+		return nil
 	}
+	copy := &TestResource{}
+	data, _ := json.Marshal(t)
+	json.Unmarshal(data, copy)
+	return copy
 }
 
 // CreateTempDir creates a temporary directory and returns its path.
