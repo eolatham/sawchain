@@ -1,18 +1,18 @@
 # Crossplane Render Test
 
-This example demonstrates how Sawchain can be used to test YAML templating and transformation tools like Crossplane's [function-based composition engine](https://docs.crossplane.io/latest/concepts/compositions/)
+This example demonstrates how Sawchain can be used to do offline render testing for Crossplane function-based [compositions](https://docs.crossplane.io/latest/concepts/compositions/)
 
 ## Details
 
 Uses the ExtraResources example composition from the [function-go-templating repository](https://github.com/crossplane-contrib/function-go-templating/tree/main/example/extra-resources)
 
-Includes multiple test cases and uses Chainsaw templating to reuse expectation YAMLs
+Includes positive and negative test cases and uses Chainsaw templating to reuse input and expectation YAMLs
 
 For each test case:
 
-1. Uses the `crossplane render` command to render a sample XR with extra resources using [function-go-templating](https://github.com/crossplane-contrib/function-go-templating)
-1. Parses the output into unstructured Kubernetes objects
-1. Uses Sawchain's `MatchYAML` matcher to verify the rendered resources match the expected output
+1. Renders input files and expected output using Sawchain's `RenderToFile` and `RenderToString` utilities
+1. Runs `crossplane render` and parses the output into unstructured K8s objects
+1. Verifies the rendered resources match the expected output using Sawchain's `MatchYAML` matcher
 
 ## Run
 
