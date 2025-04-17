@@ -8,17 +8,13 @@ spec:
       type: webservice
       properties:
         image: oamdev/testapp:v1
-        env: # TODO: templatize env
-          - name: FOO
-            value: bar
-        port: 8080 # TODO: templatize port
+        port: ($port) # Templated for reuse between test cases
       traits:
         - type: annotations
-          properties:
-            foo: bar # TODO: templatize annotations
+          properties: ($annotations) # Templated for reuse between test cases
         - type: gateway
           properties:
             domain: localhost
             http:
               - path: "/"
-                port: 8080 # TODO: templatize port
+                port: ($port) # Templated for reuse between test cases
