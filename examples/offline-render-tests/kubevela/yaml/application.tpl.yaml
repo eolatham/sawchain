@@ -16,5 +16,4 @@ spec:
           properties:
             domain: localhost
             http:
-              - path: "/"
-                port: ($port) # Templated for reuse between test cases
+              "/": ($port) # Templated for reuse between test cases

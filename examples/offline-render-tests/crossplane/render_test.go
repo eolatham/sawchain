@@ -1,12 +1,17 @@
 package example
 
 import (
+	"bytes"
+	"fmt"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
 	"github.com/eolatham/sawchain"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -48,16 +53,16 @@ var _ = Describe("Crossplane Render", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(output).NotTo(BeEmpty())
 
-				// Parse render output into unstructured objects
-				resources, err := unstructuredFromYaml(output)
-				Expect(err).NotTo(HaveOccurred())
+				// Render output into unstructured objects
+				objs := []client.Object{
+					&unstructured.Unstructured{},
+					&unstructured.Unstructured{},
+				}
+				sc.RenderToObjects(objs, output)
 
-				// Verify rendered resource count
-				Expect(resources).To(HaveLen(2))
-
-				// Verify rendered resource fields
+				// Verify rendered objects
 				for _, document := range strings.Split(expectedOutput, "---") {
-					Expect(resources).To(ContainElement(sc.MatchYAML(document)))
+					Expect(objs).To(ContainElement(sc.MatchYAML(document)))
 				}
 			}
 		},
@@ -69,3 +74,29 @@ var _ = Describe("Crossplane Render", func() {
 		}),
 	)
 })
+
+// runCrossplaneRender runs `crossplane render` with given XR, composition, functions,
+// and any number of --extra-resources files.
+func runCrossplaneRender(xrPath, compositionPath, functionsPath string, extraResources ...string) (string, error) {
+	args := []string{
+		"render",
+		xrPath,
+		compositionPath,
+		functionsPath,
+	}
+
+	for _, res := range extraResources {
+		args = append(args, "--extra-resources="+res)
+	}
+
+	var stdout, stderr bytes.Buffer
+	cmd := exec.Command("crossplane", args...)
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	if err := cmd.Run(); err != nil {
+		return "", fmt.Errorf("failed to run crossplane render: %w\nstderr: %s", err, stderr.String())
+	}
+
+	return stdout.String(), nil
+}

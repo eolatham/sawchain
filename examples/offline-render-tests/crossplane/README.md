@@ -1,4 +1,4 @@
-# Crossplane Render Test
+# Crossplane Offline Render Test
 
 This example demonstrates how Sawchain can be used to do offline render testing for Crossplane function-based [compositions](https://docs.crossplane.io/latest/concepts/compositions/)
 
@@ -23,5 +23,5 @@ Ensure you have Docker running and the [Crossplane CLI](https://docs.crossplane.
 cd /path/to/sawchain
 
 # Run the test
-go test -v ./examples/crossplane-render-test
+go test -v ./examples/offline-render-tests/crossplane
 ```

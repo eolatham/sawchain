@@ -89,6 +89,7 @@ type Sawchain struct {
 //
 //	sc := sawchain.New(t, k8sClient, "10s", "2s")
 func New(t testing.TB, c client.Client, args ...interface{}) *Sawchain {
+	t.Helper()
 	// Create Gomega
 	g := gomega.NewWithT(t)
 	// Check client
@@ -280,6 +281,8 @@ func (s *Sawchain) checkNotFoundF(ctx context.Context, obj client.Object) func()
 //	    password: secret
 //	`, map[string]any{"prefix": "test", "namespace": "default"})
 func (s *Sawchain) Create(ctx context.Context, args ...interface{}) {
+	s.t.Helper()
+
 	// Parse options
 	opts, err := options.ParseAndRequireEventual(&s.opts, args...)
 	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidArgs)
@@ -473,6 +476,8 @@ func (s *Sawchain) Create(ctx context.Context, args ...interface{}) {
 //	    password: updated-secret
 //	`, map[string]any{"prefix": "test", "namespace": "default"})
 func (s *Sawchain) Update(ctx context.Context, args ...interface{}) {
+	s.t.Helper()
+
 	// Parse options
 	opts, err := options.ParseAndRequireEventual(&s.opts, args...)
 	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidArgs)
@@ -628,6 +633,8 @@ func (s *Sawchain) Update(ctx context.Context, args ...interface{}) {
 //	    namespace: ($namespace)
 //	`, map[string]any{"prefix": "test", "namespace": "default"})
 func (s *Sawchain) Delete(ctx context.Context, args ...interface{}) {
+	s.t.Helper()
+
 	// Parse options
 	opts, err := options.ParseAndRequireEventual(&s.opts, args...)
 	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidArgs)
@@ -684,6 +691,8 @@ func (s *Sawchain) Delete(ctx context.Context, args ...interface{}) {
 // TODO: test
 // TODO: document
 func (s *Sawchain) Get(ctx context.Context, args ...interface{}) error {
+	s.t.Helper()
+
 	// Parse options
 	opts, err := options.ParseAndRequireImmediate(&s.opts, args...)
 	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidArgs)
@@ -736,6 +745,8 @@ func (s *Sawchain) Get(ctx context.Context, args ...interface{}) error {
 // TODO: test
 // TODO: document
 func (s *Sawchain) GetFunc(ctx context.Context, args ...interface{}) func() error {
+	s.t.Helper()
+
 	// Parse options
 	opts, err := options.ParseAndRequireImmediate(&s.opts, args...)
 	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidArgs)
@@ -796,6 +807,8 @@ func (s *Sawchain) GetFunc(ctx context.Context, args ...interface{}) func() erro
 // TODO: test
 // TODO: document
 func (s *Sawchain) FetchSingle(ctx context.Context, args ...interface{}) client.Object {
+	s.t.Helper()
+
 	// Parse options
 	opts, err := options.ParseAndRequireImmediateSingle(&s.opts, args...)
 	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidArgs)
@@ -832,6 +845,8 @@ func (s *Sawchain) FetchSingle(ctx context.Context, args ...interface{}) client.
 // TODO: test
 // TODO: document
 func (s *Sawchain) FetchMultiple(ctx context.Context, args ...interface{}) []client.Object {
+	s.t.Helper()
+
 	// Parse options
 	opts, err := options.ParseAndRequireImmediateMulti(&s.opts, args...)
 	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidArgs)
@@ -883,6 +898,8 @@ func (s *Sawchain) FetchMultiple(ctx context.Context, args ...interface{}) []cli
 // TODO: test
 // TODO: document
 func (s *Sawchain) FetchSingleFunc(ctx context.Context, args ...interface{}) func() client.Object {
+	s.t.Helper()
+
 	// Parse options
 	opts, err := options.ParseAndRequireImmediateSingle(&s.opts, args...)
 	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidArgs)
@@ -922,6 +939,8 @@ func (s *Sawchain) FetchSingleFunc(ctx context.Context, args ...interface{}) fun
 // TODO: test
 // TODO: document
 func (s *Sawchain) FetchMultipleFunc(ctx context.Context, args ...interface{}) func() []client.Object {
+	s.t.Helper()
+
 	// Parse options
 	opts, err := options.ParseAndRequireImmediateMulti(&s.opts, args...)
 	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidArgs)
@@ -979,6 +998,8 @@ func (s *Sawchain) FetchMultipleFunc(ctx context.Context, args ...interface{}) f
 // TODO: test
 // TODO: document
 func (s *Sawchain) Check(ctx context.Context, args ...interface{}) error {
+	s.t.Helper()
+
 	// Parse options
 	opts, err := options.ParseAndRequireImmediateTemplate(&s.opts, args...)
 	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidArgs)
@@ -1022,6 +1043,8 @@ func (s *Sawchain) Check(ctx context.Context, args ...interface{}) error {
 // TODO: test
 // TODO: document
 func (s *Sawchain) CheckFunc(ctx context.Context, args ...interface{}) func() error {
+	s.t.Helper()
+
 	// Parse options
 	opts, err := options.ParseAndRequireImmediateTemplate(&s.opts, args...)
 	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidArgs)
@@ -1111,13 +1134,19 @@ func (s *Sawchain) CheckFunc(ctx context.Context, args ...interface{}) func() er
 //
 // For more assertion examples, go to https://kyverno.github.io/chainsaw/.
 func (s *Sawchain) MatchYAML(template string, bindings ...map[string]any) types.GomegaMatcher {
+	s.t.Helper()
+
+	// Read template file
 	if util.IsExistingFile(template) {
 		var err error
 		template, err = util.ReadFileContent(template)
 		s.g.Expect(err).NotTo(gomega.HaveOccurred(), errFailedReadTemplate)
 	}
+
+	// Create matcher
 	matcher := matchers.NewChainsawMatcher(s.c, template, s.mergeBindings(bindings...))
 	s.g.Expect(matcher).NotTo(gomega.BeNil(), errCreatedMatcherIsNil)
+
 	return matcher
 }
 
@@ -1151,6 +1180,7 @@ func (s *Sawchain) MatchYAML(template string, bindings ...map[string]any) types.
 //
 //	g.Expect(myCustomResource).To(sc.HaveStatusCondition("Ready", "True"))
 func (s *Sawchain) HaveStatusCondition(conditionType, expectedStatus string) types.GomegaMatcher {
+	s.t.Helper()
 	matcher := matchers.NewStatusConditionMatcher(s.c, conditionType, expectedStatus)
 	s.g.Expect(matcher).NotTo(gomega.BeNil(), errCreatedMatcherIsNil)
 	return matcher
@@ -1221,13 +1251,20 @@ func (s *Sawchain) HaveStatusCondition(conditionType, expectedStatus string) typ
 //	          - containerPort: 80
 //	`)
 func (s *Sawchain) RenderToObject(obj client.Object, template string, bindings ...map[string]any) {
+	s.t.Helper()
+
+	// Read template file
 	if util.IsExistingFile(template) {
 		var err error
 		template, err = util.ReadFileContent(template)
 		s.g.Expect(err).NotTo(gomega.HaveOccurred(), errFailedReadTemplate)
 	}
+
+	// Render template
 	unstructuredObj, err := chainsaw.RenderTemplateSingle(context.TODO(), template, chainsaw.BindingsFromMap(s.mergeBindings(bindings...)))
 	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidTemplate)
+
+	// Save object
 	s.g.Expect(util.CopyUnstructuredToObject(s.c, unstructuredObj, obj)).To(gomega.Succeed(), errFailedSave)
 }
 
@@ -1304,14 +1341,21 @@ func (s *Sawchain) RenderToObject(obj client.Object, template string, bindings .
 //	      targetPort: 8080
 //	`)
 func (s *Sawchain) RenderToObjects(objs []client.Object, template string, bindings ...map[string]any) {
+	s.t.Helper()
+
+	// Read template file
 	if util.IsExistingFile(template) {
 		var err error
 		template, err = util.ReadFileContent(template)
 		s.g.Expect(err).NotTo(gomega.HaveOccurred(), errFailedReadTemplate)
 	}
+
+	// Render template
 	unstructuredObjs, err := chainsaw.RenderTemplate(context.TODO(), template, chainsaw.BindingsFromMap(s.mergeBindings(bindings...)))
 	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidTemplate)
 	s.g.Expect(objs).To(gomega.HaveLen(len(unstructuredObjs)), errObjectsWrongLength)
+
+	// Save objects
 	for i, unstructuredObj := range unstructuredObjs {
 		s.g.Expect(util.CopyUnstructuredToObject(s.c, unstructuredObj, objs[i])).To(gomega.Succeed(), errFailedSave)
 	}
@@ -1358,13 +1402,20 @@ func (s *Sawchain) RenderToObjects(objs []client.Object, template string, bindin
 //	yaml := sc.RenderToString("path/to/template.yaml",
 //	  map[string]any{"prefix": "test", "namespace": "default"})
 func (s *Sawchain) RenderToString(template string, bindings ...map[string]any) string {
+	s.t.Helper()
+
+	// Read template file
 	if util.IsExistingFile(template) {
 		var err error
 		template, err = util.ReadFileContent(template)
 		s.g.Expect(err).NotTo(gomega.HaveOccurred(), errFailedReadTemplate)
 	}
+
+	// Render template
 	objs, err := chainsaw.RenderTemplate(context.TODO(), template, chainsaw.BindingsFromMap(s.mergeBindings(bindings...)))
 	s.g.Expect(err).NotTo(gomega.HaveOccurred(), errInvalidTemplate)
+
+	// Marshal objects
 	var buf bytes.Buffer
 	for i, obj := range objs {
 		y, err := yaml.Marshal(obj.Object)
@@ -1375,6 +1426,7 @@ func (s *Sawchain) RenderToString(template string, bindings ...map[string]any) s
 		buf.Write(y)
 		buf.WriteString("\n")
 	}
+
 	return buf.String()
 }
 
@@ -1421,6 +1473,7 @@ func (s *Sawchain) RenderToString(template string, bindings ...map[string]any) s
 //	sc.RenderToFile("output.yaml", "path/to/template.yaml",
 //	  map[string]any{"prefix": "test", "namespace": "default"})
 func (s *Sawchain) RenderToFile(filepath, template string, bindings ...map[string]any) {
+	s.t.Helper()
 	rendered := s.RenderToString(template, bindings...)
 	s.g.Expect(os.WriteFile(filepath, []byte(rendered), 0644)).To(gomega.Succeed(), errFailedWrite)
 }
